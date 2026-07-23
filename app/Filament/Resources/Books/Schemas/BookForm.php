@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Books\Schemas;
 
+use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Models\Category;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -16,6 +16,8 @@ use Illuminate\Support\Str;
 
 class BookForm
 {
+    use InteractsWithImagePicker;
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -76,17 +78,16 @@ class BookForm
 
                 Section::make('Gambar Sampul')
                     ->schema([
-                        FileUpload::make('cover_image')
-                            ->label('Gambar Sampul')
-                            ->image()
-                            ->disk('public')
-                            ->directory('books/covers')
-                            ->visibility('public')
-                            ->automaticallyCropImagesToAspectRatio('3:4')
-                            ->automaticallyResizeImagesMode('cover')
-                            ->automaticallyResizeImagesToWidth('600')
-                            ->automaticallyResizeImagesToHeight('800')
-                            ->columnSpanFull(),
+                        self::imagePicker(
+                            key: 'cover_image',
+                            label: 'Gambar Sampul',
+                            hint: 'Rasio 3:4 (potret). Akan di-resize ke 600×800.',
+                            accepted: ['image/jpeg', 'image/png', 'image/webp'],
+                            width: 600,
+                            height: 800,
+                            directory: 'books/covers',
+                            aspectRatio: '3:4',
+                        )->columnSpanFull(),
                     ]),
 
                 Section::make('Harga & Stok')

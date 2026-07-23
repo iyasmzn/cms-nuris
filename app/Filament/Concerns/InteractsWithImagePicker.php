@@ -57,7 +57,10 @@ trait InteractsWithImagePicker
             ->disk('public')
             ->directory($directory)
             ->visibility('public')
-            ->acceptedFileTypes($accepted)
+            // GIF selalu diterima; skrip FilePond global (AdminPanelProvider) melewati
+            // transform untuk image/gif sehingga animasinya tetap utuh (tidak dikompres),
+            // sedangkan format lain tetap di-resize/kompres di browser.
+            ->acceptedFileTypes(array_values(array_unique([...$accepted, 'image/gif'])))
             ->automaticallyResizeImagesToWidth((string) $width)
             ->when($height !== null, fn (FileUpload $component): FileUpload => $component
                 ->automaticallyResizeImagesToHeight((string) $height))

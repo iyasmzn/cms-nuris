@@ -129,6 +129,40 @@ class AdminPanelProvider extends PanelProvider
                     </style>
                     HTML),
             )
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): HtmlString => new HtmlString(<<<'HTML'
+                    <script>
+                        // Biarkan GIF animasi lolos tanpa transform FilePond (tidak dikompres/
+                        // di-crop) sehingga animasinya utuh; format lain tetap di-resize di
+                        // browser. Setter dipasang sinkron di <head> agar aktif sebelum modul
+                        // file-upload Filament menetapkan window.FilePond.
+                        (function () {
+                            var applied = false;
+                            function apply(fp) {
+                                if (fp && !applied && typeof fp.setOptions === 'function') {
+                                    applied = true;
+                                    fp.setOptions({
+                                        imageTransformImageFilter: function (file) {
+                                            return file.type !== 'image/gif';
+                                        }
+                                    });
+                                }
+                            }
+                            var current;
+                            try { current = window.FilePond; } catch (e) {}
+                            apply(current);
+                            try {
+                                Object.defineProperty(window, 'FilePond', {
+                                    configurable: true,
+                                    get: function () { return current; },
+                                    set: function (v) { current = v; apply(v); }
+                                });
+                            } catch (e) {}
+                        })();
+                    </script>
+                    HTML),
+            )
             ->navigationGroups([
                 NavigationGroup::make()
                     ->label('Konten')

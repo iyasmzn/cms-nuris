@@ -271,3 +271,63 @@ if (! function_exists('spmb_in_admission_period')) {
         return spmb_current_wave() !== null;
     }
 }
+
+if (! function_exists('php_upload_max_kb')) {
+    /**
+     * The effective server-side upload ceiling in kilobytes, derived from PHP's
+     * `upload_max_filesize` and `post_max_size` (the smaller wins). A value of
+     * `0` for either directive means unlimited and is ignored. Returns `null`
+     * when neither directive imposes a limit.
+     */
+    function php_upload_max_kb(): ?int
+    {
+        $toBytes = static function (string $value): int {
+            $value = trim($value);
+
+            if ($value === '') {
+                return 0;
+            }
+
+            $number = (int) $value;
+            $unit = strtolower($value[strlen($value) - 1]);
+
+            return match ($unit) {
+                'g' => $number * 1024 * 1024 * 1024,
+                'm' => $number * 1024 * 1024,
+                'k' => $number * 1024,
+                default => $number,
+            };
+        };
+
+        $limits = array_filter([
+            $toBytes((string) ini_get('upload_max_filesize')),
+            $toBytes((string) ini_get('post_max_size')),
+        ], static fn (int $bytes): bool => $bytes > 0);
+
+        return $limits === [] ? null : intdiv(min($limits), 1024);
+    }
+}
+
+if (! function_exists('upload_max_hint')) {
+    /**
+     * A human-readable "maximum file size" hint for upload fields. Combines the
+     * field's own `->maxSize()` (in KB, if any) with the server-side PHP ceiling
+     * from {@see php_upload_max_kb()} and reports the smaller, effective limit.
+     */
+    function upload_max_hint(?int $fieldMaxKb = null): ?string
+    {
+        $candidates = array_filter([$fieldMaxKb, php_upload_max_kb()]);
+
+        if ($candidates === []) {
+            return null;
+        }
+
+        $kb = min($candidates);
+
+        $formatted = $kb >= 1024
+            ? rtrim(rtrim(number_format($kb / 1024, 1), '0'), '.').' MB'
+            : $kb.' KB';
+
+        return "Ukuran maksimal file: {$formatted}.";
+    }
+}

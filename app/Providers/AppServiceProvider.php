@@ -6,14 +6,10 @@ use App\Models\Event;
 use App\Models\Post;
 use App\Models\Program;
 use App\Models\Setting;
-use App\Models\Slide;
 use App\Models\StaticPage;
 use App\Models\Story;
-use App\Models\Teacher;
-use App\Observers\PostObserver;
-use App\Observers\SlideObserver;
-use App\Observers\TeacherObserver;
 use App\Services\SitemapBuilder;
+use Filament\Forms\Components\FileUpload;
 use Filament\Tables\Columns\ImageColumn;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Database\Eloquent\Model;
@@ -41,10 +37,10 @@ class AppServiceProvider extends ServiceProvider
             $column->checkFileExistence(false);
         });
 
-        // ── Auto-sync uploads to Media Library ───────────────────────────────────
-        Slide::observe(SlideObserver::class);
-        Teacher::observe(TeacherObserver::class);
-        Post::observe(PostObserver::class);
+        // ── Show the effective max upload size (field limit vs PHP ini) on uploads ──
+        FileUpload::configureUsing(function (FileUpload $upload): void {
+            $upload->helperText(fn (FileUpload $component): ?string => upload_max_hint($component->getMaxSize()));
+        });
 
         $this->configureMailFromSettings();
         $this->localizeEmailVerification();
