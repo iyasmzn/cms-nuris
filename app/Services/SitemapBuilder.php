@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\Post;
 use App\Models\Program;
 use App\Models\StaticPage;
@@ -92,6 +93,17 @@ class SitemapBuilder
                     Url::create(route('stories.show', $story->slug))
                         ->setLastModificationDate($story->updated_at)
                         ->setPriority(0.5)
+                        ->setChangeFrequency('monthly')
+                );
+            });
+
+        /* ── PPDB institutions ── */
+        Institution::query()->active()
+            ->each(function (Institution $institution) use ($sitemap) {
+                $sitemap->add(
+                    Url::create(route('ppdb.show', $institution))
+                        ->setLastModificationDate($institution->updated_at)
+                        ->setPriority(0.6)
                         ->setChangeFrequency('monthly')
                 );
             });

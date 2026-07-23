@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\Post;
 use App\Models\Program;
 use App\Models\Setting;
@@ -55,7 +56,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $forget = fn (Model $model) => Cache::forget(SitemapBuilder::CACHE_KEY);
 
-        foreach ([Post::class, Event::class, Program::class, Story::class, StaticPage::class] as $model) {
+        foreach ([Post::class, Event::class, Program::class, Story::class, StaticPage::class, Institution::class] as $model) {
             $model::saved($forget);
             $model::deleted($forget);
         }
