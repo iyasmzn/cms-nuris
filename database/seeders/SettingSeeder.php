@@ -40,21 +40,21 @@ class SettingSeeder extends Seeder
     private function general(): array
     {
         return [
-            'site_name' => 'Demo CMS',
-            'site_tagline' => 'Kelola Website Anda dengan Mudah',
-            'site_description' => 'Website demo yang menampilkan fitur-fitur CMS: manajemen konten, blog, agenda kegiatan, katalog, formulir pendaftaran, dan lainnya dalam satu platform.',
+            'site_name' => 'Nurul Islam Tengaran',
+            'site_tagline' => 'Mendidik Generasi Beradab, Disiplin, Kreatif, dan Cerdas',
+            'site_description' => 'Lembaga pendidikan Islam di bawah Yayasan Pendidikan Islam Sabilul Khoirot, Tengaran, Kabupaten Semarang. Menyelenggarakan pendidikan dari jenjang KB/TKIT, SDIT, SMPIT, SMAIT, hingga Madrasah Aliyah dan Pondok Pesantren.',
 
-            'contact_address' => 'Jl. Merdeka No. 1, Jakarta 10110',
-            'contact_phone' => '(021) 123-4567',
-            'contact_email' => 'info@demo.test',
-            'contact_hours' => 'Senin–Jumat, 09.00–17.00 WIB',
-            'contact_map_url' => null,
+            'contact_address' => 'Jl. Raya Salatiga – Solo KM 8, Butuh, RT 20 RW 11, Kecamatan Tengaran, Kabupaten Semarang',
+            'contact_phone' => '(0298) 3429395',
+            'contact_email' => 'ypisabkho@gmail.com',
+            'contact_hours' => 'Senin–Sabtu, 07.00–15.00 WIB',
+            'contact_map_url' => 'https://maps.google.com/?q=Nurul+Islam+Tengaran+Kabupaten+Semarang',
 
-            'social_facebook' => null,
-            'social_instagram' => null,
-            'social_youtube' => null,
+            'social_facebook' => 'https://facebook.com/radionurulislam',
+            'social_instagram' => 'https://instagram.com/nurulislam_tengaran',
+            'social_youtube' => 'https://youtube.com/channel/UCUtZi-71nrZqp2Jaq6nGXhw',
             'social_tiktok' => null,
-            'social_telegram' => null,
+            'social_telegram' => 'https://t.me/nurulislam_tengaran',
             'social_whatsapp' => null,
         ];
     }

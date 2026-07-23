@@ -53,12 +53,16 @@ class CategorySeeder extends Seeder
         return [
             // ── Blog / Berita ─────────────────────────────────────
             Category::TYPE_POST => [
-                'Berita',
+                'Yayasan',
+                'KB/TKIT Nurul Islam',
+                'SDIT Nurul Islam',
+                'SMPIT Nurul Islam',
+                'SMAIT Nurul Islam',
+                'MA Nurul Islam',
+                'Ponpes Nurul Islam',
                 'Pengumuman',
                 'Prestasi',
                 'Kegiatan',
-                'Tips & Panduan',
-                'Inspirasi',
                 'Lainnya',
             ],
 
@@ -77,8 +81,10 @@ class CategorySeeder extends Seeder
             // ── Program / Fitur ────────────────────────────────────
             Category::TYPE_PROGRAM => [
                 'Unggulan',
-                'Fitur',
-                'Layanan',
+                'Al-Qur\'an',
+                'Bahasa',
+                'Pembinaan',
+                'Ekstrakurikuler',
                 'Lainnya',
             ],
 

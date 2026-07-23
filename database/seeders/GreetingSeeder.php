@@ -32,26 +32,19 @@ class GreetingSeeder extends Seeder
             return;
         }
 
+        // Catatan: nama & teks sambutan pimpinan tidak tersedia di website resmi,
+        // sehingga diisi netral. Silakan lengkapi dengan data pimpinan sebenarnya
+        // melalui panel admin.
         $greetings = [
             [
-                'name' => 'Budi Santoso',
+                'name' => 'Pimpinan Nurul Islam Tengaran',
                 'position' => 'Direktur',
                 'nip' => null,
                 'photo' => null,
-                'excerpt' => "Selamat datang di website resmi kami. Dengan bangga kami menghadirkan platform digital yang dirancang untuk memudahkan Anda mengakses informasi, layanan, dan berbagai kegiatan kami.\n\nKami berkomitmen untuk terus berinovasi dan memberikan pelayanan terbaik. Bersama seluruh tim, kami berupaya menghadirkan pengalaman yang bermanfaat bagi setiap pengunjung, anggota, dan mitra kami.",
-                'page_slug' => 'sambutan-direktur',
-                'is_published' => true,
-                'sort_order' => 1,
-            ],
-            [
-                'name' => 'Dewi Lestari',
-                'position' => 'Manajer Operasional',
-                'nip' => null,
-                'photo' => null,
-                'excerpt' => "Terima kasih telah mengunjungi website kami. Melalui media ini, kami berharap dapat menjalin komunikasi yang baik dengan seluruh anggota, mitra, dan masyarakat luas.\n\nKami terus berupaya menghadirkan layanan yang responsif, transparan, dan modern demi kepuasan Anda.",
+                'excerpt' => "Assalamu'alaikum warahmatullahi wabarakatuh.\n\nSelamat datang di website resmi Nurul Islam Tengaran. Dengan penuh syukur kami menghadirkan media informasi ini sebagai sarana untuk lebih mendekatkan lembaga kami kepada masyarakat, wali santri, dan seluruh mitra pendidikan.\n\nSejalan dengan motto kami, \"Mendidik Generasi Beradab, Disiplin, Kreatif, dan Cerdas\", kami berkomitmen menyelenggarakan pendidikan Islam yang berkualitas dari jenjang KB/TKIT hingga SMAIT dan Madrasah Aliyah. Semoga kehadiran kami senantiasa membawa manfaat bagi umat.",
                 'page_slug' => null,
                 'is_published' => true,
-                'sort_order' => 2,
+                'sort_order' => 1,
             ],
         ];
 
