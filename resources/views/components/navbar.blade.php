@@ -21,8 +21,6 @@
         ['label' => 'Kontak',   'url' => '#kontak',   'target' => '_self', 'is_active' => true, 'children' => []],
     ])->where('is_active', true)->values();
 
-    $cartCount = \App\Http\Controllers\CartController::itemCount();
-
     /**
      * Normalise a menu URL and resolve its active state against the current request.
      * Hash-only links (e.g. `#spmb`) are prefixed with `/` so they jump to the home
@@ -159,24 +157,6 @@
                         @endforeach
                     </nav>
 
-                    {{-- Cart icon --}}
-                    @if(feature_enabled('toko'))
-                    <a href="{{ route('cart.index') }}"
-                       class="relative w-9 h-9 rounded-lg flex items-center justify-center transition-colors"
-                       :class="solid ? 'nav-icon-scrolled' : 'hover:bg-white/10'"
-                       title="Keranjang">
-                        <svg class="w-5 h-5 transition-colors" :class="solid ? 'text-gray-700' : 'text-white'"
-                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
-                                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
-                        @if($cartCount > 0)
-                            <span class="absolute -top-1 -right-1 min-w-4.5 h-4.5 px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-white"
-                                  style="background:var(--primary)">{{ $cartCount }}</span>
-                        @endif
-                    </a>
-                    @endif
-
                     {{-- Auth (desktop) --}}
                     @auth
                         <div x-data="{ userDropOpen: false }" class="relative hidden sm:block">
@@ -206,21 +186,6 @@
                                     <p class="text-sm font-semibold truncate" style="color:var(--text)">{{ Auth::user()->name }}</p>
                                     <p class="text-xs truncate" style="color:var(--muted)">{{ Auth::user()->email }}</p>
                                 </div>
-
-                                @if(feature_enabled('toko'))
-                                <a href="{{ route('cart.index') }}"
-                                   class="flex items-center gap-2.5 px-4 py-2.5 text-sm nav-dropdown-item transition-colors"
-                                   style="color:var(--text)">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                    </svg>
-                                    Keranjang
-                                    @if($cartCount > 0)
-                                        <span class="ml-auto text-xs font-bold px-2 py-0.5 rounded-full text-white"
-                                              style="background:var(--primary)">{{ $cartCount }}</span>
-                                    @endif
-                                </a>
-                                @endif
 
                                 <a href="{{ route('profile.edit') }}"
                                    class="flex items-center gap-2.5 px-4 py-2.5 text-sm nav-dropdown-item transition-colors"

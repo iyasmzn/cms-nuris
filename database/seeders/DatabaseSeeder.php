@@ -44,7 +44,6 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->call(CategorySeeder::class);
-        $this->call(BookSeeder::class);
         $this->call(EventSeeder::class);
         $this->call(ProgramSeeder::class);
         $this->call(StorySeeder::class);
@@ -63,7 +62,6 @@ class DatabaseSeeder extends Seeder
         $this->call(TestimonialSeeder::class);
         $this->call(GreetingSeeder::class);
         $this->call(DownloadSeeder::class);
-        $this->call(DonationSeeder::class);
         $this->call(ShieldSeeder::class);
     }
 }

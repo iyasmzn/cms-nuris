@@ -10,8 +10,6 @@ class Category extends Model
     /** Tipe kategori — satu per fitur. */
     public const TYPE_POST = 'post';
 
-    public const TYPE_BOOK = 'book';
-
     public const TYPE_EVENT = 'event';
 
     public const TYPE_PROGRAM = 'program';
@@ -23,7 +21,6 @@ class Category extends Model
     /** Label tampilan per tipe (untuk UI admin). */
     public const TYPE_LABELS = [
         self::TYPE_POST => 'Blog / Berita',
-        self::TYPE_BOOK => 'Produk Buku',
         self::TYPE_EVENT => 'Kegiatan / Event',
         self::TYPE_PROGRAM => 'Program',
         self::TYPE_DOWNLOAD => 'Unduhan',

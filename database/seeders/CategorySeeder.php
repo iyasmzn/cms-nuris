@@ -62,17 +62,6 @@ class CategorySeeder extends Seeder
                 'Lainnya',
             ],
 
-            // ── Produk / Katalog ───────────────────────────────────
-            Category::TYPE_BOOK => [
-                'Teknologi',
-                'Bisnis',
-                'Desain',
-                'Manajemen',
-                'Fotografi',
-                'Pengembangan Diri',
-                'Umum',
-            ],
-
             // ── Kegiatan / Event ───────────────────────────────────
             Category::TYPE_EVENT => [
                 'Seminar',

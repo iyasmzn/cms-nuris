@@ -46,11 +46,9 @@ class LandingPageSettings extends Page
             ['key' => 'section_spmb_steps',  'label' => '📝  Tahapan SPMB',             'visible' => true],
             ['key' => 'section_programs',    'label' => '🎓  Program Unggulan',          'visible' => true],
             ['key' => 'section_events',      'label' => '📅  Agenda Kegiatan',           'visible' => true],
-            ['key' => 'section_books',       'label' => '📚  Buku',                     'visible' => true],
             ['key' => 'section_gallery',     'label' => '🖼️  Galeri Foto',              'visible' => true],
             ['key' => 'section_blog',        'label' => '📰  Blog & Berita',             'visible' => true],
             ['key' => 'section_testimonials', 'label' => '💬  Kesan & Pesan Alumni',      'visible' => true],
-            ['key' => 'section_donasi',      'label' => '💝  Donasi',                   'visible' => true],
             ['key' => 'section_contact',     'label' => '📞  Kontak Kami',               'visible' => true],
         ];
     }
@@ -78,13 +76,6 @@ class LandingPageSettings extends Page
                 'eyebrow' => 'Agenda Pesantren',
                 'title' => 'Kegiatan Akan Datang',
                 'subtitle' => 'Pengajian, seminar, dan berbagai kegiatan menarik yang segera diselenggarakan.',
-            ],
-            'books' => [
-                'label' => 'Buku',
-                'icon' => Heroicon::OutlinedBookOpen,
-                'eyebrow' => 'Toko Buku',
-                'title' => 'Koleksi Buku Pilihan',
-                'subtitle' => 'Kitab, buku agama, dan referensi pendidikan berkualitas tersedia untuk dipesan.',
             ],
             'gallery' => [
                 'label' => 'Galeri Foto',
@@ -120,14 +111,6 @@ class LandingPageSettings extends Page
                 'eyebrow' => 'Hubungi Kami',
                 'title' => 'Kami Siap Membantu Anda',
                 'subtitle' => 'Punya pertanyaan seputar SPMB, akademik, atau kegiatan sekolah? Jangan ragu untuk menghubungi kami.',
-            ],
-            'donasi' => [
-                'label' => 'Donasi',
-                'icon' => Heroicon::OutlinedHeart,
-                'eyebrow' => 'Program Donasi',
-                'title' => 'Bersama Wujudkan',
-                'subtitle' => 'Setiap kontribusi Anda sangat berarti bagi perkembangan pendidikan santri. Donasi Anda akan digunakan untuk pengadaan sarana belajar, beasiswa, dan program-program pesantren.',
-                'highlight' => 'Pendidikan Berkualitas',
             ],
         ];
     }

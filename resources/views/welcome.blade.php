@@ -215,11 +215,9 @@
         ['key' => 'section_spmb_steps',  'visible' => true],
         ['key' => 'section_programs',    'visible' => true],
         ['key' => 'section_events',      'visible' => true],
-        ['key' => 'section_books',       'visible' => true],
         ['key' => 'section_gallery',     'visible' => true],
         ['key' => 'section_blog',        'visible' => true],
         ['key' => 'section_testimonials','visible' => true],
-        ['key' => 'section_donasi',      'visible' => true],
         ['key' => 'section_contact',     'visible' => true],
     ];
 
@@ -243,11 +241,9 @@
         'section_spmb_steps'  => 'sections.spmb-steps',
         'section_programs'    => 'sections.programs',
         'section_events'      => 'sections.events',
-        'section_books'       => 'sections.books',
         'section_gallery'     => 'sections.gallery',
         'section_blog'        => 'sections.blog',
         'section_testimonials'=> 'sections.testimonials',
-        'section_donasi'      => 'sections.donasi',
         'section_contact'     => 'sections.contact',
     ];
 @endphp
@@ -265,15 +261,8 @@
     {{-- ═══════════════════════════════════════════════════
          SECTIONS — ordered & toggled via admin settings
     ═══════════════════════════════════════════════════ --}}
-    @php
-        // Landing sections tied to a toggleable feature; hidden when it is off.
-        $sectionFeature = [
-            'section_books'  => 'toko',
-            'section_donasi' => 'donasi',
-        ];
-    @endphp
     @foreach($sectionOrder as $section)
-        @if(($section['visible'] ?? true) && isset($sectionPartials[$section['key']]) && (! isset($sectionFeature[$section['key']]) || feature_enabled($sectionFeature[$section['key']])))
+        @if(($section['visible'] ?? true) && isset($sectionPartials[$section['key']]))
             @include($sectionPartials[$section['key']])
         @endif
     @endforeach
@@ -391,13 +380,10 @@
                 {{-- ── Col 3: Layanan ── --}}
                 @php
                     $footerServiceLinks = collect(json_decode(setting('footer_service_links', ''), true) ?: [
-                        ['label' => 'Toko Buku',       'url' => '/buku',      'feature' => 'toko',   'is_active' => true],
                         ['label' => 'Daftar Santri',   'url' => '/ppdb',      'feature' => '',       'is_active' => true],
                         ['label' => 'Blog & Berita',   'url' => '/blog',      'feature' => '',       'is_active' => true],
                         ['label' => 'Unduhan',         'url' => '/unduhan',   'feature' => '',       'is_active' => true],
                         ['label' => 'Tenaga Pendidik', 'url' => '/guru',      'feature' => '',       'is_active' => true],
-                        ['label' => 'Donasi',          'url' => '/donasi',    'feature' => 'donasi', 'is_active' => true],
-                        ['label' => 'Keranjang',       'url' => '/keranjang', 'feature' => 'toko',   'is_active' => true],
                     ])
                         ->filter(fn ($l) => ($l['is_active'] ?? true) && (blank($l['feature'] ?? '') || feature_enabled($l['feature'])))
                         ->values();
@@ -463,8 +449,8 @@
                             <span>{{ setting('contact_hours') }}</span>
                         </li>
                         @endif
-                        @if(setting('shop_whatsapp') || setting('social_whatsapp'))
-                        @php $waNum = preg_replace('/\D/', '', setting('shop_whatsapp', setting('social_whatsapp', ''))); @endphp
+                        @if(setting('social_whatsapp'))
+                        @php $waNum = preg_replace('/\D/', '', setting('social_whatsapp', '')); @endphp
                         <li class="pt-1">
                             <a href="https://wa.me/{{ $waNum }}" target="_blank" rel="noopener"
                                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90"

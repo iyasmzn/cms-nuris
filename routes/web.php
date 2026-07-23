@@ -1,24 +1,18 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthorRequestController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ProfileController;
 use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\BookController;
-use App\Http\Controllers\CartController;
-use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ContactController;
-use App\Http\Controllers\DonationController;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProgramController;
-use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SpmbController;
 use App\Http\Controllers\StaticPageController;
@@ -81,32 +75,11 @@ Route::middleware('auth')->group(function () {
         ->name('verification.send');
 });
 
-// ── Pengaturan Profil & Permintaan Menjadi Author ────────────
+// ── Pengaturan Profil ────────────────────────────────────────
 Route::middleware('auth')->group(function () {
     Route::get('/profil', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profil', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profil/kata-sandi', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
-
-    Route::get('/jadi-author', [AuthorRequestController::class, 'show'])->name('author-request.show');
-    Route::post('/jadi-author', [AuthorRequestController::class, 'store'])->name('author-request.store');
-});
-
-// Produk Buku & Keranjang (Toko)
-Route::middleware('feature:toko')->group(function () {
-    Route::get('/buku', [BookController::class, 'index'])->name('books.index');
-    Route::get('/buku/{book:slug}', [BookController::class, 'show'])->name('books.show');
-
-    Route::get('/keranjang', [CartController::class, 'index'])->name('cart.index');
-    Route::post('/keranjang/{book}', [CartController::class, 'add'])->name('cart.add');
-    Route::patch('/keranjang/{book}', [CartController::class, 'update'])->name('cart.update');
-    Route::delete('/keranjang/{book}', [CartController::class, 'remove'])->name('cart.remove');
-    Route::delete('/keranjang', [CartController::class, 'clear'])->name('cart.clear');
-});
-
-// Checkout (harus login; nonaktif jika Login & Register dimatikan)
-Route::middleware(['auth', 'feature:toko_checkout'])->group(function () {
-    Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
-    Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
 });
 
 // Kegiatan / Event
@@ -120,20 +93,6 @@ Route::get('/program/{program:slug}', [ProgramController::class, 'show'])->name(
 // Cerita Santri
 Route::get('/cerita-santri', [StoryController::class, 'index'])->name('stories.index');
 Route::get('/cerita-santri/{story:slug}', [StoryController::class, 'show'])->name('stories.show');
-
-// Donasi
-Route::middleware('feature:donasi')->group(function () {
-    Route::get('/donasi', [DonationController::class, 'index'])->name('donasi.index');
-    Route::post('/donasi', [DonationController::class, 'store'])->middleware('throttle:8,1')->name('donasi.store');
-});
-
-// Tanya Jawab
-Route::middleware('feature:pertanyaan')->group(function () {
-    Route::get('/tanya-jawab', [QuestionController::class, 'index'])->name('questions.index');
-    Route::post('/tanya-jawab', [QuestionController::class, 'store'])
-        ->middleware(['auth', 'verified', 'throttle:8,1'])
-        ->name('questions.store');
-});
 
 // Kontak
 Route::get('/kontak', [ContactController::class, 'index'])->name('contact.index');

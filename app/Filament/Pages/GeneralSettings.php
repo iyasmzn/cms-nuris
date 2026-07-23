@@ -13,7 +13,6 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use UnitEnum;
@@ -61,14 +60,6 @@ class GeneralSettings extends Page
             'social_tiktok' => Setting::get('social_tiktok'),
             'social_telegram' => Setting::get('social_telegram'),
             'social_whatsapp' => Setting::get('social_whatsapp'),
-
-            // Toko Buku
-            'shop_whatsapp' => Setting::get('shop_whatsapp'),
-
-            // Donasi
-            'donasi_bank_name' => Setting::get('donasi_bank_name', 'Bank Syariah Indonesia (BSI)'),
-            'donasi_bank_account' => Setting::get('donasi_bank_account'),
-            'donasi_bank_holder' => Setting::get('donasi_bank_holder'),
         ]);
     }
 
@@ -220,59 +211,6 @@ class GeneralSettings extends Page
                             ->placeholder('6281234567890')
                             ->hint('Nomor internasional tanpa + (contoh: 6281234567890)')
                             ->prefixIcon(Heroicon::OutlinedPhone),
-                    ]),
-                ]),
-
-            Section::make('Toko Buku')
-                ->description('Konfigurasi nomor WhatsApp yang menerima pesanan buku dari halaman checkout.')
-                ->icon(Heroicon::OutlinedBookOpen)
-                ->afterHeader([
-                    Text::make('Fitur nonaktif')
-                        ->badge()
-                        ->color('gray')
-                        ->icon(Heroicon::OutlinedEyeSlash)
-                        ->visible(fn (): bool => ! feature_enabled('toko')),
-                ])
-                ->collapsible()
-                ->collapsed(fn (): bool => ! feature_enabled('toko'))
-                ->persistCollapsed()
-                ->schema([
-                    TextInput::make('shop_whatsapp')
-                        ->label('Nomor WhatsApp Toko Buku')
-                        ->tel()
-                        ->placeholder('6281234567890')
-                        ->hint('Nomor internasional tanpa + (contoh: 6281234567890). Pesanan checkout akan dikirim ke nomor ini.')
-                        ->helperText('Jika kosong, checkout akan mencoba menggunakan nomor WhatsApp sosial media.')
-                        ->prefixIcon(Heroicon::OutlinedPhone),
-                ]),
-
-            Section::make('Donasi')
-                ->description('Informasi rekening donasi yang ditampilkan di halaman donasi dan landing page.')
-                ->icon(Heroicon::OutlinedHeart)
-                ->afterHeader([
-                    Text::make('Fitur nonaktif')
-                        ->badge()
-                        ->color('gray')
-                        ->icon(Heroicon::OutlinedEyeSlash)
-                        ->visible(fn (): bool => ! feature_enabled('donasi')),
-                ])
-                ->collapsible()
-                ->collapsed(fn (): bool => ! feature_enabled('donasi'))
-                ->persistCollapsed()
-                ->schema([
-                    TextInput::make('donasi_bank_name')
-                        ->label('Nama Bank')
-                        ->placeholder('Bank Syariah Indonesia (BSI)')
-                        ->columnSpanFull(),
-
-                    Grid::make(2)->schema([
-                        TextInput::make('donasi_bank_account')
-                            ->label('Nomor Rekening')
-                            ->placeholder('7123456789'),
-
-                        TextInput::make('donasi_bank_holder')
-                            ->label('Nama Pemilik Rekening (a.n.)')
-                            ->placeholder('Pondok Pesantren ...'),
                     ]),
                 ]),
         ]);

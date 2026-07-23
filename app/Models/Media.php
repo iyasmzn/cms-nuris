@@ -38,7 +38,6 @@ class Media extends Model
         'teachers' => 'Guru',
         'testimonials' => 'Kesan & Pesan',
         'downloads' => 'Unduhan',
-        'books' => 'Buku',
         'events' => 'Kegiatan',
         'stories' => 'Cerita Santri',
         'popups' => 'Popup',

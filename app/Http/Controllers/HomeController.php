@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Book;
 use App\Models\Event;
 use App\Models\Greeting;
 use App\Models\Media;
@@ -40,16 +39,11 @@ class HomeController extends Controller
             ->limit(6)
             ->get();
 
-        $featuredBooks = Book::available()
-            ->ordered()
-            ->limit(8)
-            ->get();
-
         $galleryMedia = Media::inGallery()->limit(6)->get();
 
         return view('welcome', compact(
             'posts', 'stats', 'slides', 'greetings', 'testimonials', 'contactItems',
-            'upcomingEvents', 'programs', 'featuredBooks',
+            'upcomingEvents', 'programs',
             'galleryMedia',
         ));
     }

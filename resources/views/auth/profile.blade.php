@@ -6,10 +6,6 @@
 
 @section('content')
 
-@php
-    $authorRequest = $user->authorRequest;
-@endphp
-
 <section class="min-h-screen -mt-17 pt-28 pb-16 px-4"
          style="background:linear-gradient(135deg,#082828 0%,#08484A 60%,#0a6060 100%)">
 
@@ -31,7 +27,6 @@
             @php
                 $tabs = [
                     'akun' => 'Akun',
-                    'pertanyaan' => 'Pertanyaan Saya ('.$myQuestions->count().')',
                     'komentar' => 'Komentar Saya ('.$myComments->count().')',
                 ];
             @endphp
@@ -47,67 +42,24 @@
         {{-- ── Tab: Akun ──────────────────────────────────────── --}}
         <div x-show="tab === 'akun'" x-cloak class="space-y-6">
 
-            {{-- ── CTA / Status Jadi Author ────────────────────── --}}
+            {{-- ── Status Author ───────────────────────────────── --}}
+            @if($user->isAuthor())
             <div class="bg-white rounded-3xl shadow-2xl p-6 sm:p-8">
-                @if($user->isAuthor())
-                    <div class="flex items-start gap-4">
-                        <div class="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 bg-green-100">
-                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-base font-bold" style="color:var(--text)">Anda seorang Author</p>
-                            <p class="text-sm mt-1" style="color:var(--muted)">
-                                Anda dapat menulis dan menerbitkan konten. Terima kasih atas kontribusi Anda!
-                            </p>
-                        </div>
+                <div class="flex items-start gap-4">
+                    <div class="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 bg-green-100">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
                     </div>
-                @elseif($user->hasPendingAuthorRequest())
-                    <div class="flex items-start gap-4">
-                        <div class="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 bg-yellow-100">
-                            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-base font-bold" style="color:var(--text)">Permintaan Author Sedang Ditinjau</p>
-                            <p class="text-sm mt-1" style="color:var(--muted)">
-                                Admin akan meninjau permintaan Anda dalam 1–3 hari kerja.
-                            </p>
-                            <a href="{{ route('author-request.show') }}"
-                               class="inline-flex items-center gap-1.5 text-sm font-semibold mt-2" style="color:var(--primary)">
-                                Lihat status permintaan
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
-                            </a>
-                        </div>
+                    <div>
+                        <p class="text-base font-bold" style="color:var(--text)">Anda seorang Author</p>
+                        <p class="text-sm mt-1" style="color:var(--muted)">
+                            Anda dapat menulis dan menerbitkan konten. Terima kasih atas kontribusi Anda!
+                        </p>
                     </div>
-                @else
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div class="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
-                             style="background:color-mix(in oklab,var(--primary) 12%,white)">
-                            <svg class="w-6 h-6" style="color:var(--primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-base font-bold" style="color:var(--text)">Ingin menjadi Author?</p>
-                            <p class="text-sm mt-1" style="color:var(--muted)">
-                                Bagikan tulisan dan ide Anda di {{ setting('site_name') }}.
-                                @if($authorRequest && $authorRequest->status === 'rejected')
-                                    Permintaan sebelumnya ditolak — Anda dapat mengajukan kembali.
-                                @endif
-                            </p>
-                        </div>
-                        <a href="{{ route('author-request.show') }}"
-                           class="btn-primary text-sm py-2.5 px-5 justify-center shrink-0">
-                            Jadi Author
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                        </a>
-                    </div>
-                @endif
+                </div>
             </div>
+            @endif
 
             {{-- ── Informasi Profil ────────────────────────────── --}}
             <div class="bg-white rounded-3xl shadow-2xl p-6 sm:p-8">
@@ -244,49 +196,6 @@
                     </button>
                 </form>
             </div>
-        </div>
-
-        {{-- ── Tab: Pertanyaan Saya ───────────────────────────── --}}
-        <div x-show="tab === 'pertanyaan'" x-cloak class="space-y-4">
-            @forelse($myQuestions as $question)
-                <div class="bg-white rounded-2xl shadow-xl p-5 sm:p-6">
-                    <div class="flex items-center gap-2 mb-2 flex-wrap">
-                        @if($question->is_answered)
-                            <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
-                                ✓ Dijawab
-                            </span>
-                        @else
-                            <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200">
-                                Menunggu jawaban
-                            </span>
-                        @endif
-                        @if($question->is_anonymous)
-                            <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">Anonim</span>
-                        @endif
-                        @if($question->post)
-                            <a href="{{ route('blog.show', $question->post->slug) }}"
-                               class="text-[11px] font-semibold text-amber-600 hover:underline truncate max-w-[16rem]">
-                                {{ $question->post->title }}
-                            </a>
-                        @endif
-                        <span class="text-[11px] text-gray-400 ml-auto">{{ $question->created_at->diffForHumans() }}</span>
-                    </div>
-                    <p class="text-sm font-medium text-gray-800 mb-2">{{ $question->question }}</p>
-                    @if($question->answer)
-                        <div class="mt-3 pt-3 border-t border-gray-100">
-                            <p class="text-xs font-bold text-amber-700 mb-1">Jawaban {{ setting('site_name', config('app.name')) }}</p>
-                            <p class="text-sm text-gray-700 leading-relaxed">{!! nl2br(e($question->answer)) !!}</p>
-                        </div>
-                    @endif
-                </div>
-            @empty
-                <div class="bg-white rounded-2xl shadow-xl p-8 text-center">
-                    <p class="text-sm text-gray-500 mb-4">Anda belum pernah mengirim pertanyaan.</p>
-                    <a href="{{ route('questions.index') }}" class="btn-primary text-sm py-2.5 px-5 justify-center inline-flex">
-                        Ajukan Pertanyaan
-                    </a>
-                </div>
-            @endforelse
         </div>
 
         {{-- ── Tab: Komentar Saya ─────────────────────────────── --}}

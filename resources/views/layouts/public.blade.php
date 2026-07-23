@@ -327,13 +327,10 @@
                 {{-- ── Col 3: Layanan ── --}}
                 @php
                     $footerServiceLinks = collect(json_decode(setting('footer_service_links', ''), true) ?: [
-                        ['label' => 'Toko Buku',       'url' => '/buku',      'feature' => 'toko', 'is_active' => true],
                         ['label' => 'Daftar Santri',   'url' => '/ppdb',      'feature' => '',     'is_active' => true],
                         ['label' => 'Blog & Berita',   'url' => '/blog',      'feature' => '',     'is_active' => true],
                         ['label' => 'Unduhan',         'url' => '/unduhan',   'feature' => '',       'is_active' => true],
                         ['label' => 'Tenaga Pendidik', 'url' => '/guru',      'feature' => '',       'is_active' => true],
-                        ['label' => 'Donasi',          'url' => '/donasi',    'feature' => 'donasi', 'is_active' => true],
-                        ['label' => 'Keranjang',       'url' => '/keranjang', 'feature' => 'toko',   'is_active' => true],
                     ])
                         ->filter(fn ($l) => ($l['is_active'] ?? true) && (blank($l['feature'] ?? '') || feature_enabled($l['feature'])))
                         ->values();
@@ -404,8 +401,8 @@
                             <span>{{ setting('contact_hours') }}</span>
                         </li>
                         @endif
-                        @if(setting('shop_whatsapp') || setting('social_whatsapp'))
-                        @php $waNum = preg_replace('/\D/', '', setting('shop_whatsapp', setting('social_whatsapp', ''))); @endphp
+                        @if(setting('social_whatsapp'))
+                        @php $waNum = preg_replace('/\D/', '', setting('social_whatsapp', '')); @endphp
                         <li class="pt-1">
                             <a href="https://wa.me/{{ $waNum }}" target="_blank" rel="noopener"
                                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 hover:scale-[1.02]"
