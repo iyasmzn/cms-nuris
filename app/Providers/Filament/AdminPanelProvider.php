@@ -32,6 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->sidebarCollapsibleOnDesktop()
             ->brandName(fn (): string => (string) setting('site_name', config('app.name')))
             ->brandLogo(fn (): ?HtmlString => $this->brandLogo())
             ->brandLogoHeight('2.25rem')
