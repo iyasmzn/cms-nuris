@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StaticPages\Schemas;
 
 use App\Filament\Schemas\ContentBlocks;
+use App\Models\StaticPage;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -12,6 +13,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class StaticPageForm
 {
@@ -37,9 +39,12 @@ class StaticPageForm
                             ->required()
                             ->maxLength(200)
                             ->unique(ignoreRecord: true)
-                            ->rules(['alpha_dash'])
+                            ->rules(['alpha_dash', Rule::notIn(StaticPage::reservedSlugs())])
+                            ->validationMessages([
+                                'not_in' => 'Slug ini sudah dipakai bagian lain situs (mis. blog, ppdb, admin). Gunakan slug lain.',
+                            ])
                             ->hint('Digunakan sebagai URL halaman. Harus unik dan hanya boleh huruf, angka, dan tanda hubung.')
-                            ->helperText(fn (?string $state): string => $state ? '/page/'.$state : '')
+                            ->helperText(fn (?string $state): string => $state ? url('/'.$state) : '')
                             ->columnSpanFull(),
 
                         TextInput::make('meta_description')

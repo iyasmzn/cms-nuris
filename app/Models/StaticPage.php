@@ -27,6 +27,34 @@ class StaticPage extends Model
         'blocks' => 'array',
     ];
 
+    /**
+     * Slug segmen-teratas yang sudah dipakai route lain atau panel admin,
+     * sehingga tidak boleh dipakai halaman statis agar URL tidak bertabrakan.
+     *
+     * @return list<string>
+     */
+    public static function reservedSlugs(): array
+    {
+        return [
+            'admin', 'blog', 'guru', 'ppdb', 'panitia', 'unduhan',
+            'masuk', 'daftar', 'keluar', 'auth', 'email', 'profil',
+            'kegiatan', 'program', 'cerita-santri', 'kontak', 'galeri',
+            'sitemap.xml', 'storage', 'livewire', 'up', 'api', 'page',
+        ];
+    }
+
+    /**
+     * Regex constraint untuk route root `/{slug}`: hanya cocok satu segmen
+     * bersih (huruf, angka, tanda hubung) dan menolak seluruh reserved slug,
+     * sehingga catch-all tidak pernah menaungi route lain maupun panel admin.
+     */
+    public static function rootSlugConstraint(): string
+    {
+        $reserved = implode('|', array_map('preg_quote', static::reservedSlugs()));
+
+        return '(?!(?:'.$reserved.')$)[A-Za-z0-9\-]+';
+    }
+
     // ── Scopes ──────────────────────────────────────────────
 
     public function scopeActive(Builder $query): Builder

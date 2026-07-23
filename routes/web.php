@@ -18,6 +18,7 @@ use App\Http\Controllers\SpmbController;
 use App\Http\Controllers\StaticPageController;
 use App\Http\Controllers\StoryController;
 use App\Http\Controllers\TeacherController;
+use App\Models\StaticPage;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -34,9 +35,6 @@ Route::post('/blog/{post}/komentar', [CommentController::class, 'store'])
 // Tenaga Pendidik
 Route::get('/guru', [TeacherController::class, 'index'])->name('teachers.index');
 Route::get('/guru/{teacher}', [TeacherController::class, 'show'])->name('teachers.show');
-
-// Halaman Statis
-Route::get('/page/{slug}', [StaticPageController::class, 'show'])->name('page.show');
 
 // PPDB / SPMB
 Route::get('/ppdb', [SpmbController::class, 'index'])->name('ppdb.index');
@@ -99,3 +97,11 @@ Route::get('/kontak', [ContactController::class, 'index'])->name('contact.index'
 
 // Galeri
 Route::get('/galeri', [GalleryController::class, 'index'])->name('gallery.index');
+
+// Halaman Statis — catch-all slug root. WAJIB didaftarkan PALING AKHIR agar
+// route spesifik di atas selalu menang. Constraint hanya mencocokkan satu
+// segmen bersih dan menolak reserved slug, sehingga tidak menaungi route lain
+// maupun panel admin.
+Route::get('/{slug}', [StaticPageController::class, 'show'])
+    ->where('slug', StaticPage::rootSlugConstraint())
+    ->name('page.show');

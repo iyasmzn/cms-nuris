@@ -26,7 +26,7 @@ class StaticPagesTable
                     ->label('Judul')
                     ->searchable()
                     ->sortable()
-                    ->description(fn ($record): string => '/page/'.$record->slug),
+                    ->description(fn ($record): string => '/'.$record->slug),
 
                 TextColumn::make('slug')
                     ->label('Slug')
