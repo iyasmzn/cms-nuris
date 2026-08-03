@@ -60,6 +60,14 @@ class AppServiceProvider extends ServiceProvider
             $model::saved($forget);
             $model::deleted($forget);
         }
+
+        /*
+         * Feature toggles decide which pages exist at all, and no content model
+         * is touched when a setting changes. Without this hook the cached XML
+         * would keep advertising URLs that now 404 indefinitely.
+         */
+        Setting::saved($forget);
+        Setting::deleted($forget);
     }
 
     /**
