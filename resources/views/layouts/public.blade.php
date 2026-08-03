@@ -9,6 +9,14 @@
     <meta name="description" content="{{ $seo['description'] ?? '' }}">
     <link rel="canonical" href="{{ $seo['canonical'] ?? url()->current() }}">
     <meta name="robots" content="{{ $seo['robots'] ?? 'index, follow' }}">
+    {{--
+        Pages whose URL is itself a secret (the signed PPDB status page) opt out
+        of sending a Referer, so clicking a footer social link cannot hand the
+        signed URL to that third party.
+    --}}
+    @if(!empty($seo['referrer']))
+        <meta name="referrer" content="{{ $seo['referrer'] }}">
+    @endif
 
     {{-- ── Favicon ─────────────────────────────────────────── --}}
     @if(setting('site_favicon'))

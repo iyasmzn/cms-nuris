@@ -203,6 +203,43 @@ class SpmbPaymentTest extends TestCase
         $response->assertSee('Klik untuk memilih berkas');
     }
 
+    /**
+     * The signed URL is the only credential guarding this page, so it must not
+     * be indexed, must not travel in a Referer header to the footer's social
+     * links, and must not linger in a browser or proxy cache.
+     */
+    public function test_status_page_is_shielded_from_indexing_referrers_and_caching(): void
+    {
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+
+        $response = $this->get(URL::signedRoute('ppdb.payment', $registration));
+
+        $response->assertOk();
+        $response->assertSee('<meta name="robots" content="noindex, nofollow, noarchive">', false);
+        $response->assertSee('<meta name="referrer" content="no-referrer">', false);
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+        $this->assertStringContainsString('private', $response->headers->get('Cache-Control'));
+    }
+
+    public function test_the_lookup_form_stays_indexable(): void
+    {
+        // No personal data on it, and people search for "cek status ppdb".
+        $this->get(route('ppdb.status'))
+            ->assertOk()
+            ->assertSee('<meta name="robots" content="index, follow">', false);
+    }
+
+    public function test_the_status_pages_are_absent_from_the_sitemap(): void
+    {
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+
+        $sitemap = $this->get(route('sitemap'));
+
+        $sitemap->assertOk();
+        $sitemap->assertDontSee('/ppdb/status', false);
+        $sitemap->assertDontSee((string) $registration->id, false);
+    }
+
     public function test_status_page_offers_a_copy_link_button(): void
     {
         $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);

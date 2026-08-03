@@ -7,6 +7,7 @@ use App\Models\SpmbRegistration;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
@@ -81,8 +82,11 @@ class PpdbPaymentController extends Controller
     /**
      * Status pendaftaran plus, when a tagihan exists, the payment instructions
      * and bukti transfer upload form. Reachable only through a signed URL.
+     *
+     * Because the URL itself is the credential, the response is marked
+     * noindex, sends no Referer, and is never cached.
      */
-    public function show(SpmbRegistration $registration): View
+    public function show(SpmbRegistration $registration): Response
     {
         $registration->load(['institution', 'academicYear', 'registrationWave', 'admissionPath', 'payment']);
 
@@ -94,7 +98,10 @@ class PpdbPaymentController extends Controller
         $seo = [
             'title' => "Status Pendaftaran {$registration->registration_number} | {$siteName}",
             'description' => 'Status pendaftaran PPDB dan pembayaran biaya pendaftaran.',
-            'robots' => 'noindex, nofollow',
+            'robots' => 'noindex, nofollow, noarchive',
+            // The signed URL is the credential for this page, so it must not
+            // travel to any third party in a Referer header.
+            'referrer' => 'no-referrer',
         ];
 
         $proofUrl = $payment?->acceptsProof()
@@ -106,7 +113,12 @@ class PpdbPaymentController extends Controller
         // pendaftar arrived with extra query parameters attached.
         $statusUrl = self::statusUrl($registration);
 
-        return view('ppdb.payment', compact('registration', 'payment', 'bankAccounts', 'instructions', 'proofUrl', 'statusUrl', 'seo'));
+        // Personal data on a page often opened from a shared phone or warnet:
+        // keep it out of the browser's back-button cache and any proxy.
+        return response()
+            ->view('ppdb.payment', compact('registration', 'payment', 'bankAccounts', 'instructions', 'proofUrl', 'statusUrl', 'seo'))
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+            ->header('Pragma', 'no-cache');
     }
 
     /**
