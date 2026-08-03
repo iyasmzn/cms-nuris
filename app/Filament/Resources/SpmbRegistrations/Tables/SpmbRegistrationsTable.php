@@ -2,21 +2,28 @@
 
 namespace App\Filament\Resources\SpmbRegistrations\Tables;
 
+use App\Filament\Actions\UpdateRegistrationStatusAction;
+use App\Filament\Resources\SpmbRegistrations\SpmbRegistrationResource;
 use App\Models\AcademicYear;
+use App\Models\RegistrationPayment;
 use App\Models\RegistrationWave;
 use App\Models\SpmbRegistration;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\Indicator;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 class SpmbRegistrationsTable
 {
@@ -87,6 +94,20 @@ class SpmbRegistrationsTable
                     })
                     ->formatStateUsing(fn (string $state): string => SpmbRegistration::statusOptions()[$state] ?? $state),
 
+                TextColumn::make('payment.status')
+                    ->label('Pembayaran')
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        RegistrationPayment::STATUS_UNPAID => 'warning',
+                        RegistrationPayment::STATUS_WAITING => 'info',
+                        RegistrationPayment::STATUS_PAID => 'success',
+                        RegistrationPayment::STATUS_REJECTED => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => RegistrationPayment::statusOptions()[$state] ?? $state)
+                    ->placeholder('Tanpa tagihan')
+                    ->toggleable(),
+
                 TextColumn::make('created_at')
                     ->label('Tgl. Daftar')
                     ->dateTime('d M Y, H:i')
@@ -155,12 +176,51 @@ class SpmbRegistrationsTable
                     ->label('Status')
                     ->options(SpmbRegistration::statusOptions())
                     ->native(false),
+
+                SelectFilter::make('payment_status')
+                    ->label('Status Pembayaran')
+                    ->options(RegistrationPayment::statusOptions())
+                    ->native(false)
+                    ->query(fn (Builder $query, array $data): Builder => $query->when(
+                        $data['value'] ?? null,
+                        fn (Builder $q, string $status): Builder => $q->whereHas(
+                            'payment',
+                            fn (Builder $payment): Builder => $payment->where('status', $status),
+                        ),
+                    )),
             ])
+            ->recordUrl(fn (SpmbRegistration $record): string => SpmbRegistrationResource::getUrl('view', ['record' => $record]))
             ->recordActions([
-                EditAction::make()->label('Kelola'),
+                ViewAction::make()->label('Lihat'),
+                UpdateRegistrationStatusAction::make()->label('Status')->iconButton(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('terbitkanTagihan')
+                        ->label('Terbitkan Tagihan')
+                        ->icon(Heroicon::OutlinedCreditCard)
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('Terbitkan Tagihan Pendaftaran')
+                        ->modalDescription('Untuk pendaftar yang masuk sebelum nominal biaya diatur. Pendaftar yang sudah punya tagihan, atau yang jenjangnya belum punya nominal, dilewati.')
+                        ->deselectRecordsAfterCompletion()
+                        ->visible(fn (): bool => setting_bool('spmb_payment_enabled', false)
+                            && (auth()->user()?->can('Create:RegistrationPayment') ?? false))
+                        ->action(function (Collection $records): void {
+                            $issued = $records
+                                ->map(fn (SpmbRegistration $record): ?RegistrationPayment => RegistrationPayment::issueFor($record))
+                                ->filter()
+                                ->count();
+
+                            $skipped = $records->count() - $issued;
+
+                            Notification::make()
+                                ->success()
+                                ->title("{$issued} tagihan diterbitkan")
+                                ->body($skipped > 0 ? "{$skipped} pendaftar dilewati (sudah punya tagihan atau jenjangnya tanpa nominal biaya)." : null)
+                                ->send();
+                        }),
+
                     DeleteBulkAction::make(),
                 ]),
             ]);

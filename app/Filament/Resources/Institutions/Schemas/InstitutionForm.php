@@ -141,6 +141,21 @@ class InstitutionForm
                         ->columnSpanFull(),
                 ]),
 
+            Section::make('Biaya Pendaftaran')
+                ->description('Nominal yang ditagihkan ke calon pendaftar jenjang ini saat mengirim formulir.')
+                ->icon('heroicon-o-credit-card')
+                ->visible(fn (): bool => setting_bool('spmb_payment_enabled', false))
+                ->schema([
+                    TextInput::make('registration_fee')
+                        ->label('Nominal Biaya Pendaftaran yang Ditagih')
+                        ->numeric()
+                        ->minValue(0)
+                        ->prefix('Rp')
+                        ->placeholder('150000')
+                        ->helperText('Kosongkan atau isi 0 bila pendaftaran jenjang ini gratis — tidak ada tagihan yang terbit. Rincian biaya lain (SPP, seragam) diatur di bagian Konten Halaman PPDB dan sifatnya hanya informasi.')
+                        ->columnSpanFull(),
+                ]),
+
             Section::make('Konten Halaman PPDB')
                 ->description('Khusus jenjang ini. Kosongkan sebuah bagian untuk memakai pengaturan global (Pengaturan PPDB).')
                 ->icon('heroicon-o-document-text')
@@ -197,7 +212,7 @@ class InstitutionForm
                         ->columnSpanFull(),
 
                     Repeater::make('fees')
-                        ->label('Biaya Pendaftaran')
+                        ->label('Rincian Biaya (informasi saja)')
                         ->schema([
                             Grid::make(12)->schema([
                                 TextInput::make('category')

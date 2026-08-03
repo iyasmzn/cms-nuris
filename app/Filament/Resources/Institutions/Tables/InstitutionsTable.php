@@ -49,6 +49,18 @@ class InstitutionsTable
                     ->badge()
                     ->color('gray'),
 
+                TextColumn::make('registration_fee')
+                    ->label('Biaya Daftar')
+                    ->state(fn (Institution $record): string => (int) ($record->registration_fee ?? 0) > 0
+                        ? rupiah($record->registration_fee)
+                        : 'Belum diisi')
+                    ->badge()
+                    ->color(fn (Institution $record): string => (int) ($record->registration_fee ?? 0) > 0 ? 'success' : 'gray')
+                    ->description(fn (Institution $record): ?string => setting_bool('spmb_payment_enabled', false) && (int) ($record->registration_fee ?? 0) <= 0
+                        ? 'Tagihan tidak terbit'
+                        : null)
+                    ->visible(fn (): bool => setting_bool('spmb_payment_enabled', false)),
+
                 IconColumn::make('is_active')
                     ->label('Aktif')
                     ->boolean()

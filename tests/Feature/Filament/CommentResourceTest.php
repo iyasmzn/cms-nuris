@@ -16,7 +16,7 @@ class CommentResourceTest extends TestCase
 
     private function admin(): User
     {
-        return User::factory()->create();
+        return $this->panelUser('Comment');
     }
 
     public function test_admin_can_reply_to_a_comment(): void

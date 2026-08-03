@@ -24,6 +24,13 @@ class ShieldSeeder extends Seeder
             '--no-interaction' => true,
         ]);
 
+        // 2b. Permission kustom di luar CRUD baku Shield. Keduanya memisahkan
+        //     "boleh memutuskan status" dari "boleh mengubah data", sehingga
+        //     panitia verifikasi tidak perlu diberi akses ubah data pendaftar.
+        foreach (self::customPermissions() as $permission) {
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+        }
+
         // 3. Flush cache lagi agar Permission::all() baca dari DB bukan cache lama
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
@@ -61,10 +68,46 @@ class ShieldSeeder extends Seeder
         $superAuthor = Role::firstOrCreate(['name' => 'author_super', 'guard_name' => 'web']);
         $superAuthor->syncPermissions(Permission::whereIn('name', $superAuthorPermissions)->get());
 
+        // 5c. Role panitia verifikasi PPDB.
+        //
+        // Hanya boleh MEMBACA data pendaftar & tagihan, lalu memutuskan status
+        // (verifikasi/terima/tolak pendaftaran, dan lunas/tolak bukti bayar).
+        // Sengaja tanpa Update/Create/Delete agar data pendaftar dan nominal
+        // tagihan tidak bisa berubah — sengaja maupun tidak.
+        $verifier = Role::firstOrCreate(['name' => 'verifikator_ppdb', 'guard_name' => 'web']);
+        $verifier->syncPermissions(Permission::whereIn('name', self::verifierPermissions())->get());
+
         // 6. Assign super_admin ke user admin (fallback ke user pertama jika email tidak ditemukan)
         $admin = User::where('email', 'admin@email.com')->first()
             ?? User::first();
 
         $admin?->assignRole('super_admin');
+    }
+
+    /**
+     * Permission di luar CRUD baku yang tidak dihasilkan `shield:generate`.
+     *
+     * @return list<string>
+     */
+    public static function customPermissions(): array
+    {
+        return [
+            'UpdateStatus:SpmbRegistration',
+            'Verify:RegistrationPayment',
+        ];
+    }
+
+    /**
+     * Permission role `verifikator_ppdb`: baca + putuskan status, tanpa ubah data.
+     *
+     * @return list<string>
+     */
+    public static function verifierPermissions(): array
+    {
+        return [
+            'ViewAny:SpmbRegistration', 'View:SpmbRegistration', 'UpdateStatus:SpmbRegistration',
+            'ViewAny:RegistrationPayment', 'View:RegistrationPayment', 'Verify:RegistrationPayment',
+            'View:Dashboard',
+        ];
     }
 }

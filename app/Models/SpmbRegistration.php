@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class SpmbRegistration extends Model
@@ -95,6 +96,17 @@ class SpmbRegistration extends Model
     public function admissionPath(): BelongsTo
     {
         return $this->belongsTo(AdmissionPath::class);
+    }
+
+    /**
+     * The tagihan biaya pendaftaran, present only when the jenjang charges a
+     * fee and payment handling is switched on.
+     *
+     * @return HasOne<RegistrationPayment, $this>
+     */
+    public function payment(): HasOne
+    {
+        return $this->hasOne(RegistrationPayment::class);
     }
 
     /** @return array<string, string> */

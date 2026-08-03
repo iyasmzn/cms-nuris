@@ -4,7 +4,9 @@ namespace App\Filament\Resources\SpmbRegistrations;
 
 use App\Filament\Resources\SpmbRegistrations\Pages\EditSpmbRegistration;
 use App\Filament\Resources\SpmbRegistrations\Pages\ListSpmbRegistrations;
+use App\Filament\Resources\SpmbRegistrations\Pages\ViewSpmbRegistration;
 use App\Filament\Resources\SpmbRegistrations\Schemas\SpmbRegistrationForm;
+use App\Filament\Resources\SpmbRegistrations\Schemas\SpmbRegistrationInfolist;
 use App\Filament\Resources\SpmbRegistrations\Tables\SpmbRegistrationsTable;
 use App\Models\SpmbRegistration;
 use Filament\Resources\Resource;
@@ -31,6 +33,11 @@ class SpmbRegistrationResource extends Resource
         return SpmbRegistrationForm::configure($schema);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return SpmbRegistrationInfolist::configure($schema);
+    }
+
     public static function table(Table $table): Table
     {
         return SpmbRegistrationsTable::configure($table);
@@ -45,6 +52,7 @@ class SpmbRegistrationResource extends Resource
     {
         return [
             'index' => ListSpmbRegistrations::route('/'),
+            'view' => ViewSpmbRegistration::route('/{record}'),
             'edit' => EditSpmbRegistration::route('/{record}/edit'),
         ];
     }

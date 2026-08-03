@@ -208,9 +208,14 @@ class SpmbRegistrationTest extends TestCase
         $response->assertSessionHasErrors(['full_name', 'nik', 'phone', 'previous_school', 'admission_path_id']);
     }
 
-    public function test_registration_rejects_duplicate_nik(): void
+    public function test_registration_rejects_duplicate_nik_within_the_same_intake(): void
     {
-        SpmbRegistration::factory()->create(['nik' => '3273010101080001']);
+        SpmbRegistration::factory()->create([
+            'nik' => '3273010101080001',
+            'institution_id' => $this->institution->id,
+            'academic_year_id' => $this->year->id,
+            'registration_wave_id' => $this->openWave->id,
+        ]);
 
         $response = $this->post(route('ppdb.store', $this->institution), [
             'full_name' => 'Calon Kedua',
@@ -222,6 +227,92 @@ class SpmbRegistrationTest extends TestCase
 
         $response->assertSessionHasErrors(['nik']);
         $this->assertDatabaseMissing('spmb_registrations', ['full_name' => 'Calon Kedua']);
+    }
+
+    /**
+     * A santri finishing SD must be able to register for SMP under the same
+     * NIK. The uniqueness guard is scoped to one intake, not the whole table.
+     */
+    public function test_the_same_nik_can_register_at_another_jenjang(): void
+    {
+        SpmbRegistration::factory()->create([
+            'nik' => '3273010101080001',
+            'institution_id' => Institution::factory()->create(['slug' => 'sd'])->id,
+            'academic_year_id' => $this->year->id,
+        ]);
+
+        $response = $this->post(route('ppdb.store', $this->institution), [
+            'full_name' => 'Naik ke SMP',
+            'nik' => '3273010101080001',
+            'phone' => '081234567890',
+            'previous_school' => 'SD Nurul Islam',
+            'admission_path_id' => $this->path->id,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('spmb_registrations', [
+            'full_name' => 'Naik ke SMP',
+            'nik' => '3273010101080001',
+            'institution_id' => $this->institution->id,
+        ]);
+    }
+
+    public function test_the_same_nik_can_register_again_in_a_later_tahun_ajaran(): void
+    {
+        $previousYear = AcademicYear::factory()->create(['year_start' => $this->year->year_start - 1, 'is_active' => false]);
+
+        SpmbRegistration::factory()->create([
+            'nik' => '3273010101080001',
+            'institution_id' => $this->institution->id,
+            'academic_year_id' => $previousYear->id,
+        ]);
+
+        $response = $this->post(route('ppdb.store', $this->institution), [
+            'full_name' => 'Mendaftar Lagi',
+            'nik' => '3273010101080001',
+            'phone' => '081234567890',
+            'previous_school' => 'SMP Negeri 3',
+            'admission_path_id' => $this->path->id,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('spmb_registrations', [
+            'full_name' => 'Mendaftar Lagi',
+            'academic_year_id' => $this->year->id,
+        ]);
+    }
+
+    /**
+     * Siblings share a parent phone but have their own NIK, so one parent can
+     * register several children across several jenjang.
+     */
+    public function test_one_parent_phone_can_carry_several_children(): void
+    {
+        $otherJenjang = Institution::factory()->create(['slug' => 'sd']);
+        RegistrationWave::factory()->open()->create([
+            'academic_year_id' => $this->year->id,
+            'institution_id' => $otherJenjang->id,
+        ]);
+
+        $children = [
+            [$this->institution, '3273010101080011', 'Anak Pertama'],
+            [$this->institution, '3273010101080012', 'Anak Kedua'],
+            [$otherJenjang, '3273010101080013', 'Anak Ketiga'],
+            [$otherJenjang, '3273010101080014', 'Anak Keempat'],
+        ];
+
+        foreach ($children as [$jenjang, $nik, $name]) {
+            $this->post(route('ppdb.store', $jenjang), [
+                'full_name' => $name,
+                'nik' => $nik,
+                'phone' => '081234567890',
+                'parent_phone' => '081234567890',
+                'previous_school' => 'Sekolah Asal',
+                'admission_path_id' => $this->path->id,
+            ])->assertSessionHasNoErrors();
+        }
+
+        $this->assertSame(4, SpmbRegistration::where('parent_phone', '081234567890')->count());
     }
 
     public function test_registration_rejects_invalid_nik_length(): void
@@ -375,6 +466,19 @@ class SpmbRegistrationTest extends TestCase
         $path = $registration->data['ijazah'] ?? null;
         $this->assertNotNull($path);
         Storage::disk('local')->assertExists($path);
+    }
+
+    public function test_dynamic_file_field_renders_the_dropzone_component(): void
+    {
+        $this->institution->ppdbFields()->create([
+            'key' => 'ijazah', 'label' => 'Ijazah', 'type' => 'file', 'is_required' => true, 'sort_order' => 1,
+        ]);
+
+        $response = $this->get(route('ppdb.show', $this->institution));
+
+        $response->assertOk();
+        $response->assertSee('id="ppdb-ijazah"', false);
+        $response->assertSee('Klik untuk memilih berkas');
     }
 
     public function test_file_field_rejects_disallowed_type(): void

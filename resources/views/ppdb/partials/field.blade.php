@@ -43,10 +43,9 @@
             @break
 
         @case('file')
-            <input type="file" id="ppdb-{{ $name }}" name="{{ $name }}"
-                   class="ppdb-input @error($name) border-red-400 @enderror"
-                   accept=".jpg,.jpeg,.png,.pdf" @if($required) required @endif>
-            <p class="ppdb-hint">Format: JPG, PNG, atau PDF. Maksimal 2 MB.</p>
+            <x-file-upload :name="$name" :id="'ppdb-'.$name" :required="$required"
+                           accept=".jpg,.jpeg,.png,.pdf"
+                           hint="Format JPG, PNG, atau PDF — maksimal 2 MB." />
             @break
 
         @default

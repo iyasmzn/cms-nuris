@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SpmbRegistrations\Schemas;
 
+use App\Filament\Resources\RegistrationPayments\RegistrationPaymentResource;
 use App\Models\AcademicYear;
 use App\Models\AdmissionPath;
 use App\Models\PpdbField;
@@ -19,6 +20,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\Rules\Unique;
 
 class SpmbRegistrationForm
 {
@@ -78,8 +80,16 @@ class SpmbRegistrationForm
                             ->label('NIK')
                             ->mask('9999999999999999')
                             ->rule('digits:16')
-                            ->unique(ignoreRecord: true)
-                            ->helperText('Nomor Induk Kependudukan, 16 digit.'),
+                            ->unique(
+                                ignoreRecord: true,
+                                modifyRuleUsing: fn (Unique $rule, Get $get): Unique => $rule
+                                    ->where('institution_id', $get('institution_id'))
+                                    ->where('academic_year_id', $get('academic_year_id')),
+                            )
+                            ->validationMessages([
+                                'unique' => 'NIK ini sudah terdaftar pada jenjang dan tahun ajaran yang sama.',
+                            ])
+                            ->helperText('Nomor Induk Kependudukan, 16 digit. Boleh sama dengan pendaftaran di jenjang atau tahun ajaran lain.'),
 
                         TextInput::make('phone')
                             ->label('No. HP / WhatsApp')
@@ -159,6 +169,32 @@ class SpmbRegistrationForm
                     Textarea::make('notes')
                         ->label('Catatan')
                         ->rows(3)
+                        ->columnSpanFull(),
+                ]),
+
+            Section::make('Pembayaran')
+                ->icon('heroicon-o-credit-card')
+                ->visible(fn (?SpmbRegistration $record): bool => $record?->payment !== null)
+                ->schema([
+                    Grid::make(3)->schema([
+                        Placeholder::make('payment_invoice')
+                            ->label('Nomor Tagihan')
+                            ->content(fn (SpmbRegistration $record): string => $record->payment?->invoice_number ?? '—'),
+
+                        Placeholder::make('payment_total')
+                            ->label('Total Ditagihkan')
+                            ->content(fn (SpmbRegistration $record): string => rupiah($record->payment?->total())),
+
+                        Placeholder::make('payment_status')
+                            ->label('Status')
+                            ->content(fn (SpmbRegistration $record): string => $record->payment?->statusLabel() ?? '—'),
+                    ]),
+
+                    Placeholder::make('payment_link')
+                        ->hiddenLabel()
+                        ->content(fn (SpmbRegistration $record): HtmlString => new HtmlString(
+                            '<a href="'.e(RegistrationPaymentResource::getUrl('edit', ['record' => $record->payment])).'" class="text-primary-600 underline">💳 Buka detail pembayaran</a>'
+                        ))
                         ->columnSpanFull(),
                 ]),
 

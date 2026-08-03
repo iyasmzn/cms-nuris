@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\SpmbRegistration;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class SpmbRegistrationPolicy
 {
     use HandlesAuthorization;
-    
+
     public function viewAny(AuthUser $authUser): bool
     {
         return $authUser->can('ViewAny:SpmbRegistration');
@@ -72,4 +72,13 @@ class SpmbRegistrationPolicy
         return $authUser->can('Reorder:SpmbRegistration');
     }
 
+    /**
+     * Whether the user may move a registration between statuses (menunggu,
+     * terverifikasi, diterima, ditolak) without being allowed to edit the
+     * pendaftar's own data. This is what the panitia verifikasi role holds.
+     */
+    public function updateStatus(AuthUser $authUser, SpmbRegistration $spmbRegistration): bool
+    {
+        return $authUser->can('UpdateStatus:SpmbRegistration');
+    }
 }

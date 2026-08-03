@@ -223,7 +223,7 @@
         <button @click="tab = 'prosedur'" :class="tab === 'prosedur' ? 'active' : ''" class="tab-pill">
             📋 Prosedur Pendaftaran
         </button>
-        @if(!empty($fees))
+        @if(!empty($fees) || $institution->chargesRegistrationFee())
         <button @click="tab = 'biaya'" :class="tab === 'biaya' ? 'active' : ''" class="tab-pill">
             💰 Biaya Pendaftaran
         </button>
@@ -231,6 +231,9 @@
         <button @click="tab = 'form'" :class="tab === 'form' ? 'active' : ''" class="tab-pill" id="form-pendaftaran">
             📝 Form Pendaftaran
         </button>
+        <a href="{{ route('ppdb.status') }}" class="tab-pill">
+            🔎 Cek Status &amp; Pembayaran
+        </a>
     </div>
 
     {{-- ──────── TAB: PROSEDUR ──────── --}}
@@ -327,13 +330,29 @@
     </div>
 
     {{-- ──────── TAB: BIAYA ──────── --}}
-    @if(!empty($fees))
+    @if(!empty($fees) || $institution->chargesRegistrationFee())
     <div x-show="tab === 'biaya'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
         <div class="mb-6" data-aos="fade-up">
             <h2 class="text-xl font-bold mb-1" style="color:var(--text)">Biaya Pendaftaran</h2>
             <p class="text-sm" style="color:var(--muted)">Rincian biaya yang perlu disiapkan dalam proses pendaftaran SPMB {{ $spmbYear }}.</p>
         </div>
 
+        @if($institution->chargesRegistrationFee())
+        <div class="fi-card p-6 mb-4 flex flex-col sm:flex-row sm:items-center gap-4" data-aos="fade-up">
+            <div class="flex-1">
+                <p class="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Dibayar saat mendaftar</p>
+                <p class="text-2xl font-extrabold" style="color:var(--text)">{{ rupiah($institution->registration_fee) }}</p>
+                <p class="text-xs mt-1" style="color:var(--muted)">Tagihan beserta nomor rekening tujuan muncul otomatis setelah formulir pendaftaran dikirim.</p>
+            </div>
+            <a href="{{ route('ppdb.status') }}"
+               class="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-50 font-bold text-xs transition-all">
+                Sudah daftar? Cek tagihan
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </a>
+        </div>
+        @endif
+
+        @if(!empty($fees))
         <div class="fi-card overflow-hidden" data-aos="fade-up">
             <div class="amber-bar"></div>
             <table class="w-full text-sm">
@@ -360,6 +379,7 @@
             <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <p>Biaya di atas dapat berubah sewaktu-waktu. Hubungi panitia SPMB untuk informasi terkini.</p>
         </div>
+        @endif
     </div>
     @endif
 

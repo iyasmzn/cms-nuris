@@ -2,13 +2,15 @@
 
 namespace Tests\Feature\Filament;
 
+use App\Filament\Actions\UpdateRegistrationStatusAction;
 use App\Filament\Resources\SpmbRegistrations\Pages\EditSpmbRegistration;
+use App\Filament\Resources\SpmbRegistrations\Pages\ViewSpmbRegistration;
+use App\Models\Institution;
+use App\Models\RegistrationPayment;
 use App\Models\SpmbRegistration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class SpmbRegistrationResourceTest extends TestCase
@@ -21,24 +23,9 @@ class SpmbRegistrationResourceTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = User::factory()->create();
-        $this->grantSpmbPermissions($this->user);
+        $this->user = $this->panelUser('SpmbRegistration');
 
         $this->actingAs($this->user);
-    }
-
-    /**
-     * Grant the Shield permissions the SpmbRegistrationResource pages require.
-     * In production these are seeded and synced onto the super_admin role.
-     */
-    private function grantSpmbPermissions(User $user): void
-    {
-        $permissions = collect(['ViewAny', 'View', 'Create', 'Update', 'Delete', 'DeleteAny'])
-            ->map(fn (string $action): Permission => Permission::findOrCreate("{$action}:SpmbRegistration", 'web'));
-
-        $user->givePermissionTo($permissions);
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     /**
@@ -72,5 +59,62 @@ class SpmbRegistrationResourceTest extends TestCase
             ->fillForm(['nik' => '12345'])
             ->call('save')
             ->assertHasFormErrors(['nik']);
+    }
+
+    public function test_the_preview_page_shows_the_registration_read_only(): void
+    {
+        $registration = SpmbRegistration::factory()->pending()->create([
+            'full_name' => 'Budi Santoso',
+            'nik' => '2975378084746545',
+        ]);
+
+        Livewire::test(ViewSpmbRegistration::class, ['record' => $registration->id])
+            ->assertOk()
+            ->assertSchemaStateSet([
+                'full_name' => 'Budi Santoso',
+                'nik' => '2975378084746545',
+                'status' => 'pending',
+            ]);
+    }
+
+    /**
+     * The payment lives on the preview so panitia never has to leave the
+     * pendaftar to see whether the tagihan is settled.
+     */
+    public function test_the_preview_page_shows_the_payment_inline(): void
+    {
+        $institution = Institution::factory()->create(['registration_fee' => 150_000]);
+        $registration = SpmbRegistration::factory()->pending()->create([
+            'institution_id' => $institution->id,
+        ]);
+        $payment = RegistrationPayment::factory()->waitingVerification()->create([
+            'spmb_registration_id' => $registration->id,
+            'amount' => 150_000,
+        ]);
+
+        Livewire::test(ViewSpmbRegistration::class, ['record' => $registration->id])
+            ->assertOk()
+            ->assertSee($payment->invoice_number)
+            ->assertSee(rupiah($payment->total()))
+            ->assertSee($payment->sender_name);
+    }
+
+    public function test_changing_status_from_the_preview_leaves_the_pendaftar_data_untouched(): void
+    {
+        $registration = SpmbRegistration::factory()->pending()->create([
+            'full_name' => 'Budi Santoso',
+            'nik' => '2975378084746545',
+        ]);
+
+        Livewire::test(ViewSpmbRegistration::class, ['record' => $registration->id])
+            ->callAction(UpdateRegistrationStatusAction::class, ['status' => 'rejected'])
+            ->assertNotified();
+
+        $this->assertDatabaseHas(SpmbRegistration::class, [
+            'id' => $registration->id,
+            'status' => 'rejected',
+            'full_name' => 'Budi Santoso',
+            'nik' => '2975378084746545',
+        ]);
     }
 }

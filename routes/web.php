@@ -12,6 +12,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\PpdbPaymentController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
@@ -40,6 +41,26 @@ Route::get('/guru/{teacher}', [TeacherController::class, 'show'])->name('teacher
 
 // PPDB / SPMB
 Route::get('/ppdb', [SpmbController::class, 'index'])->name('ppdb.index');
+
+// Status pendaftaran & pembayaran. WAJIB di atas /ppdb/{institution:slug} agar
+// tidak tertangkap sebagai slug jenjang.
+Route::get('/ppdb/status', [PpdbPaymentController::class, 'lookup'])->name('ppdb.status');
+Route::post('/ppdb/status', [PpdbPaymentController::class, 'find'])
+    ->middleware('throttle:10,1')
+    ->name('ppdb.status.find');
+Route::get('/ppdb/status/{registration}', [PpdbPaymentController::class, 'show'])
+    ->middleware('signed')
+    ->name('ppdb.payment');
+Route::post('/ppdb/status/{registration}/bukti', [PpdbPaymentController::class, 'uploadProof'])
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('ppdb.payment.proof');
+Route::get('/panitia/ppdb-bukti/{payment}', [PpdbPaymentController::class, 'downloadProof'])
+    ->middleware('auth')
+    ->name('ppdb.payment.download');
+Route::get('/panitia/ppdb-bukti/{payment}/pratinjau', [PpdbPaymentController::class, 'previewProof'])
+    ->middleware('auth')
+    ->name('ppdb.payment.preview');
+
 Route::get('/ppdb/{institution:slug}', [SpmbController::class, 'show'])->name('ppdb.show');
 Route::post('/ppdb/{institution:slug}', [SpmbController::class, 'store'])->middleware('throttle:8,1')->name('ppdb.store');
 Route::get('/panitia/ppdb-berkas/{registration}/{field}', [SpmbController::class, 'downloadBerkas'])

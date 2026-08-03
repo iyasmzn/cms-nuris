@@ -37,6 +37,7 @@ class Institution extends Model
         'embed_url',
         'procedures',
         'fees',
+        'registration_fee',
         'form_title',
         'form_description',
         'closed_message',
@@ -47,6 +48,7 @@ class Institution extends Model
         'is_active' => 'boolean',
         'procedures' => 'array',
         'fees' => 'array',
+        'registration_fee' => 'integer',
     ];
 
     /** @return HasMany<Teacher, $this> */
@@ -151,6 +153,17 @@ class Institution extends Model
     public function resolvedFees(): array
     {
         return $this->fees ?: (json_decode((string) Setting::get('spmb_fees', ''), true) ?: []);
+    }
+
+    /**
+     * Whether a tagihan biaya pendaftaran should be issued for this jenjang:
+     * payment handling must be switched on globally and the jenjang must have
+     * a fee above zero.
+     */
+    public function chargesRegistrationFee(): bool
+    {
+        return setting_bool('spmb_payment_enabled', false)
+            && (int) ($this->registration_fee ?? 0) > 0;
     }
 
     public function resolvedFormTitle(): string

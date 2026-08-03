@@ -7,6 +7,7 @@ use App\Models\AcademicYear;
 use App\Models\AdmissionPath;
 use App\Models\Institution;
 use App\Models\PpdbField;
+use App\Models\RegistrationPayment;
 use App\Models\RegistrationWave;
 use App\Models\Setting;
 use App\Models\SpmbRegistration;
@@ -15,12 +16,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SpmbController extends Controller
 {
     use ProtectsAgainstSpam;
+
+    private const DUPLICATE_NIK_MESSAGE = 'NIK ini sudah terdaftar pada jenjang dan tahun ajaran ini. Setiap calon peserta hanya dapat mendaftar satu kali per jenjang.';
 
     /**
      * Jenjang selector. Redirects straight to the single jenjang when only one
@@ -110,17 +114,24 @@ class SpmbController extends Controller
         $hasPaths = AdmissionPath::query()->forInstitution($institution)->active()->exists();
 
         $payload = $fields->isEmpty()
-            ? $this->validateLegacyRegistration($request)
-            : $this->validateDynamicRegistration($request, $institution, $fields, $hasPaths);
+            ? $this->validateLegacyRegistration($request, $institution, $wave->academic_year_id)
+            : $this->validateDynamicRegistration($request, $institution, $wave->academic_year_id, $fields, $hasPaths);
 
         $payload['institution_id'] = $institution->id;
         $payload['academic_year_id'] = $wave->academic_year_id;
         $payload['registration_wave_id'] = $wave->id;
 
-        SpmbRegistration::create($payload);
+        $registration = SpmbRegistration::create($payload);
+
+        // A jenjang that charges a fee sends the pendaftar straight to their
+        // tagihan; everyone else stays on the PPDB page with a confirmation.
+        if (RegistrationPayment::issueFor($registration) !== null) {
+            return redirect()->to(PpdbPaymentController::statusUrl($registration))
+                ->with('success', "Pendaftaran berhasil dikirim dengan nomor {$registration->registration_number}. Selesaikan pembayaran biaya pendaftaran di bawah ini.");
+        }
 
         return redirect()->route('ppdb.show', $institution)
-            ->with('success', 'Pendaftaran berhasil dikirim! Kami akan segera menghubungi Anda untuk proses verifikasi.');
+            ->with('success', "Pendaftaran berhasil dikirim dengan nomor {$registration->registration_number}! Kami akan segera menghubungi Anda untuk proses verifikasi.");
     }
 
     /**
@@ -152,13 +163,13 @@ class SpmbController extends Controller
      * @param  Collection<int, PpdbField>  $fields
      * @return array<string, mixed>
      */
-    private function validateDynamicRegistration(Request $request, Institution $institution, Collection $fields, bool $requirePath): array
+    private function validateDynamicRegistration(Request $request, Institution $institution, ?int $academicYearId, Collection $fields, bool $requirePath): array
     {
         $rules = [];
         $attributes = [];
 
         foreach ($fields as $field) {
-            $rules[$field->key] = $this->rulesForField($field);
+            $rules[$field->key] = $this->rulesForField($field, $institution, $academicYearId);
             $attributes[$field->key] = $field->label;
         }
 
@@ -168,7 +179,7 @@ class SpmbController extends Controller
 
         $validated = $request->validate($rules, [
             'nik.digits' => 'NIK harus terdiri dari 16 digit angka.',
-            'nik.unique' => 'NIK ini sudah terdaftar. Setiap calon peserta hanya dapat mendaftar satu kali.',
+            'nik.unique' => self::DUPLICATE_NIK_MESSAGE,
         ], $attributes);
 
         $knownKeys = SpmbRegistration::dynamicColumnKeys();
@@ -207,13 +218,13 @@ class SpmbController extends Controller
      *
      * @return array<int, mixed>
      */
-    private function rulesForField(PpdbField $field): array
+    private function rulesForField(PpdbField $field, Institution $institution, ?int $academicYearId): array
     {
         $presence = $field->is_required ? 'required' : 'nullable';
 
         // NIK keeps its dedicated 16-digit + uniqueness guard regardless of type.
         if ($field->key === 'nik') {
-            return [$presence, 'digits:16', Rule::unique('spmb_registrations', 'nik')];
+            return [$presence, 'digits:16', self::uniqueNikRule($institution, $academicYearId)];
         }
 
         if ($field->type === 'file') {
@@ -243,11 +254,11 @@ class SpmbController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function validateLegacyRegistration(Request $request): array
+    private function validateLegacyRegistration(Request $request, Institution $institution, ?int $academicYearId): array
     {
         return $request->validate([
             'full_name' => ['required', 'string', 'max:100'],
-            'nik' => ['required', 'digits:16', Rule::unique('spmb_registrations', 'nik')],
+            'nik' => ['required', 'digits:16', self::uniqueNikRule($institution, $academicYearId)],
             'email' => ['nullable', 'email', 'max:100'],
             'phone' => ['required', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date'],
@@ -262,8 +273,22 @@ class SpmbController extends Controller
         ], [
             'nik.required' => 'NIK wajib diisi.',
             'nik.digits' => 'NIK harus terdiri dari 16 digit angka.',
-            'nik.unique' => 'NIK ini sudah terdaftar. Setiap calon peserta hanya dapat mendaftar satu kali.',
+            'nik.unique' => self::DUPLICATE_NIK_MESSAGE,
         ]);
+    }
+
+    /**
+     * A NIK may only appear once per jenjang per tahun ajaran — not once
+     * overall. Scoping this way lets a santri who finished SD register again
+     * for SMP under the same NIK (and lets a jenjang reopen registration in a
+     * later tahun ajaran) while still blocking a genuine double submission
+     * into the same intake.
+     */
+    private static function uniqueNikRule(Institution $institution, ?int $academicYearId): Unique
+    {
+        return Rule::unique('spmb_registrations', 'nik')
+            ->where('institution_id', $institution->id)
+            ->where('academic_year_id', $academicYearId);
     }
 
     /** @return array<int, array<string, mixed>> */

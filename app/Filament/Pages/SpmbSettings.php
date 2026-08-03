@@ -2,10 +2,13 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Support\IconUpload;
+use App\Models\Institution;
 use App\Models\Setting;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -14,8 +17,10 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\HtmlString;
 use UnitEnum;
 
 class SpmbSettings extends Page
@@ -39,6 +44,7 @@ class SpmbSettings extends Page
     {
         $procedures = json_decode(Setting::get('spmb_procedures', ''), true);
         $fees = json_decode(Setting::get('spmb_fees', ''), true);
+        $bankAccounts = json_decode(Setting::get('spmb_bank_accounts', ''), true);
 
         $this->form->fill([
             // Konten kartu SPMB di halaman depan
@@ -65,6 +71,13 @@ class SpmbSettings extends Page
 
             // Biaya
             'fees' => is_array($fees) ? $fees : $this->defaultFees(),
+
+            // Pembayaran biaya pendaftaran
+            'spmb_payment_enabled' => (bool) Setting::get('spmb_payment_enabled', false),
+            'spmb_payment_unique_code' => (bool) Setting::get('spmb_payment_unique_code', true),
+            'spmb_payment_deadline_hours' => (int) Setting::get('spmb_payment_deadline_hours', 48),
+            'spmb_payment_instructions' => Setting::get('spmb_payment_instructions', 'Transfer sesuai nominal yang tertera (termasuk 3 digit terakhir) ke salah satu rekening di bawah, lalu unggah bukti transfer pada halaman ini.'),
+            'bank_accounts' => is_array($bankAccounts) ? $bankAccounts : [],
         ]);
     }
 
@@ -251,6 +264,85 @@ class SpmbSettings extends Page
                         ->collapsed()
                         ->columnSpanFull(),
                 ]),
+
+            Section::make('Pembayaran Biaya Pendaftaran')
+                ->description('Aktifkan untuk menagih biaya pendaftaran lewat transfer manual. Nominal yang ditagih diatur per jenjang di menu Jenjang / Unit, bukan di daftar biaya informatif di atas.')
+                ->icon(Heroicon::OutlinedCreditCard)
+                ->schema([
+                    Toggle::make('spmb_payment_enabled')
+                        ->label('Aktifkan Tagihan Pendaftaran')
+                        ->onColor('success')
+                        ->offColor('danger')
+                        ->live()
+                        ->helperText('Saat aktif, setiap pendaftar pada jenjang yang punya nominal biaya akan menerima tagihan dan halaman unggah bukti transfer.')
+                        ->columnSpanFull(),
+
+                    Placeholder::make('payment_setup_status')
+                        ->hiddenLabel()
+                        ->visible(fn (Get $get): bool => (bool) $get('spmb_payment_enabled'))
+                        ->content(fn (): HtmlString => $this->paymentSetupStatus())
+                        ->columnSpanFull(),
+
+                    Grid::make(2)
+                        ->visible(fn (Get $get): bool => (bool) $get('spmb_payment_enabled'))
+                        ->schema([
+                            Toggle::make('spmb_payment_unique_code')
+                                ->label('Pakai Kode Unik 3 Digit')
+                                ->onColor('success')
+                                ->helperText('Menambahkan 1–999 rupiah pada nominal agar transfer mudah dicocokkan di mutasi rekening.'),
+
+                            TextInput::make('spmb_payment_deadline_hours')
+                                ->label('Batas Waktu Pembayaran (jam)')
+                                ->numeric()
+                                ->minValue(0)
+                                ->maxValue(720)
+                                ->default(48)
+                                ->helperText('Dihitung sejak formulir dikirim. Isi 0 untuk tanpa batas waktu.'),
+                        ]),
+
+                    Textarea::make('spmb_payment_instructions')
+                        ->label('Petunjuk Pembayaran')
+                        ->rows(3)
+                        ->maxLength(600)
+                        ->visible(fn (Get $get): bool => (bool) $get('spmb_payment_enabled'))
+                        ->columnSpanFull(),
+
+                    Repeater::make('bank_accounts')
+                        ->label('Rekening Tujuan')
+                        ->visible(fn (Get $get): bool => (bool) $get('spmb_payment_enabled'))
+                        ->schema([
+                            Grid::make(12)->schema([
+                                TextInput::make('bank')
+                                    ->label('Bank')
+                                    ->required()
+                                    ->maxLength(40)
+                                    ->placeholder('BSI')
+                                    ->columnSpan(3),
+
+                                TextInput::make('number')
+                                    ->label('Nomor Rekening')
+                                    ->required()
+                                    ->maxLength(40)
+                                    ->placeholder('7123456789')
+                                    ->columnSpan(4),
+
+                                TextInput::make('holder')
+                                    ->label('Atas Nama')
+                                    ->required()
+                                    ->maxLength(80)
+                                    ->placeholder('Yayasan Nurul Islam')
+                                    ->columnSpan(5),
+                            ]),
+                        ])
+                        ->addActionLabel('+ Tambah Rekening')
+                        ->reorderable()
+                        ->reorderableWithDragAndDrop()
+                        ->maxItems(5)
+                        ->defaultItems(0)
+                        ->itemLabel(fn (array $state): string => trim(($state['bank'] ?? 'Rekening baru').' — '.($state['number'] ?? '')))
+                        ->collapsible()
+                        ->columnSpanFull(),
+                ]),
         ]);
     }
 
@@ -281,6 +373,13 @@ class SpmbSettings extends Page
             // Konten
             'spmb_procedures' => json_encode(array_values($data['procedures'] ?? [])),
             'spmb_fees' => json_encode(array_values($data['fees'] ?? [])),
+
+            // Pembayaran
+            'spmb_payment_enabled' => (int) ($data['spmb_payment_enabled'] ?? false),
+            'spmb_payment_unique_code' => (int) ($data['spmb_payment_unique_code'] ?? true),
+            'spmb_payment_deadline_hours' => (int) ($data['spmb_payment_deadline_hours'] ?? 48),
+            'spmb_payment_instructions' => $data['spmb_payment_instructions'] ?? '',
+            'spmb_bank_accounts' => json_encode(array_values($data['bank_accounts'] ?? [])),
         ]);
 
         Notification::make()
@@ -297,6 +396,52 @@ class SpmbSettings extends Page
                 ->icon(Heroicon::OutlinedCheckCircle)
                 ->action('save'),
         ];
+    }
+
+    /**
+     * Tagihan only ever get issued for a jenjang that has its own nominal, and
+     * that field lives on the Jenjang / Unit resource — not on this page. When
+     * the toggle is on but no jenjang carries a nominal, nothing happens at all
+     * and there is otherwise no feedback anywhere explaining why, so spell out
+     * exactly which jenjang are still missing it and where to fill it in.
+     */
+    private function paymentSetupStatus(): HtmlString
+    {
+        $jenjang = Institution::query()->active()->ordered()->get();
+        $missing = $jenjang->filter(fn (Institution $unit): bool => (int) ($unit->registration_fee ?? 0) <= 0);
+
+        $link = static function (Institution $unit): string {
+            return '<a href="'.e(InstitutionResource::getUrl('edit', ['record' => $unit])).'" class="underline font-semibold">'.e($unit->short_name ?: $unit->name).'</a>';
+        };
+
+        if ($missing->isEmpty()) {
+            $summary = $jenjang
+                ->map(fn (Institution $unit): string => e($unit->short_name ?: $unit->name).' '.e(rupiah($unit->registration_fee)))
+                ->implode(' · ');
+
+            return new HtmlString(
+                '<div class="rounded-lg border border-success-300 bg-success-50 p-4 text-sm text-success-700 dark:border-success-800 dark:bg-success-950 dark:text-success-300">'
+                .'<strong>Siap.</strong> Semua jenjang aktif sudah punya nominal biaya pendaftaran.<br><span class="text-xs">'.$summary.'</span>'
+                .'</div>'
+            );
+        }
+
+        $isBlocked = $missing->count() === $jenjang->count();
+        $tone = $isBlocked
+            ? 'border-danger-300 bg-danger-50 text-danger-700 dark:border-danger-800 dark:bg-danger-950 dark:text-danger-300'
+            : 'border-warning-300 bg-warning-50 text-warning-700 dark:border-warning-800 dark:bg-warning-950 dark:text-warning-300';
+
+        $headline = $isBlocked
+            ? 'Tagihan belum akan terbit sama sekali.'
+            : 'Sebagian jenjang belum menagih biaya.';
+
+        return new HtmlString(
+            '<div class="rounded-lg border '.$tone.' p-4 text-sm">'
+            .'<strong>'.$headline.'</strong> Nominal biaya diatur per jenjang, bukan di halaman ini. '
+            .'Buka jenjang berikut lalu isi <em>Nominal Biaya Pendaftaran yang Ditagih</em> pada bagian "Konten Halaman PPDB": '
+            .$missing->map($link)->implode(', ').'.'
+            .'</div>'
+        );
     }
 
     /** @return array<int, array<string, mixed>> */

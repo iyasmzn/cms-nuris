@@ -260,6 +260,45 @@ if (! function_exists('spmb_in_admission_period')) {
     }
 }
 
+if (! function_exists('rupiah')) {
+    /**
+     * Format a whole-rupiah amount for display, e.g. `150000` → `Rp 150.000`.
+     */
+    function rupiah(int|float|null $amount): string
+    {
+        return 'Rp '.number_format((float) ($amount ?? 0), 0, ',', '.');
+    }
+}
+
+if (! function_exists('spmb_bank_accounts')) {
+    /**
+     * The rekening tujuan pembayaran configured in the panel, as a list of
+     * `['bank' => ..., 'number' => ..., 'holder' => ...]` rows. Rows without a
+     * bank name or account number are dropped so the public page never renders
+     * a half-filled rekening.
+     *
+     * @return array<int, array{bank: string, number: string, holder: string}>
+     */
+    function spmb_bank_accounts(): array
+    {
+        $accounts = json_decode((string) setting('spmb_bank_accounts', ''), true);
+
+        if (! is_array($accounts)) {
+            return [];
+        }
+
+        return collect($accounts)
+            ->map(fn ($account): array => [
+                'bank' => trim((string) ($account['bank'] ?? '')),
+                'number' => trim((string) ($account['number'] ?? '')),
+                'holder' => trim((string) ($account['holder'] ?? '')),
+            ])
+            ->filter(fn (array $account): bool => $account['bank'] !== '' && $account['number'] !== '')
+            ->values()
+            ->all();
+    }
+}
+
 if (! function_exists('php_upload_max_kb')) {
     /**
      * The effective server-side upload ceiling in kilobytes, derived from PHP's

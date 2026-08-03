@@ -20,7 +20,7 @@ class TestimonialResourceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->user = User::factory()->create();
+        $this->user = $this->panelUser('Testimonial');
         $this->actingAs($this->user);
     }
 

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\SpmbRegistrations\Pages;
 
 use App\Filament\Resources\SpmbRegistrations\SpmbRegistrationResource;
+use App\Models\RegistrationPayment;
 use App\Models\SpmbRegistration;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
@@ -26,6 +27,7 @@ class ListSpmbRegistrations extends ListRecords
         'No', 'Tahun Ajaran', 'Gelombang', 'Jalur', 'Nama Lengkap', 'NIK', 'Email', 'No. HP',
         'Tempat Lahir', 'Tanggal Lahir', 'Sekolah Asal', 'Kota Sekolah', 'Alamat',
         'Nama Orang Tua', 'No. HP Orang Tua', 'Status', 'Catatan', 'Tanggal Daftar',
+        'No. Tagihan', 'Nominal Tagihan', 'Status Pembayaran',
     ];
 
     protected function getHeaderActions(): array
@@ -43,7 +45,7 @@ class ListSpmbRegistrations extends ListRecords
     {
         /** @var Builder<SpmbRegistration> $query */
         $query = $this->getFilteredTableQuery()
-            ->with(['academicYear', 'registrationWave', 'admissionPath']);
+            ->with(['academicYear', 'registrationWave', 'admissionPath', 'payment']);
 
         $filename = 'data-pendaftar-spmb-'.now()->format('Y-m-d-His').'.xlsx';
 
@@ -55,8 +57,9 @@ class ListSpmbRegistrations extends ListRecords
 
             $number = 0;
             $statuses = SpmbRegistration::statusOptions();
+            $paymentStatuses = RegistrationPayment::statusOptions();
 
-            $query->orderBy('created_at')->chunk(200, function ($records) use ($writer, &$number, $statuses): void {
+            $query->orderBy('created_at')->chunk(200, function ($records) use ($writer, &$number, $statuses, $paymentStatuses): void {
                 foreach ($records as $record) {
                     $writer->addRow(Row::fromValues([
                         ++$number,
@@ -77,6 +80,9 @@ class ListSpmbRegistrations extends ListRecords
                         $statuses[$record->status] ?? $record->status,
                         $record->notes ?? '',
                         $record->created_at?->format('d/m/Y H:i') ?? '',
+                        $record->payment?->invoice_number ?? '',
+                        $record->payment?->total() ?? '',
+                        $record->payment === null ? '' : ($paymentStatuses[$record->payment->status] ?? $record->payment->status),
                     ]));
                 }
             });

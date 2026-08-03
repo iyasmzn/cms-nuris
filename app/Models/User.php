@@ -26,7 +26,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
      *
      * @var list<string>
      */
-    public const PANEL_ROLES = ['super_admin', 'panel_user', 'author', 'author_super'];
+    public const PANEL_ROLES = ['super_admin', 'panel_user', 'author', 'author_super', 'verifikator_ppdb'];
 
     public function canAccessPanel(Panel $panel): bool
     {
