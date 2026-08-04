@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use App\Models\Faq;
 use App\Models\Greeting;
 use App\Models\Media;
 use App\Models\Post;
@@ -26,6 +27,7 @@ class HomeController extends Controller
         $slides = Slide::active()->get();
         $greetings = Greeting::published()->get();
         $testimonials = Testimonial::published()->get();
+        $faqs = Faq::published()->get();
         $contactItems = contact_items();
 
         $upcomingEvents = Event::published()
@@ -42,7 +44,7 @@ class HomeController extends Controller
         $galleryMedia = Media::inGallery()->limit(6)->get();
 
         return view('welcome', compact(
-            'posts', 'stats', 'slides', 'greetings', 'testimonials', 'contactItems',
+            'posts', 'stats', 'slides', 'greetings', 'testimonials', 'faqs', 'contactItems',
             'upcomingEvents', 'programs',
             'galleryMedia',
         ));

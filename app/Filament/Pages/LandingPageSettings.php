@@ -49,6 +49,7 @@ class LandingPageSettings extends Page
             ['key' => 'section_gallery',     'label' => '🖼️  Galeri Foto',              'visible' => true],
             ['key' => 'section_blog',        'label' => '📰  Blog & Berita',             'visible' => true],
             ['key' => 'section_testimonials', 'label' => '💬  Kesan & Pesan Alumni',      'visible' => true],
+            ['key' => 'section_faq',         'label' => '❓  Pertanyaan Umum (FAQ)',     'visible' => true],
             ['key' => 'section_contact',     'label' => '📞  Kontak Kami',               'visible' => true],
         ];
     }
@@ -97,6 +98,13 @@ class LandingPageSettings extends Page
                 'eyebrow' => 'Kesan & Pesan',
                 'title' => 'Apa Kata Alumni',
                 'subtitle' => 'Cerita dan harapan dari para alumni yang telah menempuh pendidikan bersama kami.',
+            ],
+            'faq' => [
+                'label' => 'Pertanyaan Umum (FAQ)',
+                'icon' => Heroicon::OutlinedQuestionMarkCircle,
+                'eyebrow' => 'Pertanyaan Umum',
+                'title' => 'Ada yang Ingin Ditanyakan?',
+                'subtitle' => 'Jawaban atas pertanyaan yang paling sering diajukan calon santri dan orang tua.',
             ],
             'principal' => [
                 'label' => 'Sambutan Para Tokoh',

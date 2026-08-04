@@ -218,6 +218,7 @@
         ['key' => 'section_gallery',     'visible' => true],
         ['key' => 'section_blog',        'visible' => true],
         ['key' => 'section_testimonials','visible' => true],
+        ['key' => 'section_faq',         'visible' => true],
         ['key' => 'section_contact',     'visible' => true],
     ];
 
@@ -244,6 +245,7 @@
         'section_gallery'     => 'sections.gallery',
         'section_blog'        => 'sections.blog',
         'section_testimonials'=> 'sections.testimonials',
+        'section_faq'         => 'sections.faq',
         'section_contact'     => 'sections.contact',
     ];
 @endphp
