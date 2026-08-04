@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Media\Schemas;
 
+use App\Filament\Concerns\InteractsWithAlbumPicker;
 use App\Services\EmbedVideo;
 use Closure;
 use Filament\Forms\Components\FileUpload;
@@ -19,6 +20,8 @@ use Illuminate\Support\HtmlString;
 
 class MediaForm
 {
+    use InteractsWithAlbumPicker;
+
     public static function configure(Schema $schema): Schema
     {
         $isVideoFile = fn (Get $get): bool => str_starts_with((string) $get('mime_type'), 'video/');
@@ -154,10 +157,7 @@ class MediaForm
                                 ->helperText('Aktifkan untuk menampilkan gambar atau video ini di halaman Galeri.')
                                 ->inline(false),
 
-                            TextInput::make('album')
-                                ->label('Album')
-                                ->maxLength(100)
-                                ->placeholder('Contoh: Wisuda 2025, Fasilitas')
+                            self::albumPicker()
                                 ->hint('Opsional. Digunakan untuk mengelompokkan media di galeri.'),
                         ]),
                 ]),

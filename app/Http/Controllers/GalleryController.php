@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Album;
 use App\Models\Media;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -20,16 +21,15 @@ class GalleryController extends Controller
             ->when($type === 'video', fn (Builder $q) => $q->where(fn (Builder $inner) => $inner
                 ->whereNotNull('embed_provider')
                 ->orWhere('mime_type', 'like', 'video/%')))
-            ->when(filled($album), fn (Builder $q) => $q->where('album', $album))
+            ->when(filled($album), fn (Builder $q) => $q->whereRelation('album', 'name', $album))
+            ->with('album')
             ->paginate(24)
             ->withQueryString();
 
-        $albums = Media::query()
-            ->where('show_in_gallery', true)
-            ->whereNotNull('album')
-            ->distinct()
-            ->orderBy('album')
-            ->pluck('album');
+        $albums = Album::query()
+            ->whereHas('media', fn (Builder $q) => $q->where('show_in_gallery', true))
+            ->orderBy('name')
+            ->pluck('name');
 
         $appName = setting('site_name', config('app.name'));
 

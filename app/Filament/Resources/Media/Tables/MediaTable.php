@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Media\Tables;
 
+use App\Models\Album;
 use App\Models\Media;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -81,14 +82,11 @@ class MediaTable
                         $query->fromOrigin($data['value']);
                     }),
 
-                SelectFilter::make('album')
+                SelectFilter::make('album_id')
                     ->label('Album')
-                    ->options(fn (): array => Media::query()
-                        ->whereNotNull('album')
-                        ->distinct()
-                        ->orderBy('album')
-                        ->pluck('album', 'album')
-                        ->all()),
+                    ->options(fn (): array => Album::options())
+                    ->searchable()
+                    ->preload(),
 
                 TernaryFilter::make('show_in_gallery')
                     ->label('Status Publikasi')
@@ -254,7 +252,7 @@ class MediaTable
                 ->icon(Heroicon::OutlinedFolder)
                 ->size(TextSize::ExtraSmall),
 
-            TextColumn::make('album')
+            TextColumn::make('album.name')
                 ->badge()
                 ->color('info')
                 ->icon(Heroicon::OutlinedRectangleStack)

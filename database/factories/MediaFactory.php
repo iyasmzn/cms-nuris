@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Album;
 use App\Models\Media;
 use App\Services\EmbedVideo;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -22,7 +23,7 @@ class MediaFactory extends Factory
             'name' => fake()->unique()->words(2, true),
             'alt' => fake()->sentence(4),
             'description' => fake()->optional()->sentence(),
-            'album' => null,
+            'album_id' => null,
             'path' => 'media/'.fake()->uuid().'.jpg',
             'embed_provider' => null,
             'embed_url' => null,
@@ -44,12 +45,14 @@ class MediaFactory extends Factory
     }
 
     /**
-     * Grouped under a named gallery album.
+     * Grouped under a gallery album, creating it when given a name.
      */
-    public function inAlbum(string $album): static
+    public function inAlbum(Album|string $album): static
     {
         return $this->state(fn (): array => [
-            'album' => $album,
+            'album_id' => $album instanceof Album
+                ? $album->getKey()
+                : Album::firstOrCreate(['name' => $album])->getKey(),
         ]);
     }
 

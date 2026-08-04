@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Media\Pages;
 
+use App\Filament\Concerns\InteractsWithAlbumPicker;
 use App\Filament\Resources\Media\MediaResource;
 use App\Models\Media;
 use App\Services\EmbedThumbnailService;
@@ -29,6 +30,8 @@ use Livewire\Attributes\Session;
 
 class ListMedia extends ListRecords
 {
+    use InteractsWithAlbumPicker;
+
     protected static string $resource = MediaResource::class;
 
     /** Card preview size: small | medium | large | list. Persisted per session. */
@@ -129,17 +132,8 @@ class ListMedia extends ListRecords
                         ->maxLength(500)
                         ->helperText('Deskripsi singkat gambar untuk SEO & aksesibilitas.'),
 
-                    TextInput::make('album')
-                        ->label('Album')
-                        ->maxLength(100)
-                        ->placeholder('Contoh: Wisuda 2025, Fasilitas')
-                        ->helperText('Opsional. Untuk mengelompokkan media di galeri.')
-                        ->datalist(fn (): array => Media::query()
-                            ->whereNotNull('album')
-                            ->distinct()
-                            ->orderBy('album')
-                            ->pluck('album')
-                            ->all()),
+                    self::albumPicker()
+                        ->helperText('Opsional. Untuk mengelompokkan media di galeri.'),
 
                     Toggle::make('show_in_gallery')
                         ->label('Tampil di Galeri')
@@ -166,7 +160,7 @@ class ListMedia extends ListRecords
                     Media::create([
                         'name' => $data['name'],
                         'alt' => $data['alt'] ?? null,
-                        'album' => $data['album'] ?? null,
+                        'album_id' => $data['album_id'] ?? null,
                         'path' => $path,
                         'disk' => 'public',
                         'mime_type' => $disk->mimeType($path),

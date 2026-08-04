@@ -48,7 +48,7 @@ class Media extends Model
         'alt',
         'description',
         'show_in_gallery',
-        'album',
+        'album_id',
         'path',
         'embed_provider',
         'embed_url',
@@ -279,5 +279,13 @@ class Media extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    /**
+     * @return BelongsTo<Album, $this>
+     */
+    public function album(): BelongsTo
+    {
+        return $this->belongsTo(Album::class);
     }
 }
