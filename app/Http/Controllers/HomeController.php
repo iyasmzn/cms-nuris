@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AlumniStat;
 use App\Models\AlumniUniversity;
+use App\Models\ContentSection;
 use App\Models\Event;
 use App\Models\Faq;
 use App\Models\Greeting;
@@ -32,6 +33,7 @@ class HomeController extends Controller
         $greetings = Greeting::published()->get();
         $testimonials = Testimonial::published()->get();
         $faqs = Faq::published()->get();
+        $contentSections = ContentSection::published()->get();
         $contactItems = contact_items();
 
         $upcomingEvents = Event::published()
@@ -49,6 +51,7 @@ class HomeController extends Controller
 
         return view('welcome', compact(
             'posts', 'stats', 'slides', 'greetings', 'testimonials', 'faqs', 'contactItems',
+            'contentSections',
             'alumniStats', 'alumniUniversities',
             'upcomingEvents', 'programs',
             'galleryMedia',

@@ -223,6 +223,15 @@
         ['key' => 'section_contact',     'visible' => true],
     ];
 
+    /** @var \Illuminate\Support\Collection<int, \App\Models\ContentSection> $contentSections */
+    $contentSections = $contentSections ?? \App\Models\ContentSection::published()->get();
+
+    // Seksi dinamis ikut daftar urutan; yang baru dibuat menempel di akhir
+    // sampai admin memindahkannya lewat Pengaturan Halaman Depan.
+    foreach ($contentSections as $contentSectionRecord) {
+        $defaultSectionOrder[] = ['key' => $contentSectionRecord->order_key, 'visible' => true];
+    }
+
     $sectionOrder = json_decode(setting('section_order', ''), true) ?: $defaultSectionOrder;
 
     // Forward-compat: append sections added after the saved order was stored
@@ -269,7 +278,13 @@
          SECTIONS — ordered & toggled via admin settings
     ═══════════════════════════════════════════════════ --}}
     @foreach($sectionOrder as $section)
-        @if(($section['visible'] ?? true) && isset($sectionPartials[$section['key']]))
+        @php
+            $contentSectionId = \App\Models\ContentSection::idFromOrderKey($section['key'] ?? '');
+        @endphp
+        @if($contentSectionId)
+            {{-- Seksi dinamis: tampil/sembunyinya ditentukan oleh status publikasi record --}}
+            @include('sections.content', ['contentSection' => $contentSections->firstWhere('id', $contentSectionId)])
+        @elseif(($section['visible'] ?? true) && isset($sectionPartials[$section['key']]))
             @include($sectionPartials[$section['key']])
         @endif
     @endforeach

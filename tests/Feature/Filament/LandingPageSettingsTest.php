@@ -3,6 +3,7 @@
 namespace Tests\Feature\Filament;
 
 use App\Filament\Pages\LandingPageSettings;
+use App\Models\ContentSection;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -86,5 +87,44 @@ class LandingPageSettingsTest extends TestCase
         $this->assertIsArray($order);
         $this->assertContains('section_programs', array_column($order, 'key'));
         $this->assertContains('section_blog', array_column($order, 'key'));
+    }
+
+    public function test_dynamic_content_sections_join_the_order_list(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+        $section = ContentSection::factory()->create(['title' => 'Fasilitas Kami']);
+
+        Livewire::actingAs($admin)
+            ->test(LandingPageSettings::class)
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $order = json_decode(Setting::get('section_order'), true);
+
+        $this->assertContains($section->order_key, array_column($order, 'key'));
+    }
+
+    public function test_the_visibility_toggle_syncs_a_dynamic_section_publication_status(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+        $section = ContentSection::factory()->create(['is_published' => true]);
+
+        $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
+
+        $sections = collect($component->get('data.sections'))
+            ->map(function (array $entry) use ($section): array {
+                if ($entry['key'] === $section->order_key) {
+                    $entry['visible'] = false;
+                }
+
+                return $entry;
+            })
+            ->all();
+
+        $component->fillForm(['sections' => $sections])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertFalse($section->fresh()->is_published);
     }
 }

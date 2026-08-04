@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\ContentSection;
 use App\Models\Setting;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
@@ -34,8 +35,29 @@ class LandingPageSettings extends Page
     /** @var array<string, mixed>|null */
     public ?array $data = [];
 
-    /** @return array<int, array{key: string, label: string, visible: bool}> */
+    /**
+     * Seksi bawaan ditambah seksi dinamis (ContentSection) yang dibuat admin,
+     * sehingga keduanya bisa diurutkan dalam satu daftar.
+     *
+     * @return array<int, array{key: string, label: string, visible: bool}>
+     */
     private static function defaultSections(): array
+    {
+        $sections = self::builtInSections();
+
+        foreach (ContentSection::ordered()->get() as $contentSection) {
+            $sections[] = [
+                'key' => $contentSection->order_key,
+                'label' => '🧩  '.$contentSection->title,
+                'visible' => $contentSection->is_published,
+            ];
+        }
+
+        return $sections;
+    }
+
+    /** @return array<int, array{key: string, label: string, visible: bool}> */
+    private static function builtInSections(): array
     {
         return [
             ['key' => 'section_hero',        'label' => '🖼️  Hero Image Slider',        'visible' => true],
@@ -149,7 +171,8 @@ class LandingPageSettings extends Page
         $savedSections = $saved ? (json_decode($saved, true) ?: []) : [];
 
         // Preserve the saved order and visibility for known sections, always
-        // refreshing the label from the canonical list.
+        // refreshing the label from the canonical list. Seksi dinamis memakai
+        // status publikasi record-nya sebagai satu-satunya sumber kebenaran.
         $sections = [];
         $seen = [];
         foreach ($savedSections as $section) {
@@ -158,10 +181,14 @@ class LandingPageSettings extends Page
                 continue;
             }
 
+            $isDynamic = ContentSection::idFromOrderKey($key) !== null;
+
             $sections[] = [
                 'key' => $key,
                 'label' => $labelMap->get($key)['label'],
-                'visible' => (bool) ($section['visible'] ?? true),
+                'visible' => $isDynamic
+                    ? $labelMap->get($key)['visible']
+                    : (bool) ($section['visible'] ?? true),
             ];
             $seen[$key] = true;
         }
@@ -208,7 +235,7 @@ class LandingPageSettings extends Page
     {
         $components = [
             Section::make('Urutan & Visibilitas Seksi')
-                ->description('Drag dan drop untuk mengatur urutan tampilan. Aktifkan atau nonaktifkan setiap seksi.')
+                ->description('Drag dan drop untuk mengatur urutan tampilan. Aktifkan atau nonaktifkan setiap seksi. Seksi bertanda 🧩 dibuat di menu Konten → Seksi Halaman Depan.')
                 ->icon(Heroicon::OutlinedQueueList)
                 ->schema([
                     Repeater::make('sections')
@@ -331,10 +358,33 @@ class LandingPageSettings extends Page
 
         Setting::setMany($payload);
 
+        $this->syncContentSectionVisibility($data['sections'] ?? []);
+
         Notification::make()
             ->success()
             ->title('Pengaturan halaman depan disimpan')
             ->send();
+    }
+
+    /**
+     * Toggle seksi dinamis di halaman ini adalah jalan pintas ke status publikasi
+     * record-nya, agar tidak ada dua sumber kebenaran yang bisa berbeda.
+     *
+     * @param  array<int, array<string, mixed>>  $sections
+     */
+    private function syncContentSectionVisibility(array $sections): void
+    {
+        foreach ($sections as $section) {
+            $id = ContentSection::idFromOrderKey((string) ($section['key'] ?? ''));
+
+            if ($id === null) {
+                continue;
+            }
+
+            ContentSection::whereKey($id)->update([
+                'is_published' => (bool) ($section['visible'] ?? true),
+            ]);
+        }
     }
 
     protected function getHeaderActions(): array
