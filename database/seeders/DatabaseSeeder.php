@@ -62,6 +62,8 @@ class DatabaseSeeder extends Seeder
         $this->call(TestimonialSeeder::class);
         $this->call(GreetingSeeder::class);
         $this->call(FaqSeeder::class);
+        $this->call(AlumniStatSeeder::class);
+        $this->call(AlumniUniversitySeeder::class);
         $this->call(DownloadSeeder::class);
         $this->call(ShieldSeeder::class);
     }

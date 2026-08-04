@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AlumniStat;
+use App\Models\AlumniUniversity;
 use App\Models\Event;
 use App\Models\Faq;
 use App\Models\Greeting;
@@ -24,6 +26,8 @@ class HomeController extends Controller
             ->get();
 
         $stats = Stat::ordered()->get();
+        $alumniStats = AlumniStat::ordered()->get();
+        $alumniUniversities = AlumniUniversity::active()->get();
         $slides = Slide::active()->get();
         $greetings = Greeting::published()->get();
         $testimonials = Testimonial::published()->get();
@@ -45,6 +49,7 @@ class HomeController extends Controller
 
         return view('welcome', compact(
             'posts', 'stats', 'slides', 'greetings', 'testimonials', 'faqs', 'contactItems',
+            'alumniStats', 'alumniUniversities',
             'upcomingEvents', 'programs',
             'galleryMedia',
         ));

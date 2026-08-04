@@ -48,6 +48,7 @@ class LandingPageSettings extends Page
             ['key' => 'section_events',      'label' => '📅  Agenda Kegiatan',           'visible' => true],
             ['key' => 'section_gallery',     'label' => '🖼️  Galeri Foto',              'visible' => true],
             ['key' => 'section_blog',        'label' => '📰  Blog & Berita',             'visible' => true],
+            ['key' => 'section_alumni',      'label' => '🎓  Jejak Alumni',              'visible' => true],
             ['key' => 'section_testimonials', 'label' => '💬  Kesan & Pesan Alumni',      'visible' => true],
             ['key' => 'section_faq',         'label' => '❓  Pertanyaan Umum (FAQ)',     'visible' => true],
             ['key' => 'section_contact',     'label' => '📞  Kontak Kami',               'visible' => true],
@@ -57,9 +58,11 @@ class LandingPageSettings extends Page
     /**
      * Sections whose header text (eyebrow, title, subtitle) can be edited here.
      * Keys map to the `section_{key}_*` setting keys read by the Blade partials.
-     * `highlight` marks a section whose title has an accented second line.
+     * `highlight` marks a section whose title has an accented second line, and
+     * `extra` declares additional single-line texts unique to a section (stored
+     * as `section_{key}_{suffix}`).
      *
-     * @return array<string, array{label: string, icon: Heroicon, eyebrow: string, title: string, subtitle: string, highlight?: string}>
+     * @return array<string, array{label: string, icon: Heroicon, eyebrow: string, title: string, subtitle: string, highlight?: string, extra?: array<string, array{label: string, default: string, helperText?: string}>}>
      */
     private static function contentSections(): array
     {
@@ -91,6 +94,20 @@ class LandingPageSettings extends Page
                 'eyebrow' => 'Berita & Artikel',
                 'title' => 'Artikel',
                 'subtitle' => 'Blog inspiratif dari berbagai sumber.',
+            ],
+            'alumni' => [
+                'label' => 'Jejak Alumni',
+                'icon' => Heroicon::OutlinedAcademicCap,
+                'eyebrow' => 'Jejak Alumni',
+                'title' => 'Ke Mana Alumni Kami Melangkah',
+                'subtitle' => 'Lulusan kami melanjutkan studi dan berkarya di berbagai perguruan tinggi dalam dan luar negeri.',
+                'extra' => [
+                    'logos_title' => [
+                        'label' => 'Judul Baris Logo Kampus',
+                        'default' => 'Kampus Tujuan Alumni',
+                        'helperText' => 'Teks kecil di atas deretan logo kampus yang berjalan.',
+                    ],
+                ],
             ],
             'testimonials' => [
                 'label' => 'Kesan & Pesan Alumni',
@@ -173,6 +190,10 @@ class LandingPageSettings extends Page
             if (isset($content['highlight'])) {
                 $fill["section_{$key}_title_highlight"] = Setting::get("section_{$key}_title_highlight", $content['highlight']);
             }
+
+            foreach ($content['extra'] ?? [] as $suffix => $extra) {
+                $fill["section_{$key}_{$suffix}"] = Setting::get("section_{$key}_{$suffix}", $extra['default']);
+            }
         }
 
         $this->form->fill($fill);
@@ -253,7 +274,7 @@ class LandingPageSettings extends Page
     }
 
     /**
-     * @param  array{label: string, icon: Heroicon, eyebrow: string, title: string, subtitle: string, highlight?: string}  $content
+     * @param  array{label: string, icon: Heroicon, eyebrow: string, title: string, subtitle: string, highlight?: string, extra?: array<string, array{label: string, default: string, helperText?: string}>}  $content
      * @return array<int, TextInput|Textarea>
      */
     private function contentFields(string $key, array $content): array
@@ -287,6 +308,15 @@ class LandingPageSettings extends Page
             ->placeholder($content['subtitle'])
             ->helperText('Kosongkan untuk menyembunyikan deskripsi.')
             ->columnSpanFull();
+
+        foreach ($content['extra'] ?? [] as $suffix => $extra) {
+            $fields[] = TextInput::make("section_{$key}_{$suffix}")
+                ->label($extra['label'])
+                ->maxLength(120)
+                ->placeholder($extra['default'])
+                ->helperText($extra['helperText'] ?? null)
+                ->columnSpanFull();
+        }
 
         return $fields;
     }
