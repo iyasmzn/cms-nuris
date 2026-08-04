@@ -15,8 +15,11 @@ class GalleryController extends Controller
         $album = $request->query('album');
 
         $items = Media::inGallery()
-            ->when($type === 'foto', fn (Builder $q) => $q->whereNull('embed_provider'))
-            ->when($type === 'video', fn (Builder $q) => $q->whereNotNull('embed_provider'))
+            ->when($type === 'foto', fn (Builder $q) => $q->whereNull('embed_provider')
+                ->where('mime_type', 'like', 'image/%'))
+            ->when($type === 'video', fn (Builder $q) => $q->where(fn (Builder $inner) => $inner
+                ->whereNotNull('embed_provider')
+                ->orWhere('mime_type', 'like', 'video/%')))
             ->when(filled($album), fn (Builder $q) => $q->where('album', $album))
             ->paginate(24)
             ->withQueryString();

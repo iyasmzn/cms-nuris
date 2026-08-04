@@ -150,6 +150,15 @@ class EmbedVideo
     }
 
     /**
+     * A generic video badge, used as the preview image for videos that have no
+     * fetchable thumbnail of their own (uploaded files, TikTok, Instagram).
+     */
+    public static function placeholderThumbnail(?string $provider = null): string
+    {
+        return self::badge((string) $provider);
+    }
+
+    /**
      * Instagram has no fixed embed id endpoint, so append `/embed` to the
      * canonical post/reel URL (stripping any query string).
      */

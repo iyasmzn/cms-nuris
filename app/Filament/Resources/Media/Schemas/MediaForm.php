@@ -21,23 +21,50 @@ class MediaForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $isVideoFile = fn (Get $get): bool => str_starts_with((string) $get('mime_type'), 'video/');
+
         return $schema->components([
             Hidden::make('embed_provider'),
+            Hidden::make('mime_type'),
 
             Section::make('File')
                 ->visible(fn (Get $get): bool => blank($get('embed_provider')))
                 ->schema([
+                    // Videos reuse the same uploader with their own accepted
+                    // types, so a video item can be replaced without leaving
+                    // the media library.
                     FileUpload::make('path')
-                        ->label('File')
+                        ->label(fn (Get $get): string => $isVideoFile($get) ? 'Berkas Video' : 'File')
                         ->disk('public')
                         ->directory('media')
                         ->visibility('public')
-                        ->image()
-                        ->acceptedFileTypes([
-                            'image/jpeg', 'image/png', 'image/gif',
-                            'image/webp', 'image/svg+xml',
-                            'application/pdf',
-                        ])
+                        ->acceptedFileTypes(fn (Get $get): array => $isVideoFile($get)
+                            ? ['video/mp4', 'video/webm', 'video/ogg']
+                            : [
+                                'image/jpeg', 'image/png', 'image/gif',
+                                'image/webp', 'image/svg+xml',
+                                'application/pdf',
+                            ])
+                        ->maxSize(fn (Get $get): ?int => $isVideoFile($get) ? 20480 : null)
+                        ->helperText(fn (Get $get): ?string => $isVideoFile($get) ? 'MP4/WebM, maksimal 20MB.' : null)
+                        ->columnSpanFull(),
+
+                    Placeholder::make('video_preview')
+                        ->label('Pratinjau')
+                        ->visible(fn (Get $get): bool => $isVideoFile($get) && filled($get('path')))
+                        ->content(function (Get $get): ?HtmlString {
+                            $path = $get('path');
+                            $path = is_array($path) ? null : $path;
+
+                            if (blank($path)) {
+                                return null;
+                            }
+
+                            return new HtmlString(
+                                '<video src="'.e(asset('storage/'.$path)).'" controls muted playsinline '
+                                .'style="max-height:240px;max-width:100%;border-radius:.75rem;border:1px solid rgba(0,0,0,.1);"></video>'
+                            );
+                        })
                         ->columnSpanFull(),
                 ]),
 
@@ -96,6 +123,13 @@ class MediaForm
                         })
                         ->columnSpanFull(),
 
+                ]),
+
+            Section::make('Thumbnail')
+                ->description('Gambar sampul yang mewakili video di galeri & media library.')
+                ->icon(Heroicon::OutlinedPhoto)
+                ->visible(fn (Get $get): bool => filled($get('embed_provider')) || $isVideoFile($get))
+                ->schema([
                     FileUpload::make('embed_thumbnail_path')
                         ->label('Thumbnail Manual')
                         ->image()
@@ -103,7 +137,9 @@ class MediaForm
                         ->directory('media/embed-thumbnails')
                         ->visibility('public')
                         ->maxSize(5120)
-                        ->helperText('Opsional. YouTube & TikTok otomatis mengambil thumbnail. Unggah gambar untuk Instagram, atau bila ingin mengganti thumbnail otomatis.')
+                        ->helperText(fn (Get $get): string => $isVideoFile($get)
+                            ? 'Opsional, tapi disarankan: berkas video tidak punya thumbnail otomatis. Tanpa ini galeri memakai ikon video biasa.'
+                            : 'Opsional. YouTube & TikTok otomatis mengambil thumbnail. Unggah gambar untuk Instagram, atau bila ingin mengganti thumbnail otomatis.')
                         ->columnSpanFull(),
                 ]),
 

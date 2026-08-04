@@ -1,24 +1,75 @@
-<section class="relative h-130 sm:h-145 lg:h-160 overflow-hidden -mt-17">
+{{-- Ukuran latar video mengikuti tinggi hero per breakpoint (h-130/145/160)
+     sehingga iframe 16:9 selalu menutup penuh tanpa gepeng. --}}
+<style>
+    .hero-media { --hero-h: 32.5rem; }
+    @media (min-width: 640px)  { .hero-media { --hero-h: 36.25rem; } }
+    @media (min-width: 1024px) { .hero-media { --hero-h: 40rem; } }
+
+    .hero-yt-frame {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: max(100vw, calc(var(--hero-h) * 16 / 9));
+        height: max(56.25vw, var(--hero-h));
+        border: 0;
+        pointer-events: none;
+    }
+</style>
+
+<section class="hero-media relative h-130 sm:h-145 lg:h-160 overflow-hidden -mt-17">
 
     {{-- Slides --}}
     @forelse($slides as $index => $s)
         <div class="slide absolute inset-0 transition-opacity duration-700"
              :class="{{ $index }} === slide ? 'opacity-100 z-10' : 'opacity-0 z-0'">
 
-            {{-- Background image --}}
+            {{-- Background image — juga jadi poster/fallback untuk slide video --}}
             <img src="{{ $s->image_url }}"
                  alt="{{ $s->title }}"
                  class="absolute inset-0 w-full h-full object-cover"
                  loading="{{ $index === 0 ? 'eager' : 'lazy' }}">
 
+            {{-- Background video: file unggahan, diputar hanya saat slide aktif --}}
+            @if($s->media_type === \App\Models\Slide::MEDIA_VIDEO && $s->hasVideoBackground())
+                <video class="absolute inset-0 w-full h-full object-cover"
+                       poster="{{ $s->image_url }}"
+                       muted loop playsinline autoplay preload="metadata"
+                       x-effect="{{ $index }} === slide ? $el.play().catch(() => {}) : $el.pause()">
+                    <source src="{{ $s->video_file_url }}">
+                </video>
+            @endif
+
+            {{-- Background video: YouTube, mute & berulang (syarat autoplay browser) --}}
+            @if($s->media_type === \App\Models\Slide::MEDIA_YOUTUBE && $s->hasVideoBackground())
+                <div class="absolute inset-0 overflow-hidden">
+                    <iframe class="hero-yt-frame"
+                            :src="{{ $index }} === slide ? {{ Illuminate\Support\Js::from($s->youtube_background_src) }} : ''"
+                            title="{{ $s->title }}"
+                            allow="autoplay; encrypted-media; picture-in-picture"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            tabindex="-1"
+                            aria-hidden="true"></iframe>
+                </div>
+            @endif
+
             {{-- Refined gradient overlay --}}
-            <div class="absolute inset-0"
+            <div class="absolute inset-0 pointer-events-none"
                  style="background:linear-gradient(135deg,rgba(0,0,0,.7) 0%,rgba(0,0,0,.4) 55%,rgba(0,0,0,.1) 100%)"></div>
 
+            {{-- Tanpa tombol preview, area video sendiri yang membuka pop-up --}}
+            @if($s->hasVideoPreview() && ! $s->showsVideoButton())
+                <button type="button"
+                        class="absolute inset-0 z-5 w-full h-full cursor-pointer"
+                        @click="openVideo({{ Illuminate\Support\Js::from($s->previewSource()) }})">
+                    <span class="sr-only">Putar video: {{ $s->title }}</span>
+                </button>
+            @endif
+
             {{-- Content --}}
-            <div class="relative z-10 h-full flex items-center">
+            <div class="relative z-10 h-full flex items-center pointer-events-none">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-                    <div class="max-w-2xl text-white">
+                    <div class="max-w-2xl text-white pointer-events-auto">
 
                         {{-- Slide counter pill --}}
                         <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm mb-6">
@@ -45,6 +96,16 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                                 </a>
                             @endif
+
+                            @if($s->showsVideoButton())
+                                <button type="button"
+                                        @click="openVideo({{ Illuminate\Support\Js::from($s->previewSource()) }})"
+                                        class="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-white/10 border border-white/25 backdrop-blur-sm font-semibold hover:bg-white/20 transition-all text-sm">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5.14v13.72c0 .78.85 1.26 1.52.86l11.14-6.86a1 1 0 000-1.72L9.52 4.28A1 1 0 008 5.14z"/></svg>
+                                    {{ $s->video_button_text }}
+                                </button>
+                            @endif
+
                             <a href="#profil"
                                class="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-white/10 border border-white/25 backdrop-blur-sm font-semibold hover:bg-white/20 transition-all text-sm">
                                 Profil Sekolah
@@ -92,9 +153,42 @@
     @endif
 
     {{-- Bottom wave --}}
-    <div class="absolute bottom-0 inset-x-0 z-10">
+    <div class="absolute bottom-0 inset-x-0 z-10 pointer-events-none">
         <svg viewBox="0 0 1440 56" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" class="w-full h-14">
             <path d="M0 56L80 48C160 40 320 24 480 22.7C640 21.3 800 34.7 960 40C1120 45.3 1280 42.7 1360 41.3L1440 40V56H0Z" fill="var(--bg)"/>
         </svg>
     </div>
 </section>
+
+{{-- Pop-up pemutar video (bersuara, dengan kontrol) --}}
+<template x-if="videoModal">
+    <div class="fixed inset-0 z-100 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4"
+         @click.self="closeVideo()"
+         @keydown.escape.window="closeVideo()">
+        <div class="relative w-full max-w-4xl">
+            <button type="button"
+                    @click="closeVideo()"
+                    class="absolute -top-11 right-0 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all">
+                <span class="sr-only">Tutup video</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+
+            <div class="relative w-full overflow-hidden rounded-2xl bg-black shadow-2xl"
+                 :style="'aspect-ratio:' + videoModal.ratio">
+                <template x-if="videoModal.type === 'embed'">
+                    <iframe :src="videoModal.src"
+                            class="absolute inset-0 w-full h-full"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen></iframe>
+                </template>
+                <template x-if="videoModal.type === 'file'">
+                    <video :src="videoModal.src"
+                           class="absolute inset-0 w-full h-full"
+                           controls autoplay playsinline></video>
+                </template>
+            </div>
+        </div>
+    </div>
+</template>

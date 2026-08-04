@@ -76,4 +76,69 @@ class GalleryPageTest extends TestCase
             ->assertSee('Kegiatan Sekolah')
             ->assertDontSee('Arsip Privat');
     }
+
+    public function test_uploaded_video_appears_in_the_gallery(): void
+    {
+        Media::factory()->inGallery()->videoFile('media/wisuda.mp4')->create(['name' => 'Video Wisuda']);
+
+        $this->get(route('gallery.index'))
+            ->assertOk()
+            ->assertSee('Video Wisuda')
+            ->assertSee(asset('storage/media/wisuda.mp4'), false)
+            ->assertSee('\u0022type\u0022:\u0022file\u0022', false);
+    }
+
+    public function test_hidden_uploaded_video_stays_out_of_the_gallery(): void
+    {
+        Media::factory()->videoFile()->create(['name' => 'Video Internal']);
+
+        $this->get(route('gallery.index'))
+            ->assertOk()
+            ->assertDontSee('Video Internal');
+    }
+
+    public function test_video_filter_includes_uploaded_videos(): void
+    {
+        Media::factory()->inGallery()->videoFile()->create(['name' => 'Video Kegiatan']);
+        Media::factory()->inGallery()->create(['name' => 'Foto Upacara']);
+
+        $this->get(route('gallery.index', ['type' => 'video']))
+            ->assertOk()
+            ->assertSee('Video Kegiatan')
+            ->assertDontSee('Foto Upacara');
+    }
+
+    public function test_foto_filter_excludes_uploaded_videos(): void
+    {
+        Media::factory()->inGallery()->videoFile()->create(['name' => 'Video Kegiatan']);
+        Media::factory()->inGallery()->create(['name' => 'Foto Upacara']);
+
+        $this->get(route('gallery.index', ['type' => 'foto']))
+            ->assertOk()
+            ->assertSee('Foto Upacara')
+            ->assertDontSee('Video Kegiatan');
+    }
+
+    public function test_home_page_gallery_section_shows_uploaded_videos(): void
+    {
+        Media::factory()->inGallery()->videoFile('media/profil.mp4')->create(['name' => 'Video Profil Sekolah']);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Video Profil Sekolah')
+            ->assertSee(asset('storage/media/profil.mp4'), false);
+    }
+
+    public function test_uploaded_video_uses_its_manual_thumbnail(): void
+    {
+        Media::factory()
+            ->inGallery()
+            ->videoFile()
+            ->withEmbedThumbnail('media/embed-thumbnails/poster.jpg')
+            ->create(['name' => 'Video Berposter']);
+
+        $this->get(route('gallery.index'))
+            ->assertOk()
+            ->assertSee(asset('storage/media/embed-thumbnails/poster.jpg'), false);
+    }
 }

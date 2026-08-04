@@ -91,13 +91,14 @@ class ListMedia extends ListRecords
                         ->disk('public')
                         ->directory('media')
                         ->visibility('public')
-                        ->image()
                         ->acceptedFileTypes([
                             'image/jpeg', 'image/png', 'image/gif',
                             'image/webp', 'image/svg+xml',
                             'application/pdf',
+                            'video/mp4', 'video/webm', 'video/ogg',
                         ])
-                        ->maxSize(10240)
+                        ->helperText('Gambar, PDF, atau video (MP4/WebM). Maksimal 20MB.')
+                        ->maxSize(20480)
                         ->live()
                         ->afterStateUpdated(function ($state, Set $set): void {
                             $file = collect(is_array($state) ? $state : [$state])->first();

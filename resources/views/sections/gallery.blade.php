@@ -2,7 +2,11 @@
     $galleryMedia ??= collect();
 
     $lightboxItems = $galleryMedia->map(fn ($m) => [
-        'type' => $m->is_embed ? 'video' : 'image',
+        'type' => match (true) {
+            $m->is_embed => 'video',
+            $m->is_video => 'file',
+            default => 'image',
+        },
         'name' => $m->name,
         'src'  => $m->is_embed ? null : $m->url,
         'html' => $m->is_embed ? (string) $m->embed_html : null,
@@ -96,10 +100,17 @@
                        data-aos="fade-up" data-aos-delay="{{ ($loop->index % 3) * 80 }}" data-aos-duration="500">
 
                         <div class="aspect-4/3 overflow-hidden" style="background:var(--card)">
-                            <img src="{{ $item->thumbnail_url }}"
-                                 alt="{{ $item->alt ?? $item->name }}"
-                                 loading="lazy"
-                                 class="glr-card-img w-full h-full object-cover">
+                            @if($item->is_video && blank($item->embed_thumbnail_path))
+                                {{-- Berkas video tanpa poster: browser menampilkan frame pertamanya --}}
+                                <video src="{{ $item->url }}#t=0.5"
+                                       preload="metadata" muted playsinline
+                                       class="glr-card-img w-full h-full object-cover"></video>
+                            @else
+                                <img src="{{ $item->thumbnail_url }}"
+                                     alt="{{ $item->alt ?? $item->name }}"
+                                     loading="lazy"
+                                     class="glr-card-img w-full h-full object-cover">
+                            @endif
                         </div>
 
                         {{-- Gradient overlay --}}
@@ -108,14 +119,14 @@
                         {{-- Type badge --}}
                         <span class="absolute top-3 left-3 inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-sm"
                               style="color:var(--primary)">
-                            @if($item->is_embed)
+                            @if($item->is_embed || $item->is_video)
                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                             @endif
                             {{ $item->getTypeLabel() }}
                         </span>
 
                         {{-- Play overlay for videos --}}
-                        @if($item->is_embed)
+                        @if($item->is_embed || $item->is_video)
                             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <span class="w-12 h-12 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110">
                                     <svg class="w-5 h-5 translate-x-0.5" style="color:var(--primary)" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -153,6 +164,10 @@
             <template x-if="current && current.type === 'image'">
                 <img :src="current.src" :alt="current.name"
                      class="max-h-[80vh] w-auto mx-auto rounded-xl shadow-2xl object-contain">
+            </template>
+            <template x-if="current && current.type === 'file'">
+                <video :src="current.src" controls autoplay playsinline
+                       class="max-h-[80vh] w-full mx-auto rounded-xl shadow-2xl bg-black"></video>
             </template>
             <template x-if="current && current.type === 'video'">
                 <div class="relative mx-auto rounded-xl overflow-hidden shadow-2xl bg-gray-900"

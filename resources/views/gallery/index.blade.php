@@ -50,12 +50,14 @@
         background: var(--card);
         border: 1.5px solid var(--border);
     }
-    .gallery-item img {
+    .gallery-item img,
+    .gallery-item video {
         width: 100%;
         display: block;
         transition: transform .4s ease;
     }
-    .gallery-item:hover img { transform: scale(1.04); }
+    .gallery-item:hover img,
+    .gallery-item:hover video { transform: scale(1.04); }
     .gallery-item-overlay {
         position: absolute;
         inset: 0;
@@ -72,7 +74,11 @@
 
 @php
     $lightboxItems = $items->getCollection()->map(fn ($m) => [
-        'type' => $m->is_embed ? 'video' : 'image',
+        'type' => match (true) {
+            $m->is_embed => 'video',
+            $m->is_video => 'file',
+            default => 'image',
+        },
         'name' => $m->name,
         'src'  => $m->is_embed ? null : $m->url,
         'html' => $m->is_embed ? (string) $m->embed_html : null,
@@ -149,12 +155,17 @@
                @click.prevent="show({{ $loop->index }})"
                class="gallery-item group"
                title="{{ $item->alt ?? $item->name }}">
-                <img src="{{ $item->thumbnail_url }}"
-                     alt="{{ $item->alt ?? $item->name }}"
-                     loading="lazy">
+                @if($item->is_video && blank($item->embed_thumbnail_path))
+                    {{-- Berkas video tanpa poster: browser menampilkan frame pertamanya --}}
+                    <video src="{{ $item->url }}#t=0.5" preload="metadata" muted playsinline></video>
+                @else
+                    <img src="{{ $item->thumbnail_url }}"
+                         alt="{{ $item->alt ?? $item->name }}"
+                         loading="lazy">
+                @endif
 
                 {{-- Play overlay for videos --}}
-                @if($item->is_embed)
+                @if($item->is_embed || $item->is_video)
                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <span class="w-12 h-12 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110">
                         <svg class="w-5 h-5 translate-x-0.5" style="color:var(--primary)" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -221,6 +232,10 @@
             <template x-if="current && current.type === 'image'">
                 <img :src="current.src" :alt="current.name"
                      class="max-h-[80vh] w-auto mx-auto rounded-xl shadow-2xl object-contain">
+            </template>
+            <template x-if="current && current.type === 'file'">
+                <video :src="current.src" controls autoplay playsinline
+                       class="max-h-[80vh] w-full mx-auto rounded-xl shadow-2xl bg-black"></video>
             </template>
             <template x-if="current && current.type === 'video'">
                 <div class="relative mx-auto rounded-xl overflow-hidden shadow-2xl bg-gray-900"

@@ -72,8 +72,8 @@ class Media extends Model
     // ── Scopes ────────────────────────────────────────────────────────
 
     /**
-     * Visual media (images & video embeds) flagged to appear in the public
-     * gallery, newest first.
+     * Visual media (images, uploaded videos & video embeds) flagged to appear
+     * in the public gallery, newest first.
      */
     public function scopeInGallery(Builder $query): Builder
     {
@@ -81,6 +81,7 @@ class Media extends Model
             ->where('show_in_gallery', true)
             ->where(function (Builder $q): void {
                 $q->where('mime_type', 'like', 'image/%')
+                    ->orWhere('mime_type', 'like', 'video/%')
                     ->orWhereNotNull('embed_provider');
             })
             ->latest();
@@ -134,11 +135,22 @@ class Media extends Model
 
     /**
      * Image URL used to preview the item in the gallery — the embed thumbnail
-     * for video embeds, otherwise the stored image URL.
+     * for video embeds, an uploaded poster (or a generic badge) for video
+     * files, otherwise the stored image URL.
      */
     public function getThumbnailUrlAttribute(): ?string
     {
-        return $this->is_embed ? $this->embed_thumbnail : $this->url;
+        if ($this->is_embed) {
+            return $this->embed_thumbnail;
+        }
+
+        if ($this->is_video) {
+            return filled($this->embed_thumbnail_path)
+                ? asset('storage/'.$this->embed_thumbnail_path)
+                : EmbedVideo::placeholderThumbnail();
+        }
+
+        return $this->url;
     }
 
     /**
@@ -212,6 +224,14 @@ class Media extends Model
     public function getIsImageAttribute(): bool
     {
         return str_starts_with($this->mime_type ?? '', 'image/');
+    }
+
+    /**
+     * Whether the file is an uploaded video (not an external embed).
+     */
+    public function getIsVideoAttribute(): bool
+    {
+        return str_starts_with($this->mime_type ?? '', 'video/');
     }
 
     /**

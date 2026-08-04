@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\Slides\Tables;
 
+use App\Models\Slide;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -36,6 +38,18 @@ class SlidesTable
                     ->sortable()
                     ->limit(50)
                     ->description(fn ($record) => Str::limit($record->subtitle, 60)),
+
+                TextColumn::make('media_type')
+                    ->label('Latar')
+                    ->badge()
+                    ->state(fn (Slide $record): string => Slide::mediaTypeLabel($record->media_type))
+                    ->color(fn (Slide $record): string => $record->media_type === Slide::MEDIA_IMAGE ? 'gray' : 'info')
+                    ->icon(fn (Slide $record): Heroicon => $record->media_type === Slide::MEDIA_IMAGE
+                        ? Heroicon::OutlinedPhoto
+                        : Heroicon::OutlinedFilm)
+                    ->description(fn (Slide $record): ?string => $record->hasVideoPreview()
+                        ? 'Preview: '.$record->video_button_text
+                        : null),
 
                 TextColumn::make('button_label')
                     ->label('Tombol CTA')

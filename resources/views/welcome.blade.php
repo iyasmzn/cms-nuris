@@ -253,9 +253,12 @@
 <body class="min-h-screen antialiased overflow-x-clip"
       x-data="{
           slide: 0,
-          total: {{ max($slides->count(), 1) }}
+          total: {{ max($slides->count(), 1) }},
+          videoModal: null,
+          openVideo(source) { this.videoModal = source; document.body.style.overflow = 'hidden' },
+          closeVideo() { this.videoModal = null; document.body.style.overflow = '' }
       }"
-      x-init="setInterval(() => slide = (slide + 1) % total, 5000)">
+      x-init="setInterval(() => { if (! videoModal) slide = (slide + 1) % total }, 5000)">
 
     {{-- Navbar — transparent over hero, solid on scroll --}}
     <x-navbar :over-hero="true" />

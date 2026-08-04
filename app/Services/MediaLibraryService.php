@@ -93,6 +93,47 @@ class MediaLibraryService
     }
 
     /**
+     * Ensure an external video URL (YouTube/TikTok/Instagram) exists as an
+     * embed Media record, so videos used elsewhere in the app (e.g. a hero
+     * slide) also show up in the media library. Existing embeds are returned
+     * untouched. Returns null when the URL is not a supported embed.
+     */
+    public function storeEmbed(string $url, ?string $name = null): ?Media
+    {
+        $url = trim($url);
+
+        if (blank($url)) {
+            return null;
+        }
+
+        try {
+            $provider = EmbedVideo::detectProvider($url);
+
+            if ($provider === null || ! EmbedVideo::isValid($url)) {
+                return null;
+            }
+
+            $existing = Media::query()->where('embed_url', $url)->first();
+
+            if ($existing) {
+                return $existing;
+            }
+
+            return Media::create([
+                'name' => $this->uniqueName(filled($name) ? $name : EmbedVideo::label($provider)),
+                'alt' => filled($name) ? $name : null,
+                'embed_provider' => $provider,
+                'embed_url' => $url,
+                'embed_thumbnail_path' => app(EmbedThumbnailService::class)->fetchAndStore($provider, $url),
+                'disk' => 'public',
+                'uploaded_by' => Auth::id(),
+            ]);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
      * Return a Media name that is unique within the library, appending an
      * incrementing suffix ("-1", "-2", …) when the base name is already taken.
      */

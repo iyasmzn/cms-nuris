@@ -9,10 +9,10 @@ use Filament\Notifications\Notification;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
@@ -49,6 +49,7 @@ class MediaTable
                     ->label('Tipe File')
                     ->options([
                         'image' => '🖼️  Gambar',
+                        'video' => '🎥  Berkas Video',
                         'pdf' => '📄  PDF',
                         'embed' => '🎬  Video Embed',
                         'other' => '📎  Lainnya',
@@ -59,10 +60,13 @@ class MediaTable
                         }
                         match ($data['value']) {
                             'image' => $query->where('mime_type', 'like', 'image/%'),
+                            'video' => $query->whereNull('embed_provider')
+                                ->where('mime_type', 'like', 'video/%'),
                             'pdf' => $query->where('mime_type', 'application/pdf'),
                             'embed' => $query->whereNotNull('embed_provider'),
                             'other' => $query->whereNull('embed_provider')
                                 ->where('mime_type', 'not like', 'image/%')
+                                ->where('mime_type', 'not like', 'video/%')
                                 ->where('mime_type', '!=', 'application/pdf'),
                         };
                     }),
@@ -193,14 +197,12 @@ class MediaTable
     private static function gridLayout(int $imageHeight): Stack
     {
         return Stack::make([
-            ImageColumn::make('path')
+            ViewColumn::make('path')
                 ->label('')
-                ->disk('public')
-                ->height($imageHeight)
-                ->width('100%')
-                ->extraAttributes(['style' => "width:100%;height:{$imageHeight}px;display:block;"])
-                ->extraImgAttributes(['style' => 'width:100%;height:100%;object-fit:cover;display:block;'])
-                ->defaultImageUrl(static::thumbnailFallback()),
+                ->view('filament.media.thumbnail', [
+                    'height' => $imageHeight,
+                    'width' => '100%',
+                ]),
 
             Stack::make(static::metaColumns())
                 ->space(1)
@@ -215,14 +217,14 @@ class MediaTable
     private static function listLayout(): Split
     {
         return Split::make([
-            ImageColumn::make('path')
+            ViewColumn::make('path')
                 ->label('')
-                ->disk('public')
-                ->height(72)
-                ->width(72)
                 ->grow(false)
-                ->extraImgAttributes(['style' => 'width:72px;height:72px;object-fit:cover;border-radius:.5rem;display:block;'])
-                ->defaultImageUrl(static::thumbnailFallback()),
+                ->view('filament.media.thumbnail', [
+                    'height' => 72,
+                    'width' => '72px',
+                    'radius' => '.5rem',
+                ]),
 
             Stack::make(static::metaColumns())
                 ->space(1)
@@ -278,27 +280,5 @@ class MediaTable
                 ->icon(fn (Media $record): Heroicon => $record->show_in_gallery ? Heroicon::OutlinedEye : Heroicon::OutlinedEyeSlash)
                 ->size(TextSize::ExtraSmall),
         ];
-    }
-
-    /**
-     * Fallback thumbnail for embeds (provider thumbnail) and non-image files
-     * (a document glyph). Images fall through to the stored file.
-     */
-    private static function thumbnailFallback(): callable
-    {
-        return function (Media $record): string {
-            if ($record->is_embed) {
-                return $record->embed_thumbnail ?? '';
-            }
-
-            return $record->is_image
-                ? ''
-                : 'data:image/svg+xml,'.rawurlencode(
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="#d97706">'
-                    .'<rect width="80" height="80" rx="8" fill="#fffbeb"/>'
-                    .'<text x="40" y="50" font-size="32" text-anchor="middle">📄</text>'
-                    .'</svg>'
-                );
-        };
     }
 }

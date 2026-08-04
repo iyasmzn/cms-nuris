@@ -54,6 +54,17 @@ class MediaFactory extends Factory
     }
 
     /**
+     * An uploaded video file rather than an image.
+     */
+    public function videoFile(string $path = 'media/profil.mp4'): static
+    {
+        return $this->state(fn (): array => [
+            'path' => $path,
+            'mime_type' => 'video/mp4',
+        ]);
+    }
+
+    /**
      * An external video embed (YouTube/TikTok/Instagram) with no physical file.
      */
     public function embed(string $provider = EmbedVideo::PROVIDER_YOUTUBE): static
