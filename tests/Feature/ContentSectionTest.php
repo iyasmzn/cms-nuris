@@ -77,6 +77,199 @@ class ContentSectionTest extends TestCase
             ->assertSee('data-aos="fade-left"', false);
     }
 
+    public function test_the_background_choices_map_to_the_tokens_their_labels_promise(): void
+    {
+        $section = ContentSection::factory()->create([
+            'anchor' => 'latar-uji',
+            'background' => 'default',
+            'is_published' => true,
+        ]);
+
+        // "Abu Lembut" = --bg (#f5f5f7), warna dasar halaman
+        $this->assertStringContainsString(
+            'background:var(--bg)',
+            $this->sectionTag('latar-uji'),
+        );
+
+        $section->update(['background' => 'alt']);
+
+        // "Putih Bersih" = --bg-alt (#ffffff)
+        $this->assertStringContainsString(
+            'background:var(--bg-alt, var(--bg))',
+            $this->sectionTag('latar-uji'),
+        );
+    }
+
+    /**
+     * Tag <section> pembuka milik seksi dengan anchor tertentu, agar assertion
+     * gaya tidak tertukar dengan seksi lain di halaman depan.
+     */
+    private function sectionTag(string $anchorId): string
+    {
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/<section id="'.preg_quote($anchorId, '/').'"[^>]*>/',
+            $html,
+        );
+
+        preg_match('/<section id="'.preg_quote($anchorId, '/').'"[^>]*>/', $html, $matches);
+
+        return $matches[0];
+    }
+
+    public function test_it_renders_a_background_image_with_blur_overlay_and_parallax(): void
+    {
+        ContentSection::factory()->withBackgroundImage()->create([
+            'title' => 'Seksi Berlatar Gambar',
+            'background_image' => 'content-sections/backgrounds/latar.jpg',
+            'background_blur' => 8,
+            'background_overlay' => 45,
+            'background_parallax_mode' => 'scroll',
+            'background_parallax_speed' => 50,
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('storage/content-sections/backgrounds/latar.jpg', false)
+            ->assertSee('filter:blur(8px)', false)
+            ->assertSee('rgba(17,24,39,0.45)', false)
+            ->assertSee('translate3d', false)
+            ->assertSee('scale: 1.5', false)
+            ->assertSee('amplitude: 0.25', false)
+            ->assertSee('style="color:#ffffff"', false);
+    }
+
+    public function test_the_parallax_strength_scales_with_the_configured_speed(): void
+    {
+        $section = ContentSection::factory()->withBackgroundImage()->create([
+            'title' => 'Parallax Maksimal',
+            'background_parallax_speed' => 100,
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('scale: 2', false)
+            ->assertSee('amplitude: 0.5', false);
+
+        $section->update(['background_parallax_speed' => 10]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('scale: 1.1', false)
+            ->assertSee('amplitude: 0.05', false);
+    }
+
+    public function test_a_fixed_background_is_locked_to_the_viewport_instead_of_scrolling(): void
+    {
+        ContentSection::factory()->withFixedBackground()->create([
+            'title' => 'Latar Terkunci',
+            'background_image' => 'content-sections/backgrounds/diam.jpg',
+            'background_blur' => 8,
+            'background_overlay' => 45,
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('class="content-section-bg-fixed"', false)
+            ->assertSee('content-section-clip"', false)
+            ->assertSee('storage/content-sections/backgrounds/diam.jpg', false)
+            ->assertSee('filter:blur(8px)', false)
+            ->assertSee('rgba(17,24,39,0.45)', false)
+            // Mode diam tidak memakai penggeser Alpine sama sekali
+            ->assertDontSee('translate3d', false);
+    }
+
+    public function test_switching_between_parallax_modes_swaps_the_background_layer(): void
+    {
+        $section = ContentSection::factory()->withBackgroundImage()->create([
+            'title' => 'Ganti Mode',
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('translate3d', false)
+            ->assertDontSee('class="content-section-bg-fixed"', false);
+
+        $section->update(['background_parallax_mode' => 'fixed']);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('class="content-section-bg-fixed"', false)
+            ->assertDontSee('translate3d', false);
+
+        $section->update(['background_parallax_mode' => 'none']);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertDontSee('class="content-section-bg-fixed"', false)
+            ->assertDontSee('translate3d', false)
+            ->assertDontSee('content-section-clip"', false);
+    }
+
+    public function test_background_effects_are_skipped_when_the_background_is_not_an_image(): void
+    {
+        ContentSection::factory()->create([
+            'title' => 'Seksi Latar Polos',
+            'background' => 'default',
+            'background_image' => 'content-sections/backgrounds/latar.jpg',
+            'background_blur' => 16,
+            'background_overlay' => 80,
+            'background_parallax_mode' => 'scroll',
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Seksi Latar Polos')
+            ->assertDontSee('content-sections/backgrounds/latar.jpg', false)
+            ->assertDontSee('translate3d', false)
+            ->assertDontSee('rgba(17,24,39,0.8)', false);
+    }
+
+    public function test_a_background_image_without_effects_renders_no_overlay_or_parallax(): void
+    {
+        ContentSection::factory()->withBackgroundImage()->create([
+            'title' => 'Latar Bersih',
+            'background_blur' => 0,
+            'background_overlay' => 0,
+            'background_parallax_mode' => 'none',
+            'background_light_text' => false,
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Latar Bersih')
+            // Spasi di depan membedakannya dari `backdrop-filter:blur` milik navbar/popup
+            ->assertDontSee(' filter:blur(', false)
+            ->assertDontSee('rgba(17,24,39,', false)
+            ->assertDontSee('translate3d', false)
+            ->assertDontSee('style="color:#ffffff"', false);
+    }
+
+    public function test_background_helpers_ignore_effects_without_an_image(): void
+    {
+        $section = ContentSection::factory()->create([
+            'background' => 'image',
+            'background_image' => null,
+            'background_overlay' => 45,
+            'background_parallax_mode' => 'scroll',
+        ]);
+
+        $this->assertFalse($section->has_background_image);
+        $this->assertFalse($section->uses_scroll_parallax);
+        $this->assertFalse($section->uses_fixed_background);
+        $this->assertFalse($section->uses_light_text);
+        $this->assertNull($section->background_image_url);
+        $this->assertSame(0.45, $section->overlay_opacity);
+        $this->assertSame(0.3, $section->parallax_factor);
+    }
+
     public function test_a_section_without_an_image_still_renders_its_text(): void
     {
         ContentSection::factory()->create([

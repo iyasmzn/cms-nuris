@@ -45,6 +45,13 @@ class ContentSectionsTable
                     ->formatStateUsing(fn (?string $state): string => ContentSection::IMAGE_POSITIONS[$state] ?? '—')
                     ->sortable(),
 
+                TextColumn::make('background')
+                    ->label('Latar')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => ContentSection::BACKGROUNDS[$state] ?? '—')
+                    ->description(fn (ContentSection $record): ?string => self::backgroundEffects($record))
+                    ->sortable(),
+
                 TextColumn::make('cta_label')
                     ->label('Tombol')
                     ->placeholder('—')
@@ -69,6 +76,10 @@ class ContentSectionsTable
                     ->label('Posisi Gambar')
                     ->options(ContentSection::IMAGE_POSITIONS),
 
+                SelectFilter::make('background')
+                    ->label('Jenis Latar')
+                    ->options(ContentSection::BACKGROUNDS),
+
                 Filter::make('is_published')
                     ->label('Ditampilkan saja')
                     ->query(fn (Builder $query) => $query->where('is_published', true)),
@@ -87,5 +98,35 @@ class ContentSectionsTable
             ])
             ->emptyStateHeading('Belum ada seksi')
             ->emptyStateDescription('Tambahkan seksi bergambar untuk melengkapi halaman depan. Urutannya diatur di Pengaturan → Halaman Depan.');
+    }
+
+    /**
+     * Ringkasan efek latar gambar, misal "Blur Sedang · Gelap · Parallax".
+     */
+    private static function backgroundEffects(ContentSection $record): ?string
+    {
+        if (! $record->has_background_image) {
+            return null;
+        }
+
+        $effects = [];
+
+        if ($record->background_blur > 0) {
+            $effects[] = 'Blur '.(ContentSection::BLUR_LEVELS[$record->background_blur] ?? $record->background_blur.'px');
+        }
+
+        if ($record->background_overlay > 0) {
+            $effects[] = ContentSection::OVERLAY_LEVELS[$record->background_overlay] ?? $record->background_overlay.'%';
+        }
+
+        $effects[] = match ($record->background_parallax_mode) {
+            'scroll' => 'Parallax '.$record->background_parallax_speed.'%',
+            'fixed' => 'Latar Diam',
+            default => null,
+        };
+
+        $effects = array_filter($effects);
+
+        return $effects === [] ? 'Tanpa efek' : implode(' · ', $effects);
     }
 }

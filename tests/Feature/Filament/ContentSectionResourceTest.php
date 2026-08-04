@@ -86,6 +86,71 @@ class ContentSectionResourceTest extends TestCase
         ]);
     }
 
+    public function test_can_create_a_section_with_background_image_effects(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm([
+                'title' => 'Seksi Berlatar Gambar',
+                'description' => '<p>Deskripsi.</p>',
+                'background' => 'image',
+                'background_blur' => 8,
+                'background_overlay' => 45,
+                'background_parallax_mode' => 'scroll',
+                'background_parallax_speed' => 50,
+                'background_light_text' => true,
+            ])
+            ->call('create')
+            ->assertNotified()
+            ->assertHasNoFormErrors()
+            ->assertRedirect();
+
+        $this->assertDatabaseHas(ContentSection::class, [
+            'title' => 'Seksi Berlatar Gambar',
+            'background' => 'image',
+            'background_blur' => 8,
+            'background_overlay' => 45,
+            'background_parallax_mode' => 'scroll',
+            'background_parallax_speed' => 50,
+            'background_light_text' => true,
+        ]);
+    }
+
+    public function test_background_effect_fields_are_hidden_unless_the_background_is_an_image(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm(['background' => 'default'])
+            ->assertFormFieldHidden('background_blur')
+            ->assertFormFieldHidden('background_overlay')
+            ->assertFormFieldHidden('background_parallax_mode')
+            ->fillForm(['background' => 'image'])
+            ->assertFormFieldVisible('background_blur')
+            ->assertFormFieldVisible('background_overlay')
+            ->assertFormFieldVisible('background_parallax_mode');
+    }
+
+    public function test_the_parallax_speed_only_appears_once_parallax_is_on(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm(['background' => 'image', 'background_parallax_mode' => 'none'])
+            ->assertFormFieldHidden('background_parallax_speed')
+            ->fillForm(['background_parallax_mode' => 'scroll'])
+            ->assertFormFieldVisible('background_parallax_speed');
+    }
+
+    public function test_the_parallax_slider_rejects_a_value_outside_its_range(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm([
+                'title' => 'Seksi Baru',
+                'description' => '<p>Deskripsi.</p>',
+                'background' => 'image',
+                'background_parallax_mode' => 'scroll',
+                'background_parallax_speed' => 150,
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['background_parallax_speed']);
+    }
+
     public function test_create_validates_required_fields(): void
     {
         Livewire::test(CreateContentSection::class)

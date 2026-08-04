@@ -23,7 +23,13 @@ class ContentSectionFactory extends Factory
             'description' => '<p>'.$this->faker->paragraph(3).'</p>',
             'image' => 'content-sections/'.$this->faker->uuid().'.jpg',
             'image_position' => $this->faker->randomElement(array_keys(ContentSection::IMAGE_POSITIONS)),
-            'background' => $this->faker->randomElement(array_keys(ContentSection::BACKGROUNDS)),
+            'background' => $this->faker->randomElement(['default', 'alt']),
+            'background_image' => null,
+            'background_blur' => 0,
+            'background_overlay' => 0,
+            'background_parallax_mode' => 'none',
+            'background_parallax_speed' => 30,
+            'background_light_text' => true,
             'anchor' => null,
             'cta_label' => 'Selengkapnya',
             'cta_url' => $this->faker->url(),
@@ -37,6 +43,32 @@ class ContentSectionFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_published' => true,
+        ]);
+    }
+
+    /**
+     * Latar gambar penuh dengan blur, lapisan gelap, dan parallax menyala.
+     */
+    public function withBackgroundImage(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'background' => 'image',
+            'background_image' => 'content-sections/backgrounds/'.$this->faker->uuid().'.jpg',
+            'background_blur' => 8,
+            'background_overlay' => 45,
+            'background_parallax_mode' => 'scroll',
+            'background_parallax_speed' => 30,
+            'background_light_text' => true,
+        ]);
+    }
+
+    /**
+     * Latar gambar yang terkunci ke layar saat halaman digulir.
+     */
+    public function withFixedBackground(): static
+    {
+        return $this->withBackgroundImage()->state(fn (array $attributes) => [
+            'background_parallax_mode' => 'fixed',
         ]);
     }
 
