@@ -94,7 +94,6 @@ class SpmbRegistrationForm
                         TextInput::make('phone')
                             ->label('No. HP / WhatsApp')
                             ->tel()
-                            ->required()
                             ->maxLength(20),
                     ]),
 
@@ -126,7 +125,6 @@ class SpmbRegistrationForm
                     Grid::make(2)->schema([
                         TextInput::make('previous_school')
                             ->label('Nama Sekolah Asal')
-                            ->required()
                             ->maxLength(100),
 
                         TextInput::make('previous_school_city')

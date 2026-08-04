@@ -291,7 +291,12 @@ class SpmbPaymentTest extends TestCase
         $this->get($response->headers->get('Location'))->assertOk();
     }
 
-    public function test_lookup_works_with_the_nik_when_the_nomor_pendaftaran_is_forgotten(): void
+    /**
+     * The NIK is printed on documents other people handle, so it is not a
+     * secret and no longer opens the status page — only the nomor pendaftaran
+     * paired with the nomor HP does.
+     */
+    public function test_lookup_does_not_accept_the_nik_as_an_identity(): void
     {
         $registration = SpmbRegistration::factory()->create([
             'institution_id' => $this->institution->id,
@@ -305,7 +310,8 @@ class SpmbPaymentTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        $this->assertStringContainsString('/ppdb/status/'.$registration->id, $response->headers->get('Location'));
+        $response->assertSessionHas('error');
+        $this->assertStringNotContainsString('/ppdb/status/'.$registration->id, $response->headers->get('Location'));
     }
 
     public function test_lookup_accepts_the_parent_phone_and_ignores_formatting(): void
@@ -318,7 +324,7 @@ class SpmbPaymentTest extends TestCase
         ]);
 
         $response = $this->post(route('ppdb.status.find'), [
-            'identity' => '3273010101080004',
+            'identity' => $registration->registration_number,
             'phone' => '081398765432',
         ]);
 
@@ -345,6 +351,28 @@ class SpmbPaymentTest extends TestCase
         $this->assertStringNotContainsString('/ppdb/status/'.$registration->id, $response->headers->get('Location'));
     }
 
+    public function test_lookup_rejects_a_digitless_phone_against_a_pendaftar_without_a_phone(): void
+    {
+        // A jenjang may not collect a nomor HP at all. Both stored numbers then
+        // normalise to an empty string, and so does an input like "-", which
+        // must not be allowed to unlock the status page.
+        $registration = SpmbRegistration::factory()->create([
+            'institution_id' => $this->institution->id,
+            'nik' => '3273010101080007',
+            'phone' => null,
+            'parent_phone' => null,
+        ]);
+
+        $response = $this->post(route('ppdb.status.find'), [
+            'identity' => $registration->registration_number,
+            'phone' => '-',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertStringNotContainsString('/ppdb/status/'.$registration->id, $response->headers->get('Location'));
+    }
+
     public function test_lookup_does_not_leak_another_pendaftar_sharing_a_phone_number(): void
     {
         $sibling = SpmbRegistration::factory()->create([
@@ -359,9 +387,9 @@ class SpmbPaymentTest extends TestCase
             'parent_phone' => '081355556666',
         ]);
 
-        // The NIK still pins the lookup to exactly one of the two.
+        // The nomor pendaftaran still pins the lookup to exactly one of the two.
         $response = $this->post(route('ppdb.status.find'), [
-            'identity' => '3273010101080005',
+            'identity' => $sibling->registration_number,
             'phone' => '081355556666',
         ]);
 

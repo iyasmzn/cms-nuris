@@ -10,6 +10,7 @@ use App\Models\Institution;
 use App\Models\PpdbField;
 use App\Models\User;
 use App\Policies\InstitutionPolicy;
+use Filament\Actions\DeleteAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
@@ -130,6 +131,32 @@ class InstitutionResourceTest extends TestCase
 
         $this->assertTrue(PpdbFieldsRelationManager::canViewForRecord($internal, EditInstitution::class));
         $this->assertFalse(PpdbFieldsRelationManager::canViewForRecord($external, EditInstitution::class));
+    }
+
+    /**
+     * The nomor HP is half of the credential for the status page, so the field
+     * builder must not offer any way to drop it.
+     */
+    public function test_field_builder_shields_the_locked_fields(): void
+    {
+        $institution = Institution::factory()->create();
+        $custom = $institution->ppdbFields()->create([
+            'key' => 'hobby', 'label' => 'Hobi', 'type' => 'text', 'is_required' => false, 'sort_order' => 1,
+        ]);
+
+        $manager = Livewire::test(PpdbFieldsRelationManager::class, [
+            'ownerRecord' => $institution,
+            'pageClass' => EditInstitution::class,
+        ])->assertOk();
+
+        foreach (PpdbField::lockedKeys() as $key) {
+            $manager->assertTableActionHidden(
+                DeleteAction::class,
+                $institution->ppdbFields()->where('key', $key)->firstOrFail(),
+            );
+        }
+
+        $manager->assertTableActionVisible(DeleteAction::class, $custom);
     }
 
     public function test_field_builder_is_not_blocked_by_a_phantom_permission(): void

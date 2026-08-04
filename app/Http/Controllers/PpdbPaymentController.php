@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\RegistrationPayment;
 use App\Models\SpmbRegistration;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -15,6 +14,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PpdbPaymentController extends Controller
 {
+    private const LOOKUP_FAILED_MESSAGE = 'Data pendaftaran tidak ditemukan. Periksa kembali nomor pendaftaran dan nomor HP yang Anda isi saat mendaftar.';
+
     /**
      * The lookup form a pendaftar uses to get back to their status page after
      * losing the link they were redirected to on submission.
@@ -33,18 +34,18 @@ class PpdbPaymentController extends Controller
     }
 
     /**
-     * Resolve a registration from an identity (nomor pendaftaran or NIK) paired
-     * with a phone number, then hand back the signed status URL. Accepting NIK
-     * as an alternative means a pendaftar who lost their nomor pendaftaran can
-     * still get in, while still requiring two matching fields so the page —
-     * which carries personal data — cannot be opened by guessing one of them.
+     * Resolve a registration from its nomor pendaftaran paired with the nomor
+     * HP on the formulir, then hand back the signed status URL. Both must match
+     * so the page — which carries personal data — cannot be opened by guessing
+     * one of them. NIK is deliberately not accepted as an alternative: it is
+     * printed on documents other people handle, so it is no secret.
      *
      * Phone numbers are compared digits-only so `0812-3456` and `081234...`
      * both match what the formulir stored, and the parent's number counts too
      * because it is often the one on the registration.
      *
      * Deliberately vague on failure so the form cannot be used to probe which
-     * nomor pendaftaran or NIK exist.
+     * nomor pendaftaran exist.
      */
     public function find(Request $request): RedirectResponse
     {
@@ -52,17 +53,23 @@ class PpdbPaymentController extends Controller
             'identity' => ['required', 'string', 'max:50'],
             'phone' => ['required', 'string', 'max:25'],
         ], [
-            'identity.required' => 'Nomor pendaftaran atau NIK wajib diisi.',
+            'identity.required' => 'Nomor pendaftaran wajib diisi.',
             'phone.required' => 'Nomor HP wajib diisi.',
         ]);
 
         $identity = trim($validated['identity']);
         $phone = preg_replace('/\D/', '', $validated['phone']) ?? '';
 
+        // An input without a single digit normalises to an empty string, which
+        // would otherwise match a pendaftar whose nomor HP was never collected.
+        if ($phone === '') {
+            return back()
+                ->withInput()
+                ->with('error', self::LOOKUP_FAILED_MESSAGE);
+        }
+
         $registration = SpmbRegistration::query()
-            ->where(fn (Builder $query): Builder => $query
-                ->where('registration_number', $identity)
-                ->orWhere('nik', $identity))
+            ->where('registration_number', $identity)
             ->limit(10)
             ->get()
             ->first(fn (SpmbRegistration $candidate): bool => in_array($phone, [
@@ -73,7 +80,7 @@ class PpdbPaymentController extends Controller
         if ($registration === null) {
             return back()
                 ->withInput()
-                ->with('error', 'Data pendaftaran tidak ditemukan. Periksa kembali nomor pendaftaran / NIK dan nomor HP yang Anda isi saat mendaftar.');
+                ->with('error', self::LOOKUP_FAILED_MESSAGE);
         }
 
         return redirect()->to(self::statusUrl($registration));

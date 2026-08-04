@@ -68,7 +68,10 @@ class PpdbFieldsRelationManager extends RelationManager
                         modifyRuleUsing: fn (Unique $rule): Unique => $rule->where('institution_id', $this->getOwnerRecord()->getKey()),
                         ignoreRecord: true,
                     )
-                    ->helperText('Huruf kecil & garis bawah. Cocokkan dengan kolom pendaftar (mis. full_name, nik, phone) agar tersimpan ke kolom itu; selain itu masuk ke Data Tambahan.'),
+                    ->disabled(fn (?PpdbField $record): bool => (bool) $record?->isLocked())
+                    ->helperText(fn (?PpdbField $record): string => $record?->isLocked()
+                        ? 'Key field wajib ini terkunci. Labelnya boleh diganti, key-nya tidak.'
+                        : 'Huruf kecil & garis bawah. Cocokkan dengan kolom pendaftar (mis. full_name, nik, phone) agar tersimpan ke kolom itu; selain itu masuk ke Data Tambahan.'),
 
                 Select::make('type')
                     ->label('Tipe')
@@ -76,7 +79,8 @@ class PpdbFieldsRelationManager extends RelationManager
                     ->default('text')
                     ->required()
                     ->native(false)
-                    ->live(),
+                    ->live()
+                    ->disabled(fn (?PpdbField $record): bool => (bool) $record?->isLocked()),
             ]),
 
             Repeater::make('options')
@@ -110,12 +114,16 @@ class PpdbFieldsRelationManager extends RelationManager
 
                 Toggle::make('is_required')
                     ->label('Wajib Diisi')
-                    ->onColor('success'),
+                    ->onColor('success')
+                    ->disabled(fn (?PpdbField $record): bool => (bool) $record?->isLocked())
+                    ->helperText(fn (?PpdbField $record): ?string => $record?->isLocked() ? 'Selalu wajib.' : null),
 
                 Toggle::make('is_active')
                     ->label('Aktif')
                     ->default(true)
-                    ->onColor('success'),
+                    ->onColor('success')
+                    ->disabled(fn (?PpdbField $record): bool => (bool) $record?->isLocked())
+                    ->helperText(fn (?PpdbField $record): ?string => $record?->isLocked() ? 'Selalu aktif.' : null),
             ]),
         ]);
     }
@@ -125,6 +133,7 @@ class PpdbFieldsRelationManager extends RelationManager
         return $table
             ->reorderable('sort_order')
             ->defaultSort('sort_order', 'asc')
+            ->checkIfRecordIsSelectableUsing(fn (PpdbField $record): bool => ! $record->isLocked())
             ->columns([
                 TextColumn::make('label')
                     ->label('Label')
@@ -134,7 +143,11 @@ class PpdbFieldsRelationManager extends RelationManager
                 TextColumn::make('key')
                     ->label('Key')
                     ->badge()
-                    ->color('gray'),
+                    ->color(fn (PpdbField $record): string => $record->isLocked() ? 'warning' : 'gray')
+                    ->icon(fn (PpdbField $record): ?string => $record->isLocked() ? 'heroicon-m-lock-closed' : null)
+                    ->tooltip(fn (PpdbField $record): ?string => $record->isLocked()
+                        ? 'Field wajib: dipakai untuk cek status pendaftaran, tidak bisa dihapus atau diganti key-nya.'
+                        : null),
 
                 TextColumn::make('type')
                     ->label('Tipe')
@@ -154,7 +167,8 @@ class PpdbFieldsRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make(),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->visible(fn (PpdbField $record): bool => ! $record->isLocked()),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

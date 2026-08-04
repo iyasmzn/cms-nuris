@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\AdmissionPath;
 use App\Models\Institution;
+use App\Models\PpdbField;
 use App\Models\RegistrationWave;
 use App\Models\Setting;
 use App\Models\SpmbRegistration;
@@ -413,6 +414,110 @@ class SpmbRegistrationTest extends TestCase
         $this->assertSame('Membaca', $registration->data['hobby']);
         $this->assertSame('B', $registration->data['blood_type']);
         $this->assertArrayNotHasKey('full_name', $registration->data ?? []);
+    }
+
+    /**
+     * A TK collects no sekolah asal, so the legacy fixed column stays null.
+     */
+    public function test_dynamic_submission_succeeds_without_the_legacy_fixed_columns(): void
+    {
+        $this->institution->ppdbFields()->createMany([
+            ['key' => 'full_name', 'label' => 'Nama Lengkap', 'type' => 'text', 'is_required' => true, 'sort_order' => 1],
+            ['key' => 'nik', 'label' => 'NIK', 'type' => 'text', 'is_required' => true, 'sort_order' => 2],
+            ['key' => 'parent_phone', 'label' => 'No. HP Wali', 'type' => 'tel', 'is_required' => true, 'sort_order' => 4],
+        ]);
+
+        $response = $this->post(route('ppdb.store', $this->institution), [
+            'full_name' => 'Anak TK',
+            'nik' => '3273010101080013',
+            'phone' => '081234567890',
+            'parent_phone' => '085175292101',
+            'admission_path_id' => $this->path->id,
+        ]);
+
+        $response->assertRedirect(route('ppdb.show', $this->institution));
+        $response->assertSessionHas('success');
+
+        $registration = SpmbRegistration::query()->where('nik', '3273010101080013')->first();
+
+        $this->assertNotNull($registration);
+        $this->assertNull($registration->previous_school);
+        $this->assertSame('085175292101', $registration->parent_phone);
+    }
+
+    // ── Field wajib yang terkunci ────────────────────────────────────
+
+    public function test_adding_a_dynamic_field_pulls_in_every_locked_field(): void
+    {
+        $this->institution->ppdbFields()->create([
+            'key' => 'hobby', 'label' => 'Hobi', 'type' => 'text', 'is_required' => false, 'sort_order' => 1,
+        ]);
+
+        foreach (PpdbField::lockedKeys() as $key) {
+            $field = $this->institution->ppdbFields()->where('key', $key)->first();
+
+            $this->assertNotNull($field, "Field terkunci `{$key}` tidak ikut dibuat.");
+            $this->assertTrue($field->is_required);
+            $this->assertTrue($field->is_active);
+        }
+    }
+
+    public function test_a_locked_field_keeps_its_key_type_and_requiredness(): void
+    {
+        $this->institution->ppdbFields()->create([
+            'key' => 'hobby', 'label' => 'Hobi', 'type' => 'text', 'is_required' => false, 'sort_order' => 1,
+        ]);
+
+        foreach (PpdbField::lockedKeys() as $key) {
+            $field = $this->institution->ppdbFields()->where('key', $key)->firstOrFail();
+            $type = $field->type;
+
+            $field->update([
+                'label' => "Label Baru {$key}",
+                'key' => "diganti_{$key}",
+                'type' => 'file',
+                'is_required' => false,
+                'is_active' => false,
+            ]);
+
+            $field->refresh();
+
+            // Only the label is the admin's to change.
+            $this->assertSame("Label Baru {$key}", $field->label);
+            $this->assertSame($key, $field->key);
+            $this->assertSame($type, $field->type);
+            $this->assertTrue($field->is_required);
+            $this->assertTrue($field->is_active);
+        }
+    }
+
+    public function test_a_locked_field_cannot_be_deleted(): void
+    {
+        $this->institution->ppdbFields()->create([
+            'key' => 'hobby', 'label' => 'Hobi', 'type' => 'text', 'is_required' => false, 'sort_order' => 1,
+        ]);
+
+        foreach (PpdbField::lockedKeys() as $key) {
+            $field = $this->institution->ppdbFields()->where('key', $key)->firstOrFail();
+
+            $this->assertFalse($field->delete());
+            $this->assertDatabaseHas('ppdb_fields', ['id' => $field->id]);
+        }
+    }
+
+    public function test_a_dynamic_form_always_asks_for_the_locked_fields(): void
+    {
+        $this->institution->ppdbFields()->create([
+            'key' => 'hobby', 'label' => 'Hobi', 'type' => 'text', 'is_required' => false, 'sort_order' => 1,
+        ]);
+
+        $response = $this->post(route('ppdb.store', $this->institution), [
+            'hobby' => 'Memanah',
+            'admission_path_id' => $this->path->id,
+        ]);
+
+        $response->assertSessionHasErrors(PpdbField::lockedKeys());
+        $this->assertDatabaseMissing('spmb_registrations', ['notes' => 'Memanah']);
     }
 
     public function test_dynamic_required_custom_field_is_enforced(): void

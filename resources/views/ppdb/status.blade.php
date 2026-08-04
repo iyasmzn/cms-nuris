@@ -46,7 +46,7 @@
             Status Pendaftaran &amp;<br><span class="text-amber-400">Pembayaran</span>
         </h1>
         <p class="text-white/70 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
-            Masukkan nomor pendaftaran atau NIK, beserta nomor HP yang Anda isi pada formulir, untuk melihat status pendaftaran dan mengunggah bukti pembayaran.
+            Masukkan nomor form pendaftaran beserta nomor HP yang Anda isi pada formulir, untuk melihat status pendaftaran dan mengunggah bukti pembayaran.
         </p>
     </div>
 </section>
@@ -74,10 +74,10 @@
         @csrf
 
         <div>
-            <label class="ppdb-label" for="identity">Nomor Pendaftaran atau NIK<span class="ppdb-required">*</span></label>
+            <label class="ppdb-label" for="identity">Nomor Form Pendaftaran<span class="ppdb-required">*</span></label>
             <input type="text" id="identity" name="identity" class="ppdb-input"
-                   value="{{ old('identity') }}" placeholder="SMP-2026-0001 atau 16 digit NIK" required>
-            <p class="ppdb-hint">Lupa nomor pendaftaran? Isi NIK calon peserta saja.</p>
+                   value="{{ old('identity') }}" placeholder="SMP-2026-0001" required>
+            <p class="ppdb-hint">Nomor yang Anda terima setelah formulir pendaftaran terkirim.</p>
         </div>
 
         <div>

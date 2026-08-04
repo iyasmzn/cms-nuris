@@ -339,7 +339,7 @@
     <p class="text-center text-xs" style="color:var(--muted)">
         Tautan hilang? Buka kembali lewat
         <a href="{{ route('ppdb.status') }}" class="text-amber-600 font-semibold underline">Cek Status Pendaftaran</a>
-        dengan nomor pendaftaran atau NIK.
+        dengan nomor form pendaftaran dan nomor HP.
     </p>
 </div>
 @endsection

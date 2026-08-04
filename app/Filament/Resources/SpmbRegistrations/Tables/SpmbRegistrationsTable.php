@@ -43,7 +43,7 @@ class SpmbRegistrationsTable
                     ->label('Nama Lengkap')
                     ->searchable()
                     ->sortable()
-                    ->description(fn (SpmbRegistration $record): string => $record->previous_school),
+                    ->description(fn (SpmbRegistration $record): ?string => $record->previous_school),
 
                 TextColumn::make('institution.short_name')
                     ->label('Jenjang')
@@ -61,7 +61,8 @@ class SpmbRegistrationsTable
 
                 TextColumn::make('phone')
                     ->label('No. HP')
-                    ->searchable(),
+                    ->searchable()
+                    ->placeholder('—'),
 
                 TextColumn::make('admissionPath.name')
                     ->label('Jalur')

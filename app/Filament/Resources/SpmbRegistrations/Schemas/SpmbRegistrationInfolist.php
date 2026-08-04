@@ -76,11 +76,11 @@ class SpmbRegistrationInfolist
                 ->schema([
                     TextEntry::make('full_name')->label('Nama Lengkap')->weight('bold'),
                     TextEntry::make('nik')->label('NIK')->copyable()->placeholder('—'),
-                    TextEntry::make('phone')->label('No. HP / WhatsApp')->copyable(),
+                    TextEntry::make('phone')->label('No. HP / WhatsApp')->copyable()->placeholder('—'),
                     TextEntry::make('email')->label('Email')->copyable()->placeholder('—'),
                     TextEntry::make('birth_place')->label('Tempat Lahir')->placeholder('—'),
                     TextEntry::make('birth_date')->label('Tanggal Lahir')->date('d M Y')->placeholder('—'),
-                    TextEntry::make('previous_school')->label('Sekolah Asal'),
+                    TextEntry::make('previous_school')->label('Sekolah Asal')->placeholder('—'),
                     TextEntry::make('previous_school_city')->label('Kota Sekolah')->placeholder('—'),
                     TextEntry::make('address')->label('Alamat')->placeholder('—')->columnSpanFull(),
                 ]),

@@ -4,6 +4,7 @@ namespace Tests\Feature\Filament;
 
 use App\Filament\Actions\UpdateRegistrationStatusAction;
 use App\Filament\Resources\SpmbRegistrations\Pages\EditSpmbRegistration;
+use App\Filament\Resources\SpmbRegistrations\Pages\ListSpmbRegistrations;
 use App\Filament\Resources\SpmbRegistrations\Pages\ViewSpmbRegistration;
 use App\Models\Institution;
 use App\Models\RegistrationPayment;
@@ -75,6 +76,28 @@ class SpmbRegistrationResourceTest extends TestCase
                 'nik' => '2975378084746545',
                 'status' => 'pending',
             ]);
+    }
+
+    /**
+     * A jenjang whose formulir collects neither nomor HP nor sekolah asal — a
+     * TK, typically — stores both as null, and the panel must still render.
+     */
+    public function test_the_list_and_preview_handle_a_pendaftar_without_phone_or_previous_school(): void
+    {
+        $registration = SpmbRegistration::factory()->pending()->create([
+            'full_name' => 'Anak TK',
+            'phone' => null,
+            'previous_school' => null,
+            'previous_school_city' => null,
+        ]);
+
+        Livewire::test(ListSpmbRegistrations::class)
+            ->assertOk()
+            ->assertCanSeeTableRecords([$registration]);
+
+        Livewire::test(ViewSpmbRegistration::class, ['record' => $registration->id])
+            ->assertOk()
+            ->assertSee('Anak TK');
     }
 
     /**

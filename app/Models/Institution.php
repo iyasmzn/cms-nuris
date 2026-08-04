@@ -81,6 +81,27 @@ class Institution extends Model
         return $this->hasMany(PpdbField::class);
     }
 
+    /**
+     * Add the fields this jenjang is not allowed to do without (see
+     * `PpdbField::lockedKeys()`), leaving any it already has untouched. Called
+     * whenever a dynamic field is added, so the set can never end up without
+     * the nomor HP the status lookup depends on.
+     */
+    public function ensureLockedPpdbFields(): void
+    {
+        foreach (PpdbField::lockedFieldDefaults() as $defaults) {
+            if ($this->ppdbFields()->where('key', $defaults['key'])->exists()) {
+                continue;
+            }
+
+            $this->ppdbFields()->create($defaults + [
+                'is_required' => true,
+                'is_active' => true,
+                'sort_order' => ((int) $this->ppdbFields()->max('sort_order')) + 1,
+            ]);
+        }
+    }
+
     /** @return array<string, string> */
     public static function formModeOptions(): array
     {
