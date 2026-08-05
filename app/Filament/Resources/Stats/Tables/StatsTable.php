@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Stats\Tables;
 
+use App\Models\Stat;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -45,6 +46,15 @@ class StatsTable
                 TextColumn::make('sub')
                     ->label('Keterangan')
                     ->searchable()
+                    ->toggleable(),
+
+                TextColumn::make('url')
+                    ->label('Tautan')
+                    ->placeholder('—')
+                    ->limit(30)
+                    ->description(fn (Stat $record): ?string => $record->link_opens_in_new_tab ? 'Buka di tab baru' : null)
+                    ->url(fn (Stat $record): ?string => $record->url)
+                    ->openUrlInNewTab()
                     ->toggleable(),
 
                 TextColumn::make('updated_at')
