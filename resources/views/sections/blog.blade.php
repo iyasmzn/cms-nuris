@@ -1,4 +1,6 @@
-<section id="blog" class="py-20 sm:py-28" style="background:var(--bg)">
+<x-section-background :config="section_background('section_blog')"
+                      background="var(--bg)"
+                      id="blog" class="py-20 sm:py-28">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {{-- Section header --}}
@@ -122,4 +124,4 @@
             <a href="{{ route('blog.index') }}" class="btn-outline">Lihat Semua Artikel</a>
         </div>
     </div>
-</section>
+</x-section-background>

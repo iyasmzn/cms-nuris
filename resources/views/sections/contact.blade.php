@@ -1,6 +1,7 @@
 @if($contactItems->isNotEmpty())
-<section id="kontak-section" class="py-24 sm:py-32"
-         style="background:linear-gradient(135deg,#0a0a0b 0%,#1a1a1e 50%,#0a0f1a 100%)">
+<x-section-background :config="section_background('section_contact')"
+                     background="linear-gradient(135deg,#0a0a0b 0%,#1a1a1e 50%,#0a0f1a 100%)"
+                     id="kontak-section" class="py-24 sm:py-32">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {{-- Header --}}
@@ -129,5 +130,5 @@
             </div>
         </div>
     </div>
-</section>
+</x-section-background>
 @endif

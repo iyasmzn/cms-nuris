@@ -1,4 +1,6 @@
-<section id="profil" class="py-16 sm:py-20">
+<x-section-background :config="section_background('section_stats')"
+                      background="transparent"
+                      id="profil" class="py-16 sm:py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         @if($stats->isNotEmpty())
             <div class="grid grid-cols-2 sm:grid-cols-{{ min($stats->count(), 4) }} gap-4 sm:gap-5">
@@ -23,4 +25,4 @@
             </div>
         @endif
     </div>
-</section>
+</x-section-background>

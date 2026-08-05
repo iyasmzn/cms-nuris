@@ -14,7 +14,9 @@
     $secondaryLabel = setting('spmb_card_secondary_label', 'Info Selengkapnya');
 @endphp
 
-<section id="spmb" class="py-8 sm:py-12">
+<x-section-background :config="section_background('section_spmb')"
+                      background="transparent"
+                      id="spmb" class="py-8 sm:py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="rounded-3xl overflow-hidden shadow-2xl border"
              style="background:linear-gradient(135deg,var(--primary-50) 0%,var(--primary-100) 50%,var(--primary-200) 100%);border-color:var(--primary-200);box-shadow:0 20px 60px color-mix(in oklab,var(--primary) 15%,transparent)"
@@ -97,5 +99,5 @@
             </div>
         </div>
     </div>
-</section>
+</x-section-background>
 @endif

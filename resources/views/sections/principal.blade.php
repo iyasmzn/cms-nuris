@@ -4,7 +4,9 @@
 @endphp
 
 @if($greetings->isNotEmpty())
-<section id="sambutan" class="py-20 sm:py-28" style="background:var(--bg-alt)">
+<x-section-background :config="section_background('section_principal')"
+                      background="var(--bg-alt)"
+                      id="sambutan" class="py-20 sm:py-28">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         @php
@@ -143,5 +145,5 @@
             @endif
         </div>
     </div>
-</section>
+</x-section-background>
 @endif

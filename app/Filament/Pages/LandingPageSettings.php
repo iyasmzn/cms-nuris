@@ -2,17 +2,22 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Filament\Resources\ContentSections\ContentSectionResource;
 use App\Models\ContentSection;
 use App\Models\Setting;
+use App\Support\SectionBackground;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Slider;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Grid;
@@ -26,6 +31,7 @@ use UnitEnum;
 class LandingPageSettings extends Page
 {
     use HasPageShield;
+    use InteractsWithImagePicker;
 
     protected string $view = 'filament.pages.general-settings';
 
@@ -41,6 +47,14 @@ class LandingPageSettings extends Page
      * Awalan kunci seksi bawaan di dalam `section_order`.
      */
     private const BUILT_IN_PREFIX = 'section_';
+
+    /**
+     * Seksi bawaan yang latarnya tidak bisa diatur di sini: hero sudah punya
+     * gambar/video slidernya sendiri di menu Slide.
+     *
+     * @var list<string>
+     */
+    private const WITHOUT_BACKGROUND = ['section_hero'];
 
     /** @var array<string, mixed>|null */
     public ?array $data = [];
@@ -203,6 +217,17 @@ class LandingPageSettings extends Page
     }
 
     /**
+     * Seksi bawaan mana yang latarnya bisa diatur dari halaman ini. Seksi
+     * dinamis punya pengaturan latar sendiri di halaman editnya.
+     */
+    private static function supportsBackground(?string $key): bool
+    {
+        return $key !== null
+            && str_starts_with($key, self::BUILT_IN_PREFIX)
+            && ! in_array($key, self::WITHOUT_BACKGROUND, true);
+    }
+
+    /**
      * Semua teks tambahan yang dideklarasikan seksi mana pun, dipakai untuk
      * membuat satu kolom per suffix di dalam repeater.
      *
@@ -277,6 +302,10 @@ class LandingPageSettings extends Page
             'visible' => $visible ?? $section['visible'],
         ];
 
+        if (self::supportsBackground($section['key'])) {
+            $item = [...$item, ...self::backgroundState($section['key'])];
+        }
+
         $config = self::contentConfig($section['key']);
 
         if ($config === null) {
@@ -298,6 +327,25 @@ class LandingPageSettings extends Page
         }
 
         return $item;
+    }
+
+    /**
+     * Latar seksi yang sedang tayang, dipetakan ke nama kolom di dalam repeater.
+     *
+     * @return array<string, mixed>
+     */
+    private static function backgroundState(string $key): array
+    {
+        return [
+            'background' => Setting::get("{$key}_background") ?: 'default',
+            'background_image' => Setting::get("{$key}_background_image"),
+            'background_image_source' => 'upload',
+            'background_blur' => (int) Setting::get("{$key}_background_blur", 0),
+            'background_overlay' => (int) Setting::get("{$key}_background_overlay", 0),
+            'background_light_text' => setting_bool("{$key}_background_light_text", true),
+            'background_parallax_mode' => Setting::get("{$key}_background_parallax_mode") ?: 'none',
+            'background_parallax_speed' => (int) Setting::get("{$key}_background_parallax_speed", 30),
+        ];
     }
 
     public function defaultForm(Schema $schema): Schema
@@ -431,6 +479,114 @@ class LandingPageSettings extends Page
 
                     ...$this->extraTextFields(),
                 ]),
+
+            ...$this->backgroundFields(),
+        ];
+    }
+
+    /**
+     * Pengaturan latar seksi bawaan — sama persis dengan yang dimiliki seksi
+     * dinamis, hanya nilainya disimpan sebagai setting.
+     *
+     * @return array<int, mixed>
+     */
+    private function backgroundFields(): array
+    {
+        $usesImage = fn (Get $get): bool => $get('background') === 'image';
+
+        return [
+            Section::make('Latar Belakang Seksi')
+                ->description('Biarkan "Bawaan Seksi" untuk memakai latar rancangan aslinya, atau ganti dengan warna polos maupun gambar penuh berikut efeknya.')
+                ->icon(Heroicon::OutlinedSwatch)
+                ->visible(fn (Get $get): bool => self::supportsBackground($get('key')))
+                ->collapsible()
+                ->collapsed()
+                ->columnSpanFull()
+                ->schema([
+                    ToggleButtons::make('background')
+                        ->label('Jenis Latar')
+                        ->options(SectionBackground::BACKGROUNDS)
+                        ->icons([
+                            'default' => Heroicon::OutlinedSparkles,
+                            'base' => Heroicon::OutlinedSquares2x2,
+                            'alt' => Heroicon::OutlinedStop,
+                            'image' => Heroicon::OutlinedPhoto,
+                        ])
+                        ->default('default')
+                        ->required()
+                        ->inline()
+                        ->live()
+                        ->helperText('Selang-seling abu lembut dan putih bersih agar antar seksi tidak menyatu.')
+                        ->columnSpanFull(),
+
+                    self::imagePicker(
+                        key: 'background_image',
+                        label: 'Gambar Latar',
+                        hint: 'Gambar lebar (landscape). Akan di-resize ke 1920×1080.',
+                        accepted: ['image/jpeg', 'image/png', 'image/webp'],
+                        width: 1920,
+                        height: 1080,
+                        directory: 'sections/backgrounds',
+                        aspectRatio: '16:9',
+                    )
+                        ->visible($usesImage)
+                        ->columnSpanFull(),
+
+                    Grid::make(2)
+                        ->visible($usesImage)
+                        ->schema([
+                            Select::make('background_blur')
+                                ->label('Blur Latar')
+                                ->options(ContentSection::BLUR_LEVELS)
+                                ->default(0)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->helperText('Mengaburkan gambar agar teks lebih mudah dibaca.'),
+
+                            Select::make('background_overlay')
+                                ->label('Lapisan Gelap')
+                                ->options(ContentSection::OVERLAY_LEVELS)
+                                ->default(0)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->helperText('Menggelapkan gambar agar kontras teks meningkat.'),
+
+                            Toggle::make('background_light_text')
+                                ->label('Teks Warna Terang')
+                                ->default(true)
+                                ->onColor('success')
+                                ->helperText('Nyalakan bila latarnya gelap, matikan bila latarnya terang.')
+                                ->columnSpanFull(),
+
+                            ToggleButtons::make('background_parallax_mode')
+                                ->label('Gerak Saat Digulir')
+                                ->options(ContentSection::PARALLAX_MODES)
+                                ->icons([
+                                    'none' => Heroicon::OutlinedBars2,
+                                    'scroll' => Heroicon::OutlinedArrowsUpDown,
+                                    'fixed' => Heroicon::OutlinedLockClosed,
+                                ])
+                                ->default('none')
+                                ->required()
+                                ->inline()
+                                ->live()
+                                ->helperText('Bergeser: gambar tertinggal di belakang konten. Diam: gambar terkunci ke layar dan konten meluncur di atasnya.')
+                                ->columnSpanFull(),
+
+                            Slider::make('background_parallax_speed')
+                                ->label('Kekuatan Parallax')
+                                ->range(minValue: ContentSection::PARALLAX_MIN_SPEED, maxValue: ContentSection::PARALLAX_MAX_SPEED)
+                                ->step(1)
+                                ->tooltips()
+                                ->default(30)
+                                ->required()
+                                ->visible(fn (Get $get): bool => $get('background_parallax_mode') === 'scroll')
+                                ->helperText('1 = nyaris diam, 100 = geser paling jauh. Makin tinggi, gambar latar makin diperbesar agar tepinya tidak menyingkap — pakai gambar resolusi tinggi untuk nilai besar.')
+                                ->columnSpanFull(),
+                        ]),
+                ]),
         ];
     }
 
@@ -501,7 +657,11 @@ class LandingPageSettings extends Page
                 'visible' => (bool) ($section['visible'] ?? true),
             ];
 
-            $payload = [...$payload, ...self::contentPayload($key, $section)];
+            $payload = [
+                ...$payload,
+                ...self::contentPayload($key, $section),
+                ...self::backgroundPayload($key, $section),
+            ];
         }
 
         $payload['section_order'] = json_encode($order);
@@ -546,6 +706,34 @@ class LandingPageSettings extends Page
         }
 
         return $payload;
+    }
+
+    /**
+     * Latar satu seksi bawaan, dipetakan ke kunci setting datar yang dibaca
+     * komponen `<x-section-background>` (`section_stats_background`, dst).
+     * Gambar yang dipilih dari media library atau baru diunggah diselesaikan
+     * dulu lewat pemilih gambar bersama.
+     *
+     * @param  array<string, mixed>  $section
+     * @return array<string, mixed>
+     */
+    private static function backgroundPayload(string $key, array $section): array
+    {
+        if (! self::supportsBackground($key)) {
+            return [];
+        }
+
+        $section = self::applyImagePickers($section, ['background_image']);
+
+        return [
+            "{$key}_background" => $section['background'] ?? 'default',
+            "{$key}_background_image" => $section['background_image'] ?? '',
+            "{$key}_background_blur" => (int) ($section['background_blur'] ?? 0),
+            "{$key}_background_overlay" => (int) ($section['background_overlay'] ?? 0),
+            "{$key}_background_light_text" => (bool) ($section['background_light_text'] ?? true),
+            "{$key}_background_parallax_mode" => $section['background_parallax_mode'] ?? 'none',
+            "{$key}_background_parallax_speed" => (int) ($section['background_parallax_speed'] ?? 30),
+        ];
     }
 
     /**

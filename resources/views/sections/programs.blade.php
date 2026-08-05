@@ -1,4 +1,6 @@
-<section id="program" class="py-20 sm:py-28" style="background:var(--bg)">
+<x-section-background :config="section_background('section_programs')"
+                      background="var(--bg)"
+                      id="program" class="py-20 sm:py-28">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {{-- Section header --}}
@@ -84,4 +86,4 @@
         @endif
 
     </div>
-</section>
+</x-section-background>

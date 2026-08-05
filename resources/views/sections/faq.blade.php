@@ -21,7 +21,9 @@
 @endphp
 
 @if($faqs->isNotEmpty())
-<section id="faq" class="py-20 sm:py-28" style="background:var(--bg-alt, var(--bg))">
+<x-section-background :config="section_background('section_faq')"
+                      background="var(--bg-alt, var(--bg))"
+                      id="faq" class="py-20 sm:py-28">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
         @php
@@ -141,5 +143,5 @@
 
     {{-- Structured data so the FAQ can surface as a rich result in search --}}
     <script type="application/ld+json">{!! $faqSchema !!}</script>
-</section>
+</x-section-background>
 @endif

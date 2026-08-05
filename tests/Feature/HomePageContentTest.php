@@ -18,6 +18,21 @@ class HomePageContentTest extends TestCase
             ->assertSee('Keunggulan Kami');
     }
 
+    /**
+     * Nilai atribut pada tag komponen Blade tidak dikompilasi, jadi direktif
+     * seperti @js() harus tetap berada di markup seksi — bukan dititipkan
+     * lewat atribut <x-section-background>. Bila terlewat, x-data galeri gagal
+     * dan lightbox-nya tampil menutupi halaman tanpa bisa ditutup.
+     */
+    public function test_the_home_page_leaves_no_uncompiled_blade_directives(): void
+    {
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('@js(', $html);
+        $this->assertStringNotContainsString('@php', $html);
+        $this->assertStringContainsString('items: [', $html);
+    }
+
     public function test_it_shows_custom_section_headings_when_set(): void
     {
         Setting::setMany([

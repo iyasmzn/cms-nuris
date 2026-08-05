@@ -19,7 +19,9 @@
 @endphp
 
 @if($quickLinks->isNotEmpty())
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-2 pb-10">
+<x-section-background :config="section_background('section_quick_links')"
+                     background="transparent"
+                     class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-2 pb-10">
     <div x-data="{
             expanded: false,
             hiddenCount: 0,
@@ -88,5 +90,5 @@
             </button>
         </div>
     </div>
-</section>
+</x-section-background>
 @endif

@@ -45,16 +45,21 @@
     }
 </style>
 
-<section id="galeri" class="py-20 sm:py-28" style="background:var(--bg)"
-         x-data="{
-            open: false,
-            active: null,
-            items: @js($lightboxItems),
-            show(i) { this.active = i; this.open = true; document.body.style.overflow = 'hidden'; },
-            close() { this.open = false; this.active = null; document.body.style.overflow = ''; },
-            get current() { return this.active !== null ? this.items[this.active] : null; },
-         }"
-         @keydown.escape.window="close()">
+<x-section-background :config="section_background('section_gallery')"
+                     background="var(--bg)"
+                     id="galeri" class="py-20 sm:py-28">
+
+{{-- State lightbox dipegang div ini, bukan elemen <section>: nilai atribut pada
+     tag komponen tidak dikompilasi Blade, jadi @js() di sana tidak akan jalan. --}}
+<div x-data="{
+        open: false,
+        active: null,
+        items: @js($lightboxItems),
+        show(i) { this.active = i; this.open = true; document.body.style.overflow = 'hidden'; },
+        close() { this.open = false; this.active = null; document.body.style.overflow = ''; },
+        get current() { return this.active !== null ? this.items[this.active] : null; },
+     }"
+     @keydown.escape.window="close()">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {{-- Section header --}}
@@ -230,4 +235,5 @@
             <p class="text-center text-white/80 text-sm mt-4 font-medium" x-text="current ? current.name : ''"></p>
         </div>
     </div>
-</section>
+</div>
+</x-section-background>

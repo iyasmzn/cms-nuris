@@ -7,7 +7,9 @@
 @endphp
 
 @if($alumniStats->isNotEmpty() || $alumniUniversities->isNotEmpty())
-<section id="alumni" class="py-20 sm:py-28 relative overflow-hidden" style="background:var(--bg-alt, var(--bg))">
+<x-section-background :config="section_background('section_alumni')"
+                     background="var(--bg-alt, var(--bg))"
+                     id="alumni" class="py-20 sm:py-28 overflow-hidden">
 
     {{-- Soft accent glow, keeps the section distinct from the plain stats strip --}}
     <div aria-hidden="true" class="alumni-glow"></div>
@@ -338,5 +340,5 @@
             .alumni-logo, .alumni-stat { transition: none; }
         }
     </style>
-</section>
+</x-section-background>
 @endif

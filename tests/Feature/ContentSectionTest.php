@@ -108,12 +108,11 @@ class ContentSectionTest extends TestCase
     {
         $html = $this->get(route('home'))->assertOk()->getContent();
 
-        $this->assertMatchesRegularExpression(
-            '/<section id="'.preg_quote($anchorId, '/').'"[^>]*>/',
-            $html,
-        );
+        $pattern = '/<section [^>]*id="'.preg_quote($anchorId, '/').'"[^>]*>/';
 
-        preg_match('/<section id="'.preg_quote($anchorId, '/').'"[^>]*>/', $html, $matches);
+        $this->assertMatchesRegularExpression($pattern, $html);
+
+        preg_match($pattern, $html, $matches);
 
         return $matches[0];
     }
@@ -166,16 +165,18 @@ class ContentSectionTest extends TestCase
     {
         ContentSection::factory()->withFixedBackground()->create([
             'title' => 'Latar Terkunci',
+            'anchor' => 'latar-diam',
             'background_image' => 'content-sections/backgrounds/diam.jpg',
             'background_blur' => 8,
             'background_overlay' => 45,
             'is_published' => true,
         ]);
 
+        $this->assertStringContainsString('section-clip', $this->sectionTag('latar-diam'));
+
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('class="content-section-bg-fixed"', false)
-            ->assertSee('content-section-clip"', false)
+            ->assertSee('class="section-bg-fixed"', false)
             ->assertSee('storage/content-sections/backgrounds/diam.jpg', false)
             ->assertSee('filter:blur(8px)', false)
             ->assertSee('rgba(17,24,39,0.45)', false)
@@ -187,28 +188,30 @@ class ContentSectionTest extends TestCase
     {
         $section = ContentSection::factory()->withBackgroundImage()->create([
             'title' => 'Ganti Mode',
+            'anchor' => 'ganti-mode',
             'is_published' => true,
         ]);
 
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('translate3d', false)
-            ->assertDontSee('class="content-section-bg-fixed"', false);
+            ->assertDontSee('class="section-bg-fixed"', false);
 
         $section->update(['background_parallax_mode' => 'fixed']);
 
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('class="content-section-bg-fixed"', false)
+            ->assertSee('class="section-bg-fixed"', false)
             ->assertDontSee('translate3d', false);
 
         $section->update(['background_parallax_mode' => 'none']);
 
         $this->get(route('home'))
             ->assertOk()
-            ->assertDontSee('class="content-section-bg-fixed"', false)
-            ->assertDontSee('translate3d', false)
-            ->assertDontSee('content-section-clip"', false);
+            ->assertDontSee('class="section-bg-fixed"', false)
+            ->assertDontSee('translate3d', false);
+
+        $this->assertStringNotContainsString('section-clip', $this->sectionTag('ganti-mode'));
     }
 
     public function test_background_effects_are_skipped_when_the_background_is_not_an_image(): void

@@ -18,7 +18,9 @@
     $hasMore      = count($procedures) > 4;
 @endphp
 
-<section class="py-20 sm:py-28" style="background:var(--bg)">
+<x-section-background :config="section_background('section_spmb_steps')"
+                      background="var(--bg)"
+                      class="py-20 sm:py-28">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div class="text-center mb-14" data-aos="fade-up">
@@ -61,4 +63,4 @@
             @endif
         </div>
     </div>
-</section>
+</x-section-background>

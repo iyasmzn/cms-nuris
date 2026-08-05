@@ -4,7 +4,9 @@
 @endphp
 
 @if($testimonials->isNotEmpty())
-<section id="kesan-pesan" class="py-20 sm:py-28" style="background:var(--bg)">
+<x-section-background :config="section_background('section_testimonials')"
+                      background="var(--bg)"
+                      id="kesan-pesan" class="py-20 sm:py-28">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         @php
@@ -61,5 +63,5 @@
             @endforeach
         </div>
     </div>
-</section>
+</x-section-background>
 @endif

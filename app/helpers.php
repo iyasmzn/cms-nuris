@@ -3,6 +3,7 @@
 use App\Models\AcademicYear;
 use App\Models\RegistrationWave;
 use App\Models\Setting;
+use App\Support\SectionBackground;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -124,6 +125,18 @@ if (! function_exists('setting_bool')) {
         }
 
         return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
+}
+
+if (! function_exists('section_background')) {
+    /**
+     * Pengaturan latar sebuah seksi bawaan halaman depan, mis.
+     * `section_background('section_stats')`. Dipakai partial seksi untuk
+     * memberi makan komponen `<x-section-background>`.
+     */
+    function section_background(string $sectionKey): SectionBackground
+    {
+        return SectionBackground::forSection($sectionKey);
     }
 }
 

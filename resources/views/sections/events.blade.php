@@ -1,4 +1,6 @@
-<section id="kegiatan-upcoming" class="py-20 sm:py-28" style="background:var(--bg-alt)">
+<x-section-background :config="section_background('section_events')"
+                      background="var(--bg-alt)"
+                      id="kegiatan-upcoming" class="py-20 sm:py-28">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {{-- Section header --}}
@@ -93,4 +95,4 @@
         @endif
 
     </div>
-</section>
+</x-section-background>
