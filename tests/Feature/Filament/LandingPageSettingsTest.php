@@ -7,6 +7,7 @@ use App\Models\ContentSection;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -53,14 +54,17 @@ class LandingPageSettingsTest extends TestCase
     {
         $admin = User::factory()->create()->assignRole('super_admin');
 
-        Livewire::actingAs($admin)
-            ->test(LandingPageSettings::class)
+        $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
+
+        $component
             ->fillForm([
                 'home_meta_title' => 'Pesantren Modern Terbaik',
                 'home_meta_description' => 'Deskripsi meta khusus halaman depan.',
-                'section_programs_eyebrow' => 'Program Kami',
-                'section_programs_title' => 'Program Andalan Pesantren',
-                'section_programs_subtitle' => 'Deskripsi program yang sudah diubah.',
+                'sections' => $this->withSectionState($component, 'section_programs', [
+                    'eyebrow' => 'Program Kami',
+                    'title' => 'Program Andalan Pesantren',
+                    'subtitle' => 'Deskripsi program yang sudah diubah.',
+                ]),
             ])
             ->call('save')
             ->assertHasNoFormErrors();
@@ -72,13 +76,36 @@ class LandingPageSettingsTest extends TestCase
         $this->assertSame('Deskripsi program yang sudah diubah.', Setting::get('section_programs_subtitle'));
     }
 
+    public function test_it_persists_a_section_specific_extra_text(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
+
+        $component
+            ->fillForm([
+                'sections' => $this->withSectionState($component, 'section_alumni', [
+                    'extra_logos_title' => 'Kampus Pilihan Lulusan',
+                ]),
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('Kampus Pilihan Lulusan', Setting::get('section_alumni_logos_title'));
+    }
+
     public function test_it_keeps_section_order_and_visibility_when_saving_content(): void
     {
         $admin = User::factory()->create()->assignRole('super_admin');
 
-        Livewire::actingAs($admin)
-            ->test(LandingPageSettings::class)
-            ->fillForm(['section_blog_title' => 'Kabar Terbaru'])
+        $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
+
+        $component
+            ->fillForm([
+                'sections' => $this->withSectionState($component, 'section_blog', [
+                    'title' => 'Kabar Terbaru',
+                ]),
+            ])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -87,6 +114,31 @@ class LandingPageSettingsTest extends TestCase
         $this->assertIsArray($order);
         $this->assertContains('section_programs', array_column($order, 'key'));
         $this->assertContains('section_blog', array_column($order, 'key'));
+        $this->assertSame('Kabar Terbaru', Setting::get('section_blog_title'));
+    }
+
+    public function test_dragging_a_section_persists_the_new_order(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
+
+        // Pindahkan FAQ ke urutan paling atas, seperti hasil drag-and-drop
+        $sections = collect($component->get('data.sections'));
+        $faq = $sections->firstWhere('key', 'section_faq');
+        $reordered = $sections->reject(fn (array $entry): bool => $entry['key'] === 'section_faq')
+            ->prepend($faq)
+            ->values()
+            ->all();
+
+        $component
+            ->fillForm(['sections' => $reordered])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $order = json_decode(Setting::get('section_order'), true);
+
+        $this->assertSame('section_faq', $order[0]['key']);
     }
 
     public function test_dynamic_content_sections_join_the_order_list(): void
@@ -126,5 +178,22 @@ class LandingPageSettingsTest extends TestCase
             ->assertHasNoFormErrors();
 
         $this->assertFalse($section->fresh()->is_published);
+    }
+
+    /**
+     * Seksi kini diurutkan sekaligus diubah teksnya dalam satu repeater, jadi
+     * mengisi satu kolom berarti mengirim ulang seluruh state daftarnya.
+     *
+     * @param  array<string, mixed>  $changes
+     * @return array<int, array<string, mixed>>
+     */
+    private function withSectionState(Testable $component, string $key, array $changes): array
+    {
+        return collect($component->get('data.sections'))
+            ->map(fn (array $entry): array => $entry['key'] === $key
+                ? [...$entry, ...$changes]
+                : $entry)
+            ->values()
+            ->all();
     }
 }

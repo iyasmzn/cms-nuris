@@ -2,10 +2,13 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Resources\ContentSections\ContentSectionResource;
 use App\Models\ContentSection;
 use App\Models\Setting;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -14,8 +17,10 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\HtmlString;
 use UnitEnum;
 
 class LandingPageSettings extends Page
@@ -31,6 +36,11 @@ class LandingPageSettings extends Page
     protected static ?string $title = 'Pengaturan Halaman Depan';
 
     protected static ?int $navigationSort = 3;
+
+    /**
+     * Awalan kunci seksi bawaan di dalam `section_order`.
+     */
+    private const BUILT_IN_PREFIX = 'section_';
 
     /** @var array<string, mixed>|null */
     public ?array $data = [];
@@ -162,6 +172,55 @@ class LandingPageSettings extends Page
         ];
     }
 
+    /**
+     * Konfigurasi teks yang bisa diubah, di-rekey memakai kunci urutan
+     * (`section_programs`) agar cocok dengan isi repeater.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private static function editableSections(): array
+    {
+        $sections = [];
+
+        foreach (self::contentSections() as $key => $content) {
+            $sections[self::BUILT_IN_PREFIX.$key] = $content;
+        }
+
+        return $sections;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private static function contentConfig(?string $key): ?array
+    {
+        return self::editableSections()[$key] ?? null;
+    }
+
+    private static function isDynamic(?string $key): bool
+    {
+        return $key !== null && ContentSection::idFromOrderKey($key) !== null;
+    }
+
+    /**
+     * Semua teks tambahan yang dideklarasikan seksi mana pun, dipakai untuk
+     * membuat satu kolom per suffix di dalam repeater.
+     *
+     * @return array<string, array{owner: string, label: string, default: string, helperText?: string}>
+     */
+    private static function extraFields(): array
+    {
+        $fields = [];
+
+        foreach (self::editableSections() as $key => $content) {
+            foreach ($content['extra'] ?? [] as $suffix => $extra) {
+                $fields[$suffix] = [...$extra, 'owner' => $key];
+            }
+        }
+
+        return $fields;
+    }
+
     public function mount(): void
     {
         $defaults = self::defaultSections();
@@ -181,15 +240,10 @@ class LandingPageSettings extends Page
                 continue;
             }
 
-            $isDynamic = ContentSection::idFromOrderKey($key) !== null;
-
-            $sections[] = [
-                'key' => $key,
-                'label' => $labelMap->get($key)['label'],
-                'visible' => $isDynamic
-                    ? $labelMap->get($key)['visible']
-                    : (bool) ($section['visible'] ?? true),
-            ];
+            $sections[] = $this->sectionItem(
+                $labelMap->get($key),
+                self::isDynamic($key) ? null : (bool) ($section['visible'] ?? true),
+            );
             $seen[$key] = true;
         }
 
@@ -197,33 +251,53 @@ class LandingPageSettings extends Page
         // remain toggleable (e.g. the gallery section).
         foreach ($defaults as $section) {
             if (! isset($seen[$section['key']])) {
-                $sections[] = $section;
+                $sections[] = $this->sectionItem($section);
             }
         }
 
-        $fill = [
+        $this->form->fill([
             'sections' => $sections,
             'home_meta_title' => Setting::get('home_meta_title', ''),
             'home_meta_description' => Setting::get('home_meta_description', ''),
+        ]);
+    }
+
+    /**
+     * Satu baris repeater: identitas seksi plus teksnya yang sedang tayang,
+     * dengan teks bawaan sebagai cadangan agar admin melihat apa yang live.
+     *
+     * @param  array{key: string, label: string, visible: bool}  $section
+     * @return array<string, mixed>
+     */
+    private function sectionItem(array $section, ?bool $visible = null): array
+    {
+        $item = [
+            'key' => $section['key'],
+            'label' => $section['label'],
+            'visible' => $visible ?? $section['visible'],
         ];
 
-        // Pre-fill each editable section's content with its current value,
-        // falling back to the canonical default text so admins see what is live.
-        foreach (self::contentSections() as $key => $content) {
-            $fill["section_{$key}_eyebrow"] = Setting::get("section_{$key}_eyebrow", $content['eyebrow']);
-            $fill["section_{$key}_title"] = Setting::get("section_{$key}_title", $content['title']);
-            $fill["section_{$key}_subtitle"] = Setting::get("section_{$key}_subtitle", $content['subtitle']);
+        $config = self::contentConfig($section['key']);
 
-            if (isset($content['highlight'])) {
-                $fill["section_{$key}_title_highlight"] = Setting::get("section_{$key}_title_highlight", $content['highlight']);
-            }
-
-            foreach ($content['extra'] ?? [] as $suffix => $extra) {
-                $fill["section_{$key}_{$suffix}"] = Setting::get("section_{$key}_{$suffix}", $extra['default']);
-            }
+        if ($config === null) {
+            return $item;
         }
 
-        $this->form->fill($fill);
+        $prefix = $section['key'];
+
+        $item['eyebrow'] = Setting::get("{$prefix}_eyebrow", $config['eyebrow']);
+        $item['title'] = Setting::get("{$prefix}_title", $config['title']);
+        $item['subtitle'] = Setting::get("{$prefix}_subtitle", $config['subtitle']);
+
+        if (isset($config['highlight'])) {
+            $item['title_highlight'] = Setting::get("{$prefix}_title_highlight", $config['highlight']);
+        }
+
+        foreach ($config['extra'] ?? [] as $suffix => $extra) {
+            $item["extra_{$suffix}"] = Setting::get("{$prefix}_{$suffix}", $extra['default']);
+        }
+
+        return $item;
     }
 
     public function defaultForm(Schema $schema): Schema
@@ -233,42 +307,27 @@ class LandingPageSettings extends Page
 
     public function form(Schema $schema): Schema
     {
-        $components = [
-            Section::make('Urutan & Visibilitas Seksi')
-                ->description('Drag dan drop untuk mengatur urutan tampilan. Aktifkan atau nonaktifkan setiap seksi. Seksi bertanda 🧩 dibuat di menu Konten → Seksi Halaman Depan.')
+        return $schema->components([
+            Section::make('Susunan Halaman Depan')
+                ->description('Seret kartu untuk mengubah urutan seksi, dan buka kartunya untuk mengubah teks judul & deskripsi seksi itu. Seksi bertanda 🧩 dibuat di menu Konten → Seksi Halaman Depan.')
                 ->icon(Heroicon::OutlinedQueueList)
                 ->schema([
                     Repeater::make('sections')
-                        ->label('')
+                        ->hiddenLabel()
                         ->addable(false)
                         ->deletable(false)
                         ->reorderableWithDragAndDrop(true)
-                        ->schema([
-                            TextInput::make('key')
-                                ->hiddenLabel()
-                                ->disabled()
-                                ->dehydrated(true)
-                                ->extraInputAttributes(['class' => 'hidden'])
-                                ->columnSpan(0),
-
-                            TextInput::make('label')
-                                ->label('Seksi')
-                                ->disabled()
-                                ->dehydrated(false)
-                                ->columnSpan(3),
-
-                            Toggle::make('visible')
-                                ->label('Tampilkan')
-                                ->onColor('success')
-                                ->columnSpan(1),
-                        ])
-                        ->columns(4),
+                        ->collapsible()
+                        ->collapsed()
+                        ->itemLabel(fn (array $state): ?string => self::itemLabel($state))
+                        ->schema($this->sectionItemSchema()),
                 ]),
 
             Section::make('SEO Halaman Depan')
                 ->description('Judul dan deskripsi meta khusus halaman depan untuk mesin pencari (Google) dan berbagi ke media sosial.')
                 ->icon(Heroicon::OutlinedGlobeAlt)
                 ->collapsible()
+                ->collapsed()
                 ->schema([
                     TextInput::make('home_meta_title')
                         ->label('Meta Title')
@@ -284,62 +343,112 @@ class LandingPageSettings extends Page
                         ->helperText('Ringkasan yang tampil di hasil pencarian Google. Ideal 150–160 karakter. Kosongkan untuk memakai Deskripsi Singkat dari Pengaturan Umum.')
                         ->columnSpanFull(),
                 ]),
-        ];
-
-        foreach (self::contentSections() as $key => $content) {
-            $components[] = Section::make('Konten: '.$content['label'])
-                ->description('Ubah teks judul dan deskripsi seksi ini. Kosongkan sebuah kolom untuk memakai teks bawaan.')
-                ->icon($content['icon'])
-                ->collapsible()
-                ->collapsed()
-                ->schema([
-                    Grid::make(2)->schema($this->contentFields($key, $content)),
-                ]);
-        }
-
-        return $schema->components($components);
+        ]);
     }
 
     /**
-     * @param  array{label: string, icon: Heroicon, eyebrow: string, title: string, subtitle: string, highlight?: string, extra?: array<string, array{label: string, default: string, helperText?: string}>}  $content
-     * @return array<int, TextInput|Textarea>
+     * Judul kartu repeater: nama seksi, ditambah penanda bila disembunyikan.
+     *
+     * @param  array<string, mixed>  $state
      */
-    private function contentFields(string $key, array $content): array
+    private static function itemLabel(array $state): ?string
     {
-        $fields = [
-            TextInput::make("section_{$key}_eyebrow")
-                ->label('Label Kecil')
-                ->maxLength(60)
-                ->placeholder($content['eyebrow'])
-                ->helperText('Teks kecil di atas judul. Kosongkan untuk menyembunyikan.'),
+        $label = $state['label'] ?? null;
 
-            TextInput::make("section_{$key}_title")
-                ->label('Judul')
-                ->maxLength(120)
-                ->placeholder($content['title']),
-        ];
-
-        if (isset($content['highlight'])) {
-            $fields[] = TextInput::make("section_{$key}_title_highlight")
-                ->label('Judul — Bagian Disorot')
-                ->maxLength(120)
-                ->placeholder($content['highlight'])
-                ->helperText('Ditampilkan di baris kedua judul dengan warna aksen.')
-                ->columnSpanFull();
+        if ($label === null) {
+            return null;
         }
 
-        $fields[] = Textarea::make("section_{$key}_subtitle")
-            ->label('Deskripsi')
-            ->rows(2)
-            ->maxLength(300)
-            ->placeholder($content['subtitle'])
-            ->helperText('Kosongkan untuk menyembunyikan deskripsi.')
-            ->columnSpanFull();
+        return ($state['visible'] ?? true) ? $label : $label.'   ·   disembunyikan';
+    }
 
-        foreach ($content['extra'] ?? [] as $suffix => $extra) {
-            $fields[] = TextInput::make("section_{$key}_{$suffix}")
+    /**
+     * Isi kartu: saklar tampil, lalu kolom teks milik seksi itu. Kolom teks
+     * memakai satu set nama yang sama untuk semua seksi — label, placeholder,
+     * dan visibilitasnya yang menyesuaikan kunci seksi pada baris tersebut.
+     *
+     * @return array<int, mixed>
+     */
+    private function sectionItemSchema(): array
+    {
+        $isEditable = fn (Get $get): bool => self::contentConfig($get('key')) !== null;
+
+        return [
+            Hidden::make('key'),
+            Hidden::make('label'),
+
+            Toggle::make('visible')
+                ->label('Tampilkan seksi ini di halaman depan')
+                ->onColor('success')
+                ->offColor('danger')
+                ->live()
+                ->helperText(fn (Get $get): ?string => self::isDynamic($get('key'))
+                    ? 'Saklar ini sekaligus mengubah status publikasi seksi dinamisnya.'
+                    : null)
+                ->columnSpanFull(),
+
+            Placeholder::make('dynamic_link')
+                ->label('Konten Seksi')
+                ->visible(fn (Get $get): bool => self::isDynamic($get('key')))
+                ->content(fn (Get $get): HtmlString => self::dynamicSectionLink($get('key')))
+                ->columnSpanFull(),
+
+            Placeholder::make('managed_elsewhere')
+                ->label('Konten Seksi')
+                ->visible(fn (Get $get): bool => ! self::isDynamic($get('key')) && ! $isEditable($get))
+                ->content('Seksi ini tidak punya teks judul yang bisa diubah di sini — isinya diambil dari menu datanya masing-masing.')
+                ->columnSpanFull(),
+
+            Grid::make(2)
+                ->visible($isEditable)
+                ->schema([
+                    TextInput::make('eyebrow')
+                        ->label('Label Kecil')
+                        ->maxLength(60)
+                        ->placeholder(fn (Get $get): ?string => self::contentConfig($get('key'))['eyebrow'] ?? null)
+                        ->helperText('Teks kecil di atas judul. Kosongkan untuk menyembunyikan.'),
+
+                    TextInput::make('title')
+                        ->label('Judul')
+                        ->maxLength(120)
+                        ->placeholder(fn (Get $get): ?string => self::contentConfig($get('key'))['title'] ?? null),
+
+                    TextInput::make('title_highlight')
+                        ->label('Judul — Bagian Disorot')
+                        ->maxLength(120)
+                        ->visible(fn (Get $get): bool => isset(self::contentConfig($get('key'))['highlight']))
+                        ->placeholder(fn (Get $get): ?string => self::contentConfig($get('key'))['highlight'] ?? null)
+                        ->helperText('Ditampilkan di baris kedua judul dengan warna aksen.')
+                        ->columnSpanFull(),
+
+                    Textarea::make('subtitle')
+                        ->label('Deskripsi')
+                        ->rows(2)
+                        ->maxLength(300)
+                        ->placeholder(fn (Get $get): ?string => self::contentConfig($get('key'))['subtitle'] ?? null)
+                        ->helperText('Kosongkan untuk menyembunyikan deskripsi.')
+                        ->columnSpanFull(),
+
+                    ...$this->extraTextFields(),
+                ]),
+        ];
+    }
+
+    /**
+     * Kolom teks tambahan milik seksi tertentu, misal judul baris logo kampus
+     * pada seksi alumni.
+     *
+     * @return array<int, TextInput>
+     */
+    private function extraTextFields(): array
+    {
+        $fields = [];
+
+        foreach (self::extraFields() as $suffix => $extra) {
+            $fields[] = TextInput::make("extra_{$suffix}")
                 ->label($extra['label'])
                 ->maxLength(120)
+                ->visible(fn (Get $get): bool => $get('key') === $extra['owner'])
                 ->placeholder($extra['default'])
                 ->helperText($extra['helperText'] ?? null)
                 ->columnSpanFull();
@@ -348,22 +457,95 @@ class LandingPageSettings extends Page
         return $fields;
     }
 
+    /**
+     * Tautan ke halaman edit seksi dinamis, tempat gambar & tombolnya diubah.
+     */
+    private static function dynamicSectionLink(?string $key): HtmlString
+    {
+        $id = ContentSection::idFromOrderKey((string) $key);
+
+        if ($id === null || ! ContentSection::whereKey($id)->exists()) {
+            return new HtmlString('Seksi ini sudah dihapus.');
+        }
+
+        $url = ContentSectionResource::getUrl('edit', ['record' => $id]);
+
+        return new HtmlString(
+            '<a href="'.e($url).'" class="fi-link fi-size-sm" style="color:var(--primary-600,#2563eb);font-weight:600;text-decoration:underline;">'
+            .'Ubah gambar, judul, deskripsi &amp; tombol seksi ini →</a>'
+        );
+    }
+
     public function save(): void
     {
         $data = $this->form->getState();
+        $sections = $data['sections'] ?? [];
+
+        $payload = [
+            'home_meta_title' => $data['home_meta_title'] ?? '',
+            'home_meta_description' => $data['home_meta_description'] ?? '',
+        ];
+
+        $order = [];
 
         // array_values preserves drag-and-drop order from Repeater
-        $payload = collect($data)->except('sections')->all();
-        $payload['section_order'] = json_encode(array_values($data['sections'] ?? []));
+        foreach (array_values($sections) as $section) {
+            $key = $section['key'] ?? null;
+
+            if (! $key) {
+                continue;
+            }
+
+            $order[] = [
+                'key' => $key,
+                'visible' => (bool) ($section['visible'] ?? true),
+            ];
+
+            $payload = [...$payload, ...self::contentPayload($key, $section)];
+        }
+
+        $payload['section_order'] = json_encode($order);
 
         Setting::setMany($payload);
 
-        $this->syncContentSectionVisibility($data['sections'] ?? []);
+        $this->syncContentSectionVisibility($sections);
 
         Notification::make()
             ->success()
             ->title('Pengaturan halaman depan disimpan')
             ->send();
+    }
+
+    /**
+     * Teks satu seksi, dipetakan balik ke kunci setting datar yang dibaca
+     * partial Blade (`section_programs_title`, dan seterusnya).
+     *
+     * @param  array<string, mixed>  $section
+     * @return array<string, mixed>
+     */
+    private static function contentPayload(string $key, array $section): array
+    {
+        $config = self::contentConfig($key);
+
+        if ($config === null) {
+            return [];
+        }
+
+        $payload = [
+            "{$key}_eyebrow" => $section['eyebrow'] ?? '',
+            "{$key}_title" => $section['title'] ?? '',
+            "{$key}_subtitle" => $section['subtitle'] ?? '',
+        ];
+
+        if (isset($config['highlight'])) {
+            $payload["{$key}_title_highlight"] = $section['title_highlight'] ?? '';
+        }
+
+        foreach (array_keys($config['extra'] ?? []) as $suffix) {
+            $payload["{$key}_{$suffix}"] = $section["extra_{$suffix}"] ?? '';
+        }
+
+        return $payload;
     }
 
     /**
@@ -394,6 +576,12 @@ class LandingPageSettings extends Page
                 ->label('Simpan Pengaturan')
                 ->icon(Heroicon::OutlinedCheckCircle)
                 ->action('save'),
+
+            Action::make('newContentSection')
+                ->label('Seksi Baru')
+                ->icon(Heroicon::OutlinedPlus)
+                ->color('gray')
+                ->url(ContentSectionResource::getUrl('create')),
         ];
     }
 }
