@@ -11,7 +11,9 @@
                         @else
                             <div class="text-4xl mb-3">{{ $stat->icon }}</div>
                         @endif
-                        <div class="text-3xl sm:text-4xl font-black tracking-tight" style="color:var(--primary)">{{ $stat->value }}</div>
+                        <div class="text-3xl sm:text-4xl font-black tracking-tight" style="color:var(--primary)">
+                            <x-count-up :value="$stat->value" />
+                        </div>
                         <div class="text-sm font-semibold mt-2" style="color:var(--text)">{{ $stat->label }}</div>
                         @if($stat->sub)
                             <div class="text-xs mt-1 leading-relaxed" style="color:var(--muted)">{{ $stat->sub }}</div>

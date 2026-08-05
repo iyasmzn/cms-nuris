@@ -51,7 +51,7 @@
                         </div>
 
                         <div class="min-w-0">
-                            <div class="alumni-stat-value">{{ $alumniStat->value }}</div>
+                            <div class="alumni-stat-value"><x-count-up :value="$alumniStat->value" /></div>
                             <div class="alumni-stat-label">{{ $alumniStat->label }}</div>
                             @if($alumniStat->sub)
                                 <div class="alumni-stat-sub">{{ $alumniStat->sub }}</div>
