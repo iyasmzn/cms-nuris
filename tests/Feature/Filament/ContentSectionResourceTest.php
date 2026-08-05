@@ -151,6 +151,116 @@ class ContentSectionResourceTest extends TestCase
             ->assertHasFormErrors(['background_parallax_speed']);
     }
 
+    // ── Kartu & carousel ──────────────────────────────────────────
+
+    public function test_can_create_a_card_section_with_its_own_ctas(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm([
+                'title' => 'Program Unggulan',
+                'description' => '<p>Deskripsi.</p>',
+                'layout' => 'cards',
+                'items_columns' => 4,
+                'items' => [
+                    [
+                        'title' => 'Tahfidz',
+                        'description' => 'Menghafal Al-Qur\'an dengan pendampingan.',
+                        'cta_label' => 'Selengkapnya',
+                        'cta_url' => '/program/tahfidz',
+                        'cta_new_tab' => false,
+                    ],
+                    [
+                        'title' => 'Sains',
+                        'cta_url' => 'https://sains.test',
+                        'cta_new_tab' => true,
+                    ],
+                ],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $section = ContentSection::firstWhere('title', 'Program Unggulan');
+
+        $this->assertSame('cards', $section->layout);
+        $this->assertSame(4, $section->items_columns);
+        $this->assertCount(2, $section->cards);
+        $this->assertTrue($section->cards[0]->has_cta);
+        $this->assertTrue($section->cards[1]->is_clickable);
+        $this->assertTrue($section->cards[1]->cta_new_tab);
+    }
+
+    public function test_can_create_a_carousel_section_with_autoplay_settings(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm([
+                'title' => 'Kartu Berjalan',
+                'description' => '<p>Deskripsi.</p>',
+                'layout' => 'carousel',
+                'items' => [['title' => 'Kartu A'], ['title' => 'Kartu B']],
+                'carousel_autoplay' => true,
+                'carousel_autoplay_delay' => 8,
+                'carousel_loop' => false,
+                'carousel_arrows' => true,
+                'carousel_dots' => false,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas(ContentSection::class, [
+            'title' => 'Kartu Berjalan',
+            'layout' => 'carousel',
+            'carousel_autoplay' => true,
+            'carousel_autoplay_delay' => 8,
+            'carousel_loop' => false,
+            'carousel_dots' => false,
+        ]);
+    }
+
+    public function test_the_card_fields_only_appear_on_a_card_layout(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm(['layout' => 'media'])
+            ->assertFormFieldVisible('image_position')
+            ->assertFormFieldHidden('items')
+            ->assertFormFieldHidden('items_columns')
+            ->assertFormFieldHidden('carousel_autoplay')
+            ->fillForm(['layout' => 'cards'])
+            ->assertFormFieldHidden('image_position')
+            ->assertFormFieldVisible('items')
+            ->assertFormFieldVisible('items_columns')
+            ->assertFormFieldHidden('carousel_autoplay')
+            ->fillForm(['layout' => 'carousel'])
+            ->assertFormFieldVisible('items')
+            ->assertFormFieldVisible('carousel_autoplay')
+            ->assertFormFieldVisible('carousel_loop');
+    }
+
+    public function test_the_autoplay_delay_only_appears_once_autoplay_is_on(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm(['layout' => 'carousel', 'carousel_autoplay' => false])
+            ->assertFormFieldHidden('carousel_autoplay_delay')
+            ->fillForm(['carousel_autoplay' => true])
+            ->assertFormFieldVisible('carousel_autoplay_delay');
+    }
+
+    public function test_a_card_title_is_required_and_its_link_is_validated(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm([
+                'title' => 'Seksi Kartu',
+                'description' => '<p>Deskripsi.</p>',
+                'layout' => 'cards',
+                'items' => [
+                    ['title' => null, 'cta_label' => 'Buka', 'cta_url' => 'javascript:alert(1)'],
+                ],
+            ])
+            ->call('create')
+            ->assertHasFormErrors();
+
+        $this->assertDatabaseMissing(ContentSection::class, ['title' => 'Seksi Kartu']);
+    }
+
     public function test_create_validates_required_fields(): void
     {
         Livewire::test(CreateContentSection::class)

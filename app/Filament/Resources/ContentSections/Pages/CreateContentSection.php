@@ -18,6 +18,15 @@ class CreateContentSection extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        return self::applyImagePickers($data, ['image', 'background_image']);
+        $data = self::applyImagePickers($data, ['image', 'background_image']);
+
+        // Gambar kartu memakai pemilih ringkas (tanpa nama & alt), jadi unggahan
+        // barunya dinamai mengikuti judul seksi.
+        $data['items'] = self::applyBlockImagePickers(
+            $data['items'] ?? null,
+            self::imageBaseName($data['title'] ?? null, 'Seksi Halaman Depan'),
+        );
+
+        return $data;
     }
 }

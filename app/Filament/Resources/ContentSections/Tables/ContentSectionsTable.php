@@ -39,11 +39,19 @@ class ContentSectionsTable
                     ->wrap()
                     ->description(fn (ContentSection $record): string => Str::limit(strip_tags($record->description), 90)),
 
+                TextColumn::make('layout')
+                    ->label('Bentuk Isi')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => ContentSection::LAYOUTS[$state] ?? '—')
+                    ->description(fn (ContentSection $record): ?string => self::layoutDetails($record))
+                    ->sortable(),
+
                 TextColumn::make('image_position')
                     ->label('Posisi Gambar')
                     ->badge()
                     ->formatStateUsing(fn (?string $state): string => ContentSection::IMAGE_POSITIONS[$state] ?? '—')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('background')
                     ->label('Latar')
@@ -98,6 +106,31 @@ class ContentSectionsTable
             ])
             ->emptyStateHeading('Belum ada seksi')
             ->emptyStateDescription('Tambahkan seksi bergambar untuk melengkapi halaman depan. Urutannya diatur di Pengaturan → Halaman Depan.');
+    }
+
+    /**
+     * Ringkasan tata letak kartu, misal "4 kartu · 3 sebaris · Autoplay 5 dtk".
+     */
+    private static function layoutDetails(ContentSection $record): ?string
+    {
+        if ($record->shows_media) {
+            return null;
+        }
+
+        $count = $record->cards->count();
+
+        $details = [
+            $count === 0 ? 'Belum ada kartu' : $count.' kartu',
+            $record->card_columns.' sebaris',
+        ];
+
+        if ($record->layout === 'carousel') {
+            $details[] = $record->carousel_autoplay
+                ? 'Autoplay '.$record->carousel_autoplay_delay.' dtk'
+                : 'Tanpa autoplay';
+        }
+
+        return implode(' · ', $details);
     }
 
     /**

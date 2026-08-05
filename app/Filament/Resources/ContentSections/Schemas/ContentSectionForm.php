@@ -5,9 +5,11 @@ namespace App\Filament\Resources\ContentSections\Schemas;
 use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Models\ContentSection;
 use Closure;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Slider;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
@@ -49,8 +51,29 @@ class ContentSectionForm
                         ->columnSpanFull(),
                 ]),
 
+            Section::make('Bentuk Isi Seksi')
+                ->description('Gambar berdampingan teks, deretan kartu, atau kartu yang berjalan otomatis.')
+                ->icon(Heroicon::OutlinedRectangleGroup)
+                ->schema([
+                    ToggleButtons::make('layout')
+                        ->label('Tata Letak')
+                        ->options(ContentSection::LAYOUTS)
+                        ->icons([
+                            'media' => Heroicon::OutlinedPhoto,
+                            'cards' => Heroicon::OutlinedSquares2x2,
+                            'carousel' => Heroicon::OutlinedArrowsRightLeft,
+                        ])
+                        ->default('media')
+                        ->required()
+                        ->inline()
+                        ->live()
+                        ->helperText('Judul dan deskripsi tetap tampil di semua tata letak — pada kartu, keduanya berdiri di atas kartunya.')
+                        ->columnSpanFull(),
+                ]),
+
             Section::make('Gambar & Tata Letak')
                 ->icon(Heroicon::OutlinedPhoto)
+                ->visible(self::usesLayout('media'))
                 ->schema([
                     self::imagePicker(
                         key: 'image',
@@ -75,6 +98,127 @@ class ContentSectionForm
                         ->inline()
                         ->helperText('Di layar ponsel gambar selalu tampil di atas teks.')
                         ->columnSpanFull(),
+                ]),
+
+            Section::make('Kartu')
+                ->description('Setiap kartu punya gambar, judul, deskripsi singkat, dan tombol CTA sendiri. Seret untuk mengubah urutannya.')
+                ->icon(Heroicon::OutlinedSquares2x2)
+                ->visible(self::usesCards())
+                ->schema([
+                    Repeater::make('items')
+                        ->hiddenLabel()
+                        ->addActionLabel('Tambah Kartu')
+                        ->reorderableWithDragAndDrop()
+                        ->collapsible()
+                        ->collapsed()
+                        ->itemLabel(fn (array $state): string => $state['title'] ?? 'Kartu baru')
+                        ->defaultItems(0)
+                        ->schema([
+                            self::imagePicker(
+                                key: 'image',
+                                label: 'Gambar Kartu',
+                                hint: 'Rasio 4:3. Akan di-resize ke 800×600. Kosongkan bila kartu tampil tanpa gambar.',
+                                accepted: ['image/jpeg', 'image/png', 'image/webp'],
+                                width: 800,
+                                height: 600,
+                                directory: 'content-sections/cards',
+                                aspectRatio: '4:3',
+                                withMeta: false,
+                            )->columnSpanFull(),
+
+                            TextInput::make('title')
+                                ->label('Judul Kartu')
+                                ->required()
+                                ->maxLength(120)
+                                ->placeholder('Tahfidz Al-Qur\'an')
+                                ->columnSpanFull(),
+
+                            Textarea::make('description')
+                                ->label('Deskripsi Singkat')
+                                ->rows(3)
+                                ->maxLength(300)
+                                ->placeholder('Satu sampai dua kalimat tentang kartu ini.')
+                                ->columnSpanFull(),
+
+                            Grid::make(2)->schema([
+                                TextInput::make('cta_label')
+                                    ->label('Teks Tombol')
+                                    ->maxLength(60)
+                                    ->placeholder('Selengkapnya')
+                                    ->helperText('Kosongkan bila cukup seluruh kartunya yang bisa diklik.'),
+
+                                TextInput::make('cta_url')
+                                    ->label('Tautan Kartu')
+                                    ->maxLength(255)
+                                    ->placeholder('https://... atau /program')
+                                    ->helperText('Boleh path internal seperti /program atau #profil, boleh juga URL situs lain.')
+                                    ->requiredWith('cta_label')
+                                    ->rule('regex:/^(https?:\/\/|\/|#|mailto:|tel:)/')
+                                    ->validationMessages([
+                                        'regex' => 'Tautan harus diawali http://, https://, /, #, mailto:, atau tel:.',
+                                    ]),
+
+                                Toggle::make('cta_new_tab')
+                                    ->label('Buka di Tab Baru')
+                                    ->default(false)
+                                    ->visible(fn (Get $get): bool => filled($get('cta_url')))
+                                    ->columnSpanFull(),
+                            ]),
+                        ])
+                        ->columnSpanFull(),
+
+                    Select::make('items_columns')
+                        ->label('Kartu Sebaris')
+                        ->options(ContentSection::ITEM_COLUMNS)
+                        ->default(3)
+                        ->required()
+                        ->native(false)
+                        ->selectablePlaceholder(false)
+                        ->helperText('Berlaku di layar lebar. Layar ponsel selalu satu kartu, layar sedang paling banyak dua.')
+                        ->columnSpanFull(),
+                ]),
+
+            Section::make('Pengaturan Carousel')
+                ->description('Perilaku kartu yang berjalan: jalan sendiri, jeda perpindahan, dan alat navigasinya.')
+                ->icon(Heroicon::OutlinedArrowsRightLeft)
+                ->visible(self::usesLayout('carousel'))
+                ->schema([
+                    Grid::make(2)->schema([
+                        Toggle::make('carousel_autoplay')
+                            ->label('Jalan Sendiri (Autoplay)')
+                            ->default(true)
+                            ->onColor('success')
+                            ->live()
+                            ->helperText('Berhenti sementara saat kartunya disentuh atau disorot kursor.'),
+
+                        Toggle::make('carousel_loop')
+                            ->label('Kembali ke Awal')
+                            ->default(true)
+                            ->onColor('success')
+                            ->helperText('Setelah kartu terakhir, kembali ke kartu pertama.'),
+
+                        Slider::make('carousel_autoplay_delay')
+                            ->label('Jeda Perpindahan (detik)')
+                            ->range(minValue: ContentSection::AUTOPLAY_MIN_DELAY, maxValue: ContentSection::AUTOPLAY_MAX_DELAY)
+                            ->step(1)
+                            ->tooltips()
+                            ->default(5)
+                            ->required()
+                            ->visible(fn (Get $get): bool => (bool) $get('carousel_autoplay'))
+                            ->columnSpanFull(),
+
+                        Toggle::make('carousel_arrows')
+                            ->label('Tombol Panah')
+                            ->default(true)
+                            ->onColor('success')
+                            ->helperText('Tampil di layar lebar; di ponsel kartunya cukup diusap.'),
+
+                        Toggle::make('carousel_dots')
+                            ->label('Titik Navigasi')
+                            ->default(true)
+                            ->onColor('success')
+                            ->helperText('Penanda halaman di bawah kartu.'),
+                    ]),
                 ]),
 
             Section::make('Latar Belakang Seksi')
@@ -228,5 +372,18 @@ class ContentSectionForm
     private static function usesBackgroundImage(): Closure
     {
         return fn (Get $get): bool => $get('background') === 'image';
+    }
+
+    private static function usesLayout(string $layout): Closure
+    {
+        return fn (Get $get): bool => ($get('layout') ?: 'media') === $layout;
+    }
+
+    /**
+     * Daftar kartu dipakai bersama oleh tata letak kartu dan carousel.
+     */
+    private static function usesCards(): Closure
+    {
+        return fn (Get $get): bool => in_array($get('layout'), ['cards', 'carousel'], true);
     }
 }

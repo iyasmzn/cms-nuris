@@ -6,12 +6,14 @@ use Database\Factories\ContentSectionFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
- * Seksi bebas di halaman depan: satu kartu gambar (kiri atau kanan) berdampingan
- * dengan judul, deskripsi, dan tombol CTA. Urutannya diatur bersama seksi bawaan
- * lewat Pengaturan Halaman Depan.
+ * Seksi bebas di halaman depan. Isinya bisa berupa satu gambar berdampingan
+ * dengan teks, deretan kartu, atau kartu yang berjalan dalam carousel — semua
+ * di atas latar yang bisa diatur. Urutannya diatur bersama seksi bawaan lewat
+ * Pengaturan Halaman Depan.
  */
 class ContentSection extends Model
 {
@@ -22,6 +24,36 @@ class ContentSection extends Model
      * Prefix kunci seksi ini di dalam setting `section_order`.
      */
     public const ORDER_KEY_PREFIX = 'content_section_';
+
+    /**
+     * Bentuk isi seksi.
+     *
+     * @var array<string, string>
+     */
+    public const LAYOUTS = [
+        'media' => 'Gambar & Teks',
+        'cards' => 'Deretan Kartu',
+        'carousel' => 'Carousel Kartu',
+    ];
+
+    /**
+     * Jumlah kartu sebaris (pada layar lebar) → label.
+     *
+     * @var array<int, string>
+     */
+    public const ITEM_COLUMNS = [
+        1 => '1 kartu',
+        2 => '2 kartu',
+        3 => '3 kartu',
+        4 => '4 kartu',
+    ];
+
+    /**
+     * Jeda perpindahan carousel yang bisa dipilih admin (detik).
+     */
+    public const AUTOPLAY_MIN_DELAY = 2;
+
+    public const AUTOPLAY_MAX_DELAY = 15;
 
     /** @var array<string, string> */
     public const IMAGE_POSITIONS = [
@@ -88,8 +120,16 @@ class ContentSection extends Model
         'eyebrow',
         'title',
         'description',
+        'layout',
         'image',
         'image_position',
+        'items',
+        'items_columns',
+        'carousel_autoplay',
+        'carousel_autoplay_delay',
+        'carousel_loop',
+        'carousel_arrows',
+        'carousel_dots',
         'background',
         'background_image',
         'background_blur',
@@ -108,6 +148,13 @@ class ContentSection extends Model
     protected function casts(): array
     {
         return [
+            'items' => 'array',
+            'items_columns' => 'integer',
+            'carousel_autoplay' => 'boolean',
+            'carousel_autoplay_delay' => 'integer',
+            'carousel_loop' => 'boolean',
+            'carousel_arrows' => 'boolean',
+            'carousel_dots' => 'boolean',
             'background_blur' => 'integer',
             'background_overlay' => 'integer',
             'background_parallax_speed' => 'integer',
@@ -139,6 +186,87 @@ class ContentSection extends Model
     public function getImageUrlAttribute(): ?string
     {
         return $this->image ? asset('storage/'.$this->image) : null;
+    }
+
+    /**
+     * Seksi menampilkan satu gambar berdampingan teks.
+     */
+    public function getShowsMediaAttribute(): bool
+    {
+        return $this->layout === 'media';
+    }
+
+    /**
+     * Kartu yang siap dirender — hanya yang punya judul atau gambar, dengan URL
+     * gambar sudah diselesaikan dan tautannya dinormalkan.
+     *
+     * Kartu bertombol (label + tautan terisi) menampilkan tombol CTA; kartu yang
+     * hanya punya tautan tanpa label dibuat bisa diklik seluruh kartunya.
+     *
+     * @return Collection<int, object{image_url: ?string, title: ?string, description: ?string, cta_label: ?string, cta_url: ?string, cta_new_tab: bool, has_cta: bool, is_clickable: bool}>
+     */
+    public function getCardsAttribute(): Collection
+    {
+        return collect($this->items ?? [])
+            ->filter(fn (mixed $item): bool => is_array($item)
+                && (filled($item['title'] ?? null) || filled($item['image'] ?? null)))
+            ->map(function (array $item): object {
+                $label = $item['cta_label'] ?? null;
+                $url = $item['cta_url'] ?? null;
+
+                return (object) [
+                    'image_url' => filled($item['image'] ?? null) ? icon_url($item['image']) : null,
+                    'title' => $item['title'] ?? null,
+                    'description' => $item['description'] ?? null,
+                    'cta_label' => $label,
+                    'cta_url' => $url,
+                    'cta_new_tab' => (bool) ($item['cta_new_tab'] ?? false),
+                    'has_cta' => filled($label) && filled($url),
+                    'is_clickable' => blank($label) && filled($url),
+                ];
+            })
+            ->values();
+    }
+
+    /**
+     * Tata letak kartu hanya berlaku bila kartunya memang ada.
+     */
+    public function getUsesCardsAttribute(): bool
+    {
+        return in_array($this->layout, ['cards', 'carousel'], true) && $this->cards->isNotEmpty();
+    }
+
+    public function getUsesCarouselAttribute(): bool
+    {
+        return $this->layout === 'carousel' && $this->cards->isNotEmpty();
+    }
+
+    /**
+     * Jumlah kartu sebaris di layar lebar (1–4).
+     */
+    public function getCardColumnsAttribute(): int
+    {
+        $columns = (int) $this->items_columns;
+
+        return max(1, min(4, $columns ?: 3));
+    }
+
+    /**
+     * Carousel berjalan sendiri hanya bila modenya carousel dan saklarnya nyala.
+     */
+    public function getUsesAutoplayAttribute(): bool
+    {
+        return $this->uses_carousel && (bool) $this->carousel_autoplay;
+    }
+
+    /**
+     * Jeda perpindahan carousel dalam milidetik, dibatasi ke rentang yang dipilih admin.
+     */
+    public function getAutoplayDelayMsAttribute(): int
+    {
+        $seconds = (int) ($this->carousel_autoplay_delay ?: 5);
+
+        return min(self::AUTOPLAY_MAX_DELAY, max(self::AUTOPLAY_MIN_DELAY, $seconds)) * 1000;
     }
 
     /**

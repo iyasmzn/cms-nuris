@@ -21,8 +21,16 @@ class ContentSectionFactory extends Factory
             'eyebrow' => $this->faker->words(2, true),
             'title' => rtrim($this->faker->sentence(5), '.'),
             'description' => '<p>'.$this->faker->paragraph(3).'</p>',
+            'layout' => 'media',
             'image' => 'content-sections/'.$this->faker->uuid().'.jpg',
             'image_position' => $this->faker->randomElement(array_keys(ContentSection::IMAGE_POSITIONS)),
+            'items' => null,
+            'items_columns' => 3,
+            'carousel_autoplay' => true,
+            'carousel_autoplay_delay' => 5,
+            'carousel_loop' => true,
+            'carousel_arrows' => true,
+            'carousel_dots' => true,
             'background' => $this->faker->randomElement(['default', 'alt']),
             'background_image' => null,
             'background_blur' => 0,
@@ -69,6 +77,39 @@ class ContentSectionFactory extends Factory
     {
         return $this->withBackgroundImage()->state(fn (array $attributes) => [
             'background_parallax_mode' => 'fixed',
+        ]);
+    }
+
+    /**
+     * Deretan kartu, lengkap dengan satu kartu bertombol dan satu kartu yang
+     * seluruh badannya bisa diklik.
+     *
+     * @param  int  $count  jumlah kartu yang dibuat
+     */
+    public function withCards(int $count = 3): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'layout' => 'cards',
+            'items' => collect(range(1, $count))
+                ->map(fn (int $index): array => [
+                    'image' => 'content-sections/cards/kartu-'.$index.'.jpg',
+                    'title' => 'Kartu '.$index,
+                    'description' => $this->faker->sentence(8),
+                    'cta_label' => $index === 1 ? 'Selengkapnya' : null,
+                    'cta_url' => $index <= 2 ? '/kartu-'.$index : null,
+                    'cta_new_tab' => false,
+                ])
+                ->all(),
+        ]);
+    }
+
+    /**
+     * Kartu yang sama, tapi berjalan dalam carousel.
+     */
+    public function withCarousel(int $count = 6): static
+    {
+        return $this->withCards($count)->state(fn (array $attributes): array => [
+            'layout' => 'carousel',
         ]);
     }
 

@@ -286,6 +286,162 @@ class ContentSectionTest extends TestCase
             ->assertSee('Seksi Tanpa Gambar');
     }
 
+    // ── Tata letak kartu & carousel ───────────────────────────────
+
+    public function test_the_cards_layout_renders_every_card_in_a_grid(): void
+    {
+        ContentSection::factory()->withCards(3)->create([
+            'title' => 'Program Kami',
+            'items_columns' => 4,
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Program Kami')
+            ->assertSee('Kartu 1')
+            ->assertSee('Kartu 2')
+            ->assertSee('Kartu 3')
+            ->assertSee('class="cs-grid"', false)
+            ->assertSee('--cs-cols-lg:4', false)
+            // Layar sedang dibatasi dua kartu meski admin memilih empat
+            ->assertSee('--cs-cols-sm:2', false)
+            ->assertDontSee('class="cs-carousel"', false);
+    }
+
+    public function test_a_card_shows_its_own_cta_button(): void
+    {
+        ContentSection::factory()->withCards(1)->create([
+            'title' => 'Kartu Bertombol',
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('class="cs-card-cta"', false)
+            ->assertSee('href="/kartu-1"', false)
+            ->assertSee('Selengkapnya');
+    }
+
+    public function test_a_card_with_a_link_but_no_button_label_becomes_clickable_as_a_whole(): void
+    {
+        ContentSection::factory()->create([
+            'title' => 'Kartu Diklik',
+            'layout' => 'cards',
+            'items' => [
+                ['title' => 'Tanpa Tombol', 'cta_url' => '/tujuan', 'cta_new_tab' => true],
+            ],
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('class="cs-card-link"', false)
+            ->assertSee('href="/tujuan"', false)
+            ->assertSee('target="_blank" rel="noopener noreferrer"', false)
+            ->assertDontSee('class="cs-card-cta"', false);
+    }
+
+    public function test_the_carousel_layout_carries_its_autoplay_settings(): void
+    {
+        ContentSection::factory()->withCarousel(6)->create([
+            'title' => 'Kartu Berjalan',
+            'items_columns' => 3,
+            'carousel_autoplay' => true,
+            'carousel_autoplay_delay' => 8,
+            'carousel_loop' => false,
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('class="cs-carousel"', false)
+            ->assertSee('autoplay: true', false)
+            ->assertSee('delay: 8000', false)
+            ->assertSee('loop: false', false)
+            ->assertSee('class="cs-arrow cs-arrow-prev"', false)
+            ->assertSee('class="cs-dots"', false)
+            ->assertDontSee('class="cs-grid"', false);
+    }
+
+    public function test_the_carousel_navigation_can_be_switched_off(): void
+    {
+        ContentSection::factory()->withCarousel(4)->create([
+            'title' => 'Carousel Polos',
+            'carousel_autoplay' => false,
+            'carousel_arrows' => false,
+            'carousel_dots' => false,
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('autoplay: false', false)
+            ->assertDontSee('class="cs-arrow cs-arrow-prev"', false)
+            ->assertDontSee('class="cs-dots"', false);
+    }
+
+    public function test_the_media_image_is_skipped_on_a_card_layout(): void
+    {
+        ContentSection::factory()->withCards(2)->create([
+            'title' => 'Hanya Kartu',
+            'image' => 'content-sections/gambar-utama.jpg',
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Hanya Kartu')
+            ->assertDontSee('content-sections/gambar-utama.jpg', false);
+    }
+
+    public function test_a_card_layout_without_cards_still_renders_its_text(): void
+    {
+        $section = ContentSection::factory()->create([
+            'title' => 'Kartu Belum Diisi',
+            'layout' => 'cards',
+            'items' => null,
+            'is_published' => true,
+        ]);
+
+        $this->assertFalse($section->uses_cards);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Kartu Belum Diisi')
+            ->assertDontSee('class="cs-grid"', false);
+    }
+
+    public function test_card_helpers_normalise_the_stored_items(): void
+    {
+        $section = ContentSection::factory()->make([
+            'layout' => 'carousel',
+            'items_columns' => 9,
+            'carousel_autoplay_delay' => 99,
+            'items' => [
+                ['title' => 'Berjudul', 'image' => 'kartu/satu.jpg', 'cta_label' => 'Buka', 'cta_url' => '/satu'],
+                ['title' => '', 'image' => null, 'description' => 'Tanpa judul & gambar — dilewati'],
+                ['title' => 'Bisa Diklik', 'cta_url' => '/dua'],
+            ],
+        ]);
+
+        $cards = $section->cards;
+
+        $this->assertCount(2, $cards);
+        $this->assertTrue($cards[0]->has_cta);
+        $this->assertFalse($cards[0]->is_clickable);
+        $this->assertStringEndsWith('/storage/kartu/satu.jpg', $cards[0]->image_url);
+        $this->assertFalse($cards[1]->has_cta);
+        $this->assertTrue($cards[1]->is_clickable);
+        $this->assertNull($cards[1]->image_url);
+
+        // Nilai di luar rentang dijepit ke batas yang masuk akal
+        $this->assertSame(4, $section->card_columns);
+        $this->assertSame(15000, $section->autoplay_delay_ms);
+        $this->assertTrue($section->uses_carousel);
+        $this->assertFalse($section->shows_media);
+    }
+
     public function test_the_section_order_setting_controls_where_it_renders(): void
     {
         ContentSection::factory()->create([

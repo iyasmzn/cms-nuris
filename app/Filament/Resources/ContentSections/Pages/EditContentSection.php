@@ -19,7 +19,14 @@ class EditContentSection extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        return self::applyImagePickers($data, ['image', 'background_image']);
+        $data = self::applyImagePickers($data, ['image', 'background_image']);
+
+        $data['items'] = self::applyBlockImagePickers(
+            $data['items'] ?? null,
+            self::imageBaseName($data['title'] ?? null, 'Seksi Halaman Depan'),
+        );
+
+        return $data;
     }
 
     protected function getHeaderActions(): array
