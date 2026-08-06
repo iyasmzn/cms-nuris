@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\SectionTypography;
 use Database\Factories\ContentSectionFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -120,6 +121,7 @@ class ContentSection extends Model
         'eyebrow',
         'title',
         'description',
+        'typography',
         'layout',
         'image',
         'image_position',
@@ -148,6 +150,7 @@ class ContentSection extends Model
     protected function casts(): array
     {
         return [
+            'typography' => 'array',
             'items' => 'array',
             'items_columns' => 'integer',
             'carousel_autoplay' => 'boolean',
@@ -178,6 +181,22 @@ class ContentSection extends Model
     public function getAnchorIdAttribute(): string
     {
         return Str::slug($this->anchor ?: 'seksi-'.$this->id);
+    }
+
+    /**
+     * Gaya huruf tiap elemen teks seksi ini.
+     */
+    public function getTypographyStylesAttribute(): SectionTypography
+    {
+        return SectionTypography::fromArray($this->typography);
+    }
+
+    /**
+     * Deskripsi kini opsional — seksi kartu sering cukup dengan judulnya saja.
+     */
+    public function getHasDescriptionAttribute(): bool
+    {
+        return filled(trim(strip_tags((string) $this->description)));
     }
 
     /**

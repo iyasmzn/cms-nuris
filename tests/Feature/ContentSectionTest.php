@@ -513,6 +513,95 @@ class ContentSectionTest extends TestCase
         $this->assertSame([$first->id, $second->id], $published->pluck('id')->all());
     }
 
+    // ── Deskripsi opsional ────────────────────────────────────────
+
+    public function test_a_section_without_a_description_renders_only_its_title(): void
+    {
+        ContentSection::factory()->withoutDescription()->create([
+            'title' => 'Judul Saja',
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Judul Saja')
+            ->assertDontSee('content-section-prose"', false);
+    }
+
+    public function test_a_description_holding_only_empty_markup_counts_as_blank(): void
+    {
+        $section = ContentSection::factory()->create(['description' => '<p></p>']);
+
+        $this->assertFalse($section->has_description);
+        $this->assertTrue($section->fresh()->update(['description' => '<p>Ada isinya.</p>']));
+        $this->assertTrue($section->fresh()->has_description);
+    }
+
+    // ── Tipografi ─────────────────────────────────────────────────
+
+    public function test_typography_settings_style_each_text_element(): void
+    {
+        ContentSection::factory()
+            ->withCards(1)
+            ->withTypography([
+                'eyebrow' => ['align' => 'right', 'weight' => 500],
+                'title' => ['align' => 'center', 'weight' => 700, 'size' => 'xl', 'color' => '#123456'],
+                'description' => ['align' => 'justify', 'size' => 'lg', 'color' => '#654321'],
+                'card_title' => ['align' => 'center', 'weight' => 800],
+                'card_description' => ['size' => 'sm'],
+            ])
+            ->create([
+                'eyebrow' => 'Label',
+                'title' => 'Seksi Bergaya',
+                'description' => '<p>Deskripsi.</p>',
+                'is_published' => true,
+            ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('style="text-align:right;font-weight:500"', $html);
+        $this->assertStringContainsString('style="color:var(--text);text-align:center;font-weight:700;--cs-scale:1.3;color:#123456"', $html);
+        $this->assertStringContainsString('content-section-prose cs-colored', $html);
+        $this->assertStringContainsString('style="text-align:justify;--cs-scale:1.15;color:#654321"', $html);
+        $this->assertStringContainsString('style="text-align:center;font-weight:800"', $html);
+        $this->assertStringContainsString('style="--cs-scale:0.875"', $html);
+    }
+
+    public function test_a_section_without_typography_keeps_its_default_styling(): void
+    {
+        ContentSection::factory()->withCards(1)->create([
+            'eyebrow' => 'Label',
+            'title' => 'Seksi Bawaan',
+            'typography' => null,
+            'is_published' => true,
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('style="color:var(--text)"', $html);
+        $this->assertStringNotContainsString('--cs-scale:', $html);
+        // Kelas penanda warna kustom hanya boleh muncul di aturan CSS-nya, bukan di markup
+        $this->assertStringNotContainsString('content-section-prose cs-colored', $html);
+        $this->assertStringNotContainsString('style=""', $html);
+    }
+
+    public function test_typography_ignores_values_outside_the_offered_options(): void
+    {
+        $section = ContentSection::factory()->withTypography([
+            'title' => [
+                'align' => 'diagonal',
+                'weight' => 1200,
+                'size' => 'raksasa',
+                // Nilai warna yang menyelundupkan deklarasi CSS lain harus ditolak
+                'color' => 'red;background:url(javascript:alert(1))',
+            ],
+        ])->create();
+
+        $this->assertSame('', $section->typography_styles->styleFor('title'));
+        $this->assertNull($section->typography_styles->colorFor('title'));
+        $this->assertFalse($section->typography_styles->isColored('title'));
+    }
+
     public function test_order_key_round_trips(): void
     {
         $section = ContentSection::factory()->create();

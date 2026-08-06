@@ -4,7 +4,9 @@ namespace App\Filament\Resources\ContentSections\Schemas;
 
 use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Models\ContentSection;
+use App\Support\SectionTypography;
 use Closure;
+use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -13,6 +15,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -45,10 +48,26 @@ class ContentSectionForm
 
                     RichEditor::make('description')
                         ->label('Deskripsi')
-                        ->required()
                         ->toolbarButtons(['bold', 'italic', 'link', 'bulletList', 'orderedList', 'undo', 'redo'])
                         ->placeholder('Jelaskan seksi ini dalam beberapa kalimat...')
+                        ->helperText('Opsional. Kosongkan bila judul saja sudah cukup.')
+                        // Editor menyisakan <p></p> saat isinya dihapus; simpan sebagai kosong
+                        ->dehydrateStateUsing(fn (?string $state): ?string => filled(trim(strip_tags((string) $state)))
+                            ? $state
+                            : null)
                         ->columnSpanFull(),
+                ]),
+
+            Section::make('Tipografi')
+                ->description('Perataan, ketebalan, ukuran, dan warna huruf tiap elemen teks. Biarkan kosong untuk memakai gaya bawaan rancangan seksi.')
+                ->icon(Heroicon::OutlinedLanguage)
+                ->collapsible()
+                ->collapsed()
+                ->schema([
+                    ...collect(SectionTypography::ELEMENTS)
+                        ->map(fn (string $label, string $element): Fieldset => self::typographyFieldset($element, $label))
+                        ->values()
+                        ->all(),
                 ]),
 
             Section::make('Bentuk Isi Seksi')
@@ -364,6 +383,47 @@ class ContentSectionForm
                     ]),
                 ]),
         ]);
+    }
+
+    /**
+     * Satu kelompok pengaturan huruf untuk satu elemen teks. Semua bidangnya
+     * boleh kosong; yang kosong berarti elemen itu memakai gaya bawaannya.
+     * Elemen kartu hanya tampil saat tata letaknya memang berkartu.
+     */
+    private static function typographyFieldset(string $element, string $label): Fieldset
+    {
+        return Fieldset::make($label)
+            ->visible(in_array($element, SectionTypography::CARD_ELEMENTS, true)
+                ? self::usesCards()
+                : true)
+            ->columns(2)
+            ->schema([
+                Select::make("typography.{$element}.align")
+                    ->label('Perataan')
+                    ->options(SectionTypography::ALIGNMENTS)
+                    ->native(false)
+                    ->placeholder('Ikut Tata Letak'),
+
+                Select::make("typography.{$element}.weight")
+                    ->label('Ketebalan')
+                    ->options(SectionTypography::WEIGHTS)
+                    ->native(false)
+                    ->placeholder('Bawaan'),
+
+                Select::make("typography.{$element}.size")
+                    ->label('Ukuran')
+                    ->options(SectionTypography::SIZES)
+                    ->default('md')
+                    ->native(false)
+                    ->selectablePlaceholder(false)
+                    ->helperText('Mengecil atau membesar relatif terhadap ukuran bawaannya.'),
+
+                ColorPicker::make("typography.{$element}.color")
+                    ->label('Warna Teks')
+                    ->hex()
+                    ->placeholder('Ikut Tema')
+                    ->helperText('Kosongkan agar mengikuti warna tema dan latar seksi.'),
+            ]);
     }
 
     /**

@@ -269,11 +269,52 @@ class ContentSectionResourceTest extends TestCase
                 'description' => null,
             ])
             ->call('create')
-            ->assertHasFormErrors([
-                'title' => 'required',
-                'description',
-            ])
+            ->assertHasFormErrors(['title' => 'required'])
+            ->assertHasNoFormErrors(['description'])
             ->assertNotNotified();
+    }
+
+    public function test_can_create_a_section_without_a_description(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm([
+                'title' => 'Seksi Tanpa Deskripsi',
+                'description' => null,
+            ])
+            ->call('create')
+            ->assertNotified()
+            ->assertHasNoFormErrors()
+            ->assertRedirect();
+
+        $this->assertDatabaseHas(ContentSection::class, [
+            'title' => 'Seksi Tanpa Deskripsi',
+            'description' => null,
+        ]);
+    }
+
+    public function test_can_save_typography_settings_for_each_text_element(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm([
+                'title' => 'Seksi Bergaya',
+                'description' => '<p>Deskripsi.</p>',
+                'layout' => 'cards',
+                'typography' => [
+                    'title' => ['align' => 'center', 'weight' => 800, 'size' => 'xl', 'color' => '#123456'],
+                    'card_title' => ['align' => 'right', 'weight' => 600, 'size' => 'sm', 'color' => null],
+                ],
+            ])
+            ->call('create')
+            ->assertNotified()
+            ->assertHasNoFormErrors();
+
+        $section = ContentSection::where('title', 'Seksi Bergaya')->sole();
+
+        $this->assertSame('center', $section->typography['title']['align']);
+        $this->assertSame(800, (int) $section->typography['title']['weight']);
+        $this->assertSame('xl', $section->typography['title']['size']);
+        $this->assertSame('#123456', $section->typography['title']['color']);
+        $this->assertSame('right', $section->typography['card_title']['align']);
     }
 
     public function test_cta_label_and_url_require_each_other(): void

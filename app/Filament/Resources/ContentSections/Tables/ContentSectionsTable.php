@@ -37,7 +37,9 @@ class ContentSectionsTable
                     ->searchable()
                     ->sortable()
                     ->wrap()
-                    ->description(fn (ContentSection $record): string => Str::limit(strip_tags($record->description), 90)),
+                    ->description(fn (ContentSection $record): ?string => $record->has_description
+                        ? Str::limit(strip_tags((string) $record->description), 90)
+                        : null),
 
                 TextColumn::make('layout')
                     ->label('Bentuk Isi')

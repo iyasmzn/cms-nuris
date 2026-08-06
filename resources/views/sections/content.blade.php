@@ -8,9 +8,24 @@
 @isset($contentSection)
 @once
 <style>
+    /* ── Tipografi ───────────────────────────────────────────────
+       Ukuran bawaan tiap elemen dikali `--cs-scale` yang dipasang
+       admin lewat atribut style, sehingga ukuran responsifnya tetap
+       dipegang CSS di sini. Perataan, ketebalan, dan warna cukup
+       ditimpa inline karena tidak punya varian per lebar layar. */
+    .cs-eyebrow { font-size: calc(.6875rem * var(--cs-scale, 1)); }
+
+    .cs-title {
+        font-size: calc(1.875rem * var(--cs-scale, 1));
+        line-height: 1.15;
+    }
+    @media (min-width: 640px) {
+        .cs-title { font-size: calc(2.25rem * var(--cs-scale, 1)); }
+    }
+
     .content-section-prose {
         color: var(--muted);
-        font-size: 1.0625rem;
+        font-size: calc(1.0625rem * var(--cs-scale, 1));
         line-height: 1.8;
     }
     .content-section-prose > *:first-child { margin-top: 0; }
@@ -23,6 +38,9 @@
     .content-section-prose ul { list-style: disc; }
     .content-section-prose ol { list-style: decimal; }
     .content-section-prose li { margin-bottom: .4rem; }
+    /* Warna kustom berlaku ke seluruh isi deskripsi, bukan hanya teks polosnya */
+    .content-section-prose.cs-colored strong,
+    .content-section-prose.cs-colored a { color: inherit; }
 
     /* ── Kartu ───────────────────────────────────────────────────
        Jumlah kartu sebaris diatur admin lewat --cs-cols-lg; layar
@@ -62,13 +80,13 @@
         padding: 1.5rem;
     }
     .cs-card-title {
-        font-size: 1.0625rem;
+        font-size: calc(1.0625rem * var(--cs-scale, 1));
         font-weight: 700;
         line-height: 1.4;
         color: var(--text);
     }
     .cs-card-text {
-        font-size: .9375rem;
+        font-size: calc(.9375rem * var(--cs-scale, 1));
         line-height: 1.7;
         color: var(--muted);
     }
@@ -280,6 +298,17 @@
 
     // Warna judul mengikuti pilihan teks terang milik seksi berlatar gambar.
     $headingColor = $contentSection->uses_light_text ? '#ffffff' : 'var(--text)';
+
+    // Gaya huruf pilihan admin. Yang tidak diatur menghasilkan string kosong,
+    // jadi elemennya tetap memakai gaya bawaan rancangan seksi.
+    $typography = $contentSection->typography_styles;
+    $hasDescription = $contentSection->has_description;
+
+    // Warna judul bawaan berdiri di depan agar warna pilihan admin — bila ada —
+    // menimpanya sebagai deklarasi terakhir.
+    $titleStyle = implode(';', array_filter(['color:'.$headingColor, $typography->styleFor('title')]));
+    $eyebrowStyle = $typography->styleFor('eyebrow');
+    $descriptionStyle = $typography->styleFor('description');
 @endphp
 
 <x-section-background :config="\App\Support\SectionBackground::forContentSection($contentSection)"
@@ -307,16 +336,20 @@
                  data-aos="fade-up">
 
                 @if($contentSection->eyebrow)
-                    <div class="fi-label mb-3">{{ $contentSection->eyebrow }}</div>
+                    <div class="fi-label cs-eyebrow mb-3" @if($eyebrowStyle) style="{{ $eyebrowStyle }}" @endif>{{ $contentSection->eyebrow }}</div>
                 @endif
 
-                <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight mb-5" style="color:{{ $headingColor }}">
+                <h2 class="cs-title font-extrabold tracking-tight {{ $hasDescription ? 'mb-5' : '' }}"
+                    style="{{ $titleStyle }}">
                     {{ $contentSection->title }}
                 </h2>
 
-                <div class="content-section-prose">
-                    {!! $contentSection->description !!}
-                </div>
+                @if($hasDescription)
+                    <div class="content-section-prose{{ $typography->isColored('description') ? ' cs-colored' : '' }}"
+                         @if($descriptionStyle) style="{{ $descriptionStyle }}" @endif>
+                        {!! $contentSection->description !!}
+                    </div>
+                @endif
 
                 @if($contentSection->has_cta && ! $headerIsStacked)
                     <div class="mt-8 {{ $hasImage ? '' : 'flex justify-center' }}">
@@ -355,7 +388,7 @@
                         <div class="cs-track" x-ref="track" @scroll.passive="onScroll()">
                             @foreach($cards as $card)
                                 <div class="cs-slide">
-                                    <x-content-card :card="$card" />
+                                    <x-content-card :card="$card" :typography="$typography" />
                                 </div>
                             @endforeach
                         </div>
@@ -398,7 +431,7 @@
                     <div class="cs-grid">
                         @foreach($cards as $card)
                             <div data-aos="fade-up" data-aos-delay="{{ ($loop->index % 3) * 80 }}">
-                                <x-content-card :card="$card" />
+                                <x-content-card :card="$card" :typography="$typography" />
                             </div>
                         @endforeach
                     </div>

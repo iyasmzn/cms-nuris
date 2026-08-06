@@ -3,7 +3,18 @@
     carousel. Kartu bertombol menampilkan CTA-nya; kartu yang hanya punya
     tautan (tanpa label tombol) dibuat bisa diklik seluruh kartunya.
 --}}
-@props(['card'])
+@props([
+    'card',
+    /** @var \App\Support\SectionTypography|null Gaya huruf pilihan admin untuk teks kartu. */
+    'typography' => null,
+])
+
+@php
+    $typography ??= new \App\Support\SectionTypography;
+
+    $titleStyle = $typography->styleFor('card_title');
+    $textStyle = $typography->styleFor('card_description');
+@endphp
 
 <div class="cs-card fi-card fi-card-hover">
 
@@ -26,11 +37,11 @@
 
     <div class="cs-card-body">
         @if($card->title)
-            <h3 class="cs-card-title">{{ $card->title }}</h3>
+            <h3 class="cs-card-title" @if($titleStyle) style="{{ $titleStyle }}" @endif>{{ $card->title }}</h3>
         @endif
 
         @if($card->description)
-            <p class="cs-card-text">{{ $card->description }}</p>
+            <p class="cs-card-text" @if($textStyle) style="{{ $textStyle }}" @endif>{{ $card->description }}</p>
         @endif
 
         @if($card->has_cta)

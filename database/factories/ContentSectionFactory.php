@@ -21,6 +21,7 @@ class ContentSectionFactory extends Factory
             'eyebrow' => $this->faker->words(2, true),
             'title' => rtrim($this->faker->sentence(5), '.'),
             'description' => '<p>'.$this->faker->paragraph(3).'</p>',
+            'typography' => null,
             'layout' => 'media',
             'image' => 'content-sections/'.$this->faker->uuid().'.jpg',
             'image_position' => $this->faker->randomElement(array_keys(ContentSection::IMAGE_POSITIONS)),
@@ -110,6 +111,28 @@ class ContentSectionFactory extends Factory
     {
         return $this->withCards($count)->state(fn (array $attributes): array => [
             'layout' => 'carousel',
+        ]);
+    }
+
+    /**
+     * Seksi tanpa deskripsi — judulnya saja sudah bercerita.
+     */
+    public function withoutDescription(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'description' => null,
+        ]);
+    }
+
+    /**
+     * Gaya huruf kustom pada tiap elemen teks.
+     *
+     * @param  array<string, array<string, mixed>>  $typography
+     */
+    public function withTypography(array $typography): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'typography' => $typography,
         ]);
     }
 
