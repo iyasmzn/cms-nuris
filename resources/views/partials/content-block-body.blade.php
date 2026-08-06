@@ -203,6 +203,10 @@
             $ctaLabel   = trim((string) ($block['cta_label'] ?? ''));
             $ctaUrl     = trim((string) ($block['cta_url'] ?? ''));
             $ctaNewTab  = !empty($block['cta_new_tab']);
+            // Perataan berlaku ke judul, teks, dan tombol pada kolom teksnya
+            $align      = in_array($block['text_align'] ?? 'left', ['left', 'center', 'right', 'justify'], true)
+                ? $block['text_align'] ?? 'left'
+                : 'left';
         @endphp
         {{-- Pada mode seksi, judulnya sudah dirender pembungkus — tanpa gambar
              dan teks, blok ini tidak menyisakan apa pun untuk digambar. --}}
@@ -219,7 +223,7 @@
                     </div>
                 @endif
 
-                <div class="{{ $mediaUrl ? ($imageFirst ? 'lg:order-2' : 'lg:order-1') : '' }}">
+                <div class="block-text-{{ $align }} {{ $mediaUrl ? ($imageFirst ? 'lg:order-2' : 'lg:order-1') : '' }}">
                     @if($heading !== '' && ! $sectioned)
                         <h3 class="block-media-title">{{ $heading }}</h3>
                     @endif

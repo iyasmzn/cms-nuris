@@ -1,5 +1,47 @@
 @extends('layouts.public')
 
+{{-- ── JSON-LD WebPage & Breadcrumb ────────────────────────────
+     Isi halaman kini tersusun dari seksi, jadi ringkasan & tanggalnya
+     dipanen dari record — bukan dari satu kolom konten seperti dulu.
+--}}
+@push('structured-data')
+<script type="application/ld+json">
+{!! json_encode(array_filter([
+    '@context'      => 'https://schema.org',
+    '@type'         => 'WebPage',
+    'name'          => $page->title,
+    'headline'      => $page->title,
+    'description'   => $page->seo_description,
+    'url'           => route('page.show', $page->slug),
+    'image'         => $page->hero_cover->imageUrl(),
+    'datePublished' => $page->created_at?->toIso8601String(),
+    'dateModified'  => $page->updated_at?->toIso8601String(),
+    'isPartOf'      => [
+        '@type' => 'WebSite',
+        'name'  => setting('site_name', config('app.name')),
+        'url'   => url('/'),
+    ],
+    'publisher' => [
+        '@type' => 'EducationalOrganization',
+        'name'  => setting('site_name', config('app.name')),
+        'url'   => url('/'),
+    ],
+    'inLanguage' => 'id-ID',
+]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) !!}
+</script>
+
+<script type="application/ld+json">
+{!! json_encode([
+    '@context'        => 'https://schema.org',
+    '@type'           => 'BreadcrumbList',
+    'itemListElement' => [
+        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Beranda', 'item' => url('/')],
+        ['@type' => 'ListItem', 'position' => 2, 'name' => $page->title, 'item' => route('page.show', $page->slug)],
+    ],
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) !!}
+</script>
+@endpush
+
 @push('head')
 <style>
     /* ── Hero ─────────────────────────────────────────────── */

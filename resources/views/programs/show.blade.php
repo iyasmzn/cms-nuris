@@ -1,5 +1,45 @@
 @extends('layouts.public')
 
+{{-- ── JSON-LD WebPage & Breadcrumb ──────────────────────────── --}}
+@push('structured-data')
+<script type="application/ld+json">
+{!! json_encode(array_filter([
+    '@context'      => 'https://schema.org',
+    '@type'         => 'WebPage',
+    'name'          => $program->title,
+    'headline'      => $program->title,
+    'description'   => $program->meta_description,
+    'url'           => route('programs.show', $program),
+    'image'         => $program->hero_cover->imageUrl() ?: $program->thumbnail_url,
+    'datePublished' => $program->created_at?->toIso8601String(),
+    'dateModified'  => $program->updated_at?->toIso8601String(),
+    'isPartOf'      => [
+        '@type' => 'WebSite',
+        'name'  => setting('site_name', config('app.name')),
+        'url'   => url('/'),
+    ],
+    'publisher' => [
+        '@type' => 'EducationalOrganization',
+        'name'  => setting('site_name', config('app.name')),
+        'url'   => url('/'),
+    ],
+    'inLanguage' => 'id-ID',
+]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) !!}
+</script>
+
+<script type="application/ld+json">
+{!! json_encode([
+    '@context'        => 'https://schema.org',
+    '@type'           => 'BreadcrumbList',
+    'itemListElement' => [
+        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Beranda', 'item' => url('/')],
+        ['@type' => 'ListItem', 'position' => 2, 'name' => 'Program', 'item' => route('programs.index')],
+        ['@type' => 'ListItem', 'position' => 3, 'name' => $program->title, 'item' => route('programs.show', $program)],
+    ],
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) !!}
+</script>
+@endpush
+
 @push('head')
 <style>
     .sidebar-sticky { position: sticky; top: 5.5rem; }

@@ -27,6 +27,9 @@
             // Setiap seksi tetap punya target tautan walau anchornya tidak diisi
             $anchor = \Illuminate\Support\Str::slug((string) ($block['anchor'] ?? '')) ?: 'seksi-'.($loop->index + 1);
             $padding = $block['padding'] ?? 'md';
+            $headingAlign = in_array($block['heading_align'] ?? 'left', ['left', 'center', 'right', 'justify'], true)
+                ? $block['heading_align'] ?? 'left'
+                : 'left';
         @endphp
 
         @if(! $sectioned)
@@ -37,7 +40,7 @@
                                   class="block-section block-section-{{ $mode }} block-pad-{{ $padding }}">
                 <div class="block-section-inner">
                     @if($eyebrow !== '' || $heading !== '')
-                        <div class="block-section-head">
+                        <div class="block-section-head block-text-{{ $headingAlign }}">
                             @if($eyebrow !== '')
                                 <div class="fi-label block-section-eyebrow">{{ $eyebrow }}</div>
                             @endif

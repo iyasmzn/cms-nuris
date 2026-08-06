@@ -123,6 +123,98 @@ class PageSectionsTest extends TestCase
             ->assertDontSee('page-hero-media', false);
     }
 
+    public function test_section_heading_alignment_applies_to_any_block_type(): void
+    {
+        $page = StaticPage::factory()->create([
+            'blocks' => [
+                [
+                    'type' => 'cards',
+                    'eyebrow' => 'Unggulan',
+                    'heading' => 'Fasilitas Kami',
+                    'heading_align' => 'center',
+                    'items' => [['title' => 'Masjid']],
+                ],
+                [
+                    'type' => 'rich_text',
+                    'heading' => 'Sejarah',
+                    'content' => '<p>Berdiri 1973.</p>',
+                ],
+            ],
+        ]);
+
+        $this->get(route('page.show', $page->slug))
+            ->assertOk()
+            ->assertSee('block-section-head block-text-center', false)
+            ->assertSee('block-section-head block-text-left', false);
+    }
+
+    public function test_media_text_block_applies_the_chosen_text_alignment(): void
+    {
+        $page = StaticPage::factory()->create([
+            'blocks' => [
+                [
+                    'type' => 'media_text',
+                    'heading' => 'Fasilitas',
+                    'text' => '<p>Asrama luas.</p>',
+                    'media_image' => 'pages/blocks/asrama.jpg',
+                    'text_align' => 'center',
+                ],
+            ],
+        ]);
+
+        $this->get(route('page.show', $page->slug))
+            ->assertOk()
+            ->assertSee('class="block-text-center', false);
+    }
+
+    public function test_media_text_block_defaults_to_left_alignment(): void
+    {
+        $page = StaticPage::factory()->create([
+            'blocks' => [
+                ['type' => 'media_text', 'text' => '<p>Tanpa pengaturan perataan.</p>'],
+            ],
+        ]);
+
+        $this->get(route('page.show', $page->slug))
+            ->assertOk()
+            ->assertSee('class="block-text-left', false);
+    }
+
+    public function test_page_emits_webpage_and_breadcrumb_structured_data(): void
+    {
+        $page = StaticPage::factory()->create([
+            'title' => 'Sejarah',
+            'slug' => 'sejarah',
+            'meta_description' => 'Sejarah berdirinya pesantren.',
+            'hero' => ['media_type' => Slide::MEDIA_IMAGE, 'image' => 'pages/hero/gedung.jpg'],
+        ]);
+
+        $response = $this->get(route('page.show', $page->slug))->assertOk();
+
+        $response->assertSee('application/ld+json', false)
+            ->assertSee('"@type": "WebPage"', false)
+            ->assertSee('"description": "Sejarah berdirinya pesantren."', false)
+            ->assertSee('pages/hero/gedung.jpg', false)
+            ->assertSee('"@type": "BreadcrumbList"', false)
+            ->assertSee('"position": 2', false);
+    }
+
+    public function test_program_emits_structured_data_with_program_breadcrumb(): void
+    {
+        $program = Program::factory()->create([
+            'title' => 'Tahfidz',
+            'is_published' => true,
+            'excerpt' => 'Program menghafal Al-Qur\'an.',
+        ]);
+
+        $this->get(route('programs.show', $program))
+            ->assertOk()
+            ->assertSee('"@type": "WebPage"', false)
+            ->assertSee('"@type": "BreadcrumbList"', false)
+            ->assertSee('"name": "Program"', false)
+            ->assertSee('"position": 3', false);
+    }
+
     public function test_program_sections_and_hero_video_cover(): void
     {
         $program = Program::factory()->create([

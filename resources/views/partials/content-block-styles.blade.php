@@ -96,6 +96,17 @@
         font-size: 1.375rem; font-weight: 800; color: var(--text);
         line-height: 1.3; margin-bottom: .875rem;
     }
+    /* Perataan kolom teks; tombol CTA ikut karena inline-flex mengikuti text-align.
+       Daftar berbutir dipindah ke dalam agar butirnya ikut rata saat ditengahkan. */
+    .block-text-left    { text-align: left; }
+    .block-text-center  { text-align: center; }
+    .block-text-right   { text-align: right; }
+    .block-text-justify { text-align: justify; }
+    .block-text-center .block-prose ul,
+    .block-text-center .block-prose ol,
+    .block-text-right .block-prose ul,
+    .block-text-right .block-prose ol { list-style-position: inside; padding-left: 0; }
+
     .block-media .block-prose { margin: 0; font-size: 1rem; }
     @media (min-width: 640px) { .block-media .block-prose { font-size: 1.0625rem; } }
 

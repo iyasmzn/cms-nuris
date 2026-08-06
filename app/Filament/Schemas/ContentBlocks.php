@@ -4,6 +4,7 @@ namespace App\Filament\Schemas;
 
 use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Models\ContentSection;
+use App\Support\SectionTypography;
 use Closure;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Repeater;
@@ -241,6 +242,16 @@ class ContentBlocks
                     ->visible(self::usesType('media_text'))
                     ->columnSpanFull(),
 
+                Select::make('text_align')
+                    ->label('Perataan Teks')
+                    ->options(SectionTypography::ALIGNMENTS)
+                    ->default('left')
+                    ->native(false)
+                    ->selectablePlaceholder(false)
+                    ->helperText('Berlaku untuk judul, teks, dan tombol pada blok ini. Perataan per paragraf tetap bisa diatur lewat tombol perataan di editor.')
+                    ->visible(self::usesType('media_text'))
+                    ->columnSpanFull(),
+
                 Select::make('media_position')
                     ->label('Posisi Gambar')
                     ->options(ContentSection::IMAGE_POSITIONS)
@@ -257,6 +268,7 @@ class ContentBlocks
                         ['bold', 'italic', 'underline', 'strike', 'link'],
                         // Judul seksi sudah memakai h2, jadi h2–h4 di sini untuk subjudul
                         ['h2', 'h3', 'h4'],
+                        ['alignStart', 'alignCenter', 'alignEnd', 'alignJustify'],
                         ['blockquote', 'bulletList', 'orderedList'],
                         ['undo', 'redo'],
                     ])
@@ -488,6 +500,15 @@ class ContentBlocks
                             ->native(false)
                             ->selectablePlaceholder(false)
                             ->helperText('Ruang kosong di atas dan bawah isi seksi.'),
+
+                        Select::make('heading_align')
+                            ->label('Perataan Judul Seksi')
+                            ->options(SectionTypography::ALIGNMENTS)
+                            ->default('left')
+                            ->native(false)
+                            ->selectablePlaceholder(false)
+                            ->helperText('Berlaku untuk label kecil dan judul seksi, apa pun jenis bloknya.')
+                            ->columnSpanFull(),
                     ]),
 
                     self::imagePicker(
