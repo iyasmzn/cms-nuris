@@ -6,6 +6,7 @@ use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Filament\Resources\ContentSections\ContentSectionResource;
 use App\Models\ContentSection;
 use App\Models\Setting;
+use App\Support\HeroSlider;
 use App\Support\SectionBackground;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
@@ -47,6 +48,12 @@ class LandingPageSettings extends Page
      * Awalan kunci seksi bawaan di dalam `section_order`.
      */
     private const BUILT_IN_PREFIX = 'section_';
+
+    /**
+     * Kunci seksi hero — satu-satunya seksi bawaan yang punya pengaturan
+     * slider di kartunya.
+     */
+    private const HERO_KEY = 'section_hero';
 
     /**
      * Seksi bawaan yang latarnya tidak bisa diatur di sini: hero sudah punya
@@ -338,6 +345,10 @@ class LandingPageSettings extends Page
             $item = [...$item, ...self::backgroundState($section['key'])];
         }
 
+        if ($section['key'] === self::HERO_KEY) {
+            $item = [...$item, ...self::heroSliderState()];
+        }
+
         $config = self::contentConfig($section['key']);
 
         if ($config === null) {
@@ -359,6 +370,24 @@ class LandingPageSettings extends Page
         }
 
         return $item;
+    }
+
+    /**
+     * Perilaku slider hero yang sedang tayang.
+     *
+     * @return array<string, mixed>
+     */
+    private static function heroSliderState(): array
+    {
+        $hero = HeroSlider::fromSettings();
+
+        return [
+            'hero_autoplay' => $hero->autoplay,
+            'hero_pause_on_hover' => $hero->pauseOnHover,
+            'hero_interval' => $hero->interval,
+            'hero_transition' => $hero->transition,
+            'hero_transition_duration' => $hero->duration,
+        ];
     }
 
     /**
@@ -486,7 +515,7 @@ class LandingPageSettings extends Page
 
             Placeholder::make('managed_elsewhere')
                 ->label('Konten Seksi')
-                ->visible(fn (Get $get): bool => ! self::isDynamic($get('key')) && ! $isEditable($get))
+                ->visible(fn (Get $get): bool => ! self::isDynamic($get('key')) && ! $isEditable($get) && $get('key') !== self::HERO_KEY)
                 ->content('Seksi ini tidak punya teks judul yang bisa diubah di sini — isinya diambil dari menu datanya masing-masing.')
                 ->columnSpanFull(),
 
@@ -523,7 +552,79 @@ class LandingPageSettings extends Page
                     ...$this->extraTextFields(),
                 ]),
 
+            ...$this->heroSliderFields(),
+
             ...$this->backgroundFields(),
+        ];
+    }
+
+    /**
+     * Perilaku slider hero: putar otomatis, jeda saat kursor menyentuh hero,
+     * serta gaya & lama animasi perpindahannya. Isinya dibaca `HeroSlider`.
+     *
+     * @return array<int, mixed>
+     */
+    private function heroSliderFields(): array
+    {
+        return [
+            Section::make('Perilaku Slider Hero')
+                ->description('Gambar & isi tiap slide diatur di menu Slide. Di sini hanya cara slide berpindah.')
+                ->icon(Heroicon::OutlinedPlayCircle)
+                ->visible(fn (Get $get): bool => $get('key') === self::HERO_KEY)
+                ->columnSpanFull()
+                ->schema([
+                    Toggle::make('hero_autoplay')
+                        ->label('Putar Otomatis')
+                        ->default(true)
+                        ->onColor('success')
+                        ->live()
+                        ->helperText('Matikan agar slide hanya berpindah saat pengunjung menekan panah atau titik indikator.')
+                        ->columnSpanFull(),
+
+                    Toggle::make('hero_pause_on_hover')
+                        ->label('Jeda Saat Kursor di Atas Hero')
+                        ->default(true)
+                        ->onColor('success')
+                        ->visible(fn (Get $get): bool => (bool) $get('hero_autoplay'))
+                        ->helperText('Slide berhenti berpindah selama kursor berada di area hero, dan lanjut lagi setelah kursor pergi.')
+                        ->columnSpanFull(),
+
+                    Slider::make('hero_interval')
+                        ->label('Jeda Antar Slide (detik)')
+                        ->range(minValue: HeroSlider::MIN_INTERVAL, maxValue: HeroSlider::MAX_INTERVAL)
+                        ->step(1)
+                        ->tooltips()
+                        ->default(HeroSlider::DEFAULT_INTERVAL)
+                        ->required()
+                        ->visible(fn (Get $get): bool => (bool) $get('hero_autoplay'))
+                        ->helperText('Lama satu slide ditampilkan sebelum berganti ke slide berikutnya.')
+                        ->columnSpanFull(),
+
+                    ToggleButtons::make('hero_transition')
+                        ->label('Gaya Perpindahan')
+                        ->options(HeroSlider::TRANSITIONS)
+                        ->icons([
+                            'fade' => Heroicon::OutlinedSparkles,
+                            'slide' => Heroicon::OutlinedArrowsRightLeft,
+                            'slide-vertical' => Heroicon::OutlinedArrowsUpDown,
+                            'zoom' => Heroicon::OutlinedMagnifyingGlassPlus,
+                        ])
+                        ->default('fade')
+                        ->required()
+                        ->inline()
+                        ->helperText('Memudar: slide bertukar halus di tempat. Geser: slide masuk dari sisi sesuai arah tombol. Zoom: slide masuk sambil mengecil ke ukuran normal.')
+                        ->columnSpanFull(),
+
+                    Slider::make('hero_transition_duration')
+                        ->label('Lama Animasi Perpindahan (milidetik)')
+                        ->range(minValue: HeroSlider::MIN_DURATION, maxValue: HeroSlider::MAX_DURATION)
+                        ->step(50)
+                        ->tooltips()
+                        ->default(HeroSlider::DEFAULT_DURATION)
+                        ->required()
+                        ->helperText('700 ms terasa halus; makin kecil makin cepat dan tegas.')
+                        ->columnSpanFull(),
+                ]),
         ];
     }
 
@@ -732,6 +833,7 @@ class LandingPageSettings extends Page
                 ...$payload,
                 ...self::contentPayload($key, $section),
                 ...self::backgroundPayload($key, $section),
+                ...self::heroSliderPayload($key, $section),
             ];
         }
 
@@ -777,6 +879,28 @@ class LandingPageSettings extends Page
         }
 
         return $payload;
+    }
+
+    /**
+     * Perilaku slider hero, disimpan sebagai setting `hero_*` yang dibaca
+     * `HeroSlider::fromSettings()`.
+     *
+     * @param  array<string, mixed>  $section
+     * @return array<string, mixed>
+     */
+    private static function heroSliderPayload(string $key, array $section): array
+    {
+        if ($key !== self::HERO_KEY) {
+            return [];
+        }
+
+        return [
+            'hero_autoplay' => (bool) ($section['hero_autoplay'] ?? true),
+            'hero_pause_on_hover' => (bool) ($section['hero_pause_on_hover'] ?? true),
+            'hero_interval' => (int) ($section['hero_interval'] ?? HeroSlider::DEFAULT_INTERVAL),
+            'hero_transition' => $section['hero_transition'] ?? 'fade',
+            'hero_transition_duration' => (int) ($section['hero_transition_duration'] ?? HeroSlider::DEFAULT_DURATION),
+        ];
     }
 
     /**

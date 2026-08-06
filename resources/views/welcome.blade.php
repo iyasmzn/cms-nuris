@@ -158,11 +158,6 @@
             border: 1px solid var(--primary-200);
         }
 
-        /* ── Hero slider ─────────────────────────────────────────── */
-        .slide { position: absolute; inset: 0; transition: opacity .7s ease; }
-        .slide.active   { opacity: 1; z-index: 1; }
-        .slide.inactive { opacity: 0; z-index: 0; }
-
         /* ── Gallery masonry ─────────────────────────────────────── */
         .masonry { columns: 3; column-gap: .875rem; }
         @media(max-width:640px){ .masonry { columns: 2; } }
@@ -243,6 +238,10 @@
         }
     }
 
+    // Perilaku slider hero dipakai dua kali: state Alpine di <body> dan kelas
+    // animasi di partial hero.
+    $heroSlider = \App\Support\HeroSlider::fromSettings();
+
     $sectionPartials = [
         'section_hero'        => 'sections.hero',
         'section_quick_links' => 'sections.quick-links',
@@ -264,12 +263,30 @@
 <body class="min-h-screen antialiased overflow-x-clip"
       x-data="{
           slide: 0,
+          prevSlide: null,
+          slideDir: 1,
           total: {{ max($slides->count(), 1) }},
+          heroPaused: false,
           videoModal: null,
+          /* delta +1 maju, -1 mundur — arahnya juga dipakai animasi geser */
+          stepSlide(delta) {
+              if (this.total < 2) return;
+              this.slideDir = delta;
+              this.prevSlide = this.slide;
+              this.slide = (this.slide + delta + this.total) % this.total;
+          },
+          goToSlide(index) {
+              if (index === this.slide) return;
+              this.slideDir = index > this.slide ? 1 : -1;
+              this.prevSlide = this.slide;
+              this.slide = index;
+          },
           openVideo(source) { this.videoModal = source; document.body.style.overflow = 'hidden' },
           closeVideo() { this.videoModal = null; document.body.style.overflow = '' }
       }"
-      x-init="setInterval(() => { if (! videoModal) slide = (slide + 1) % total }, 5000)">
+      @if($heroSlider->autoplay)
+          x-init="setInterval(() => { if (! videoModal && ! heroPaused) stepSlide(1) }, {{ $heroSlider->intervalMs() }})"
+      @endif>
 
     {{-- Navbar — transparent over hero, solid on scroll --}}
     <x-navbar :over-hero="true" />

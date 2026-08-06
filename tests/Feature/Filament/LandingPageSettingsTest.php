@@ -158,6 +158,50 @@ class LandingPageSettingsTest extends TestCase
         $this->assertSame('default', Setting::get('section_stats_background'));
     }
 
+    public function test_it_persists_the_hero_slider_behaviour(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
+
+        $component
+            ->fillForm([
+                'sections' => $this->withSectionState($component, 'section_hero', [
+                    'hero_autoplay' => true,
+                    'hero_pause_on_hover' => false,
+                    'hero_interval' => 9,
+                    'hero_transition' => 'slide',
+                    'hero_transition_duration' => 400,
+                ]),
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertTrue(setting_bool('hero_autoplay'));
+        $this->assertFalse(setting_bool('hero_pause_on_hover', true));
+        $this->assertSame('9', (string) Setting::get('hero_interval'));
+        $this->assertSame('slide', Setting::get('hero_transition'));
+        $this->assertSame('400', (string) Setting::get('hero_transition_duration'));
+    }
+
+    public function test_the_saved_hero_slider_behaviour_is_shown_again_when_the_page_is_reopened(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        Setting::setMany([
+            'hero_pause_on_hover' => false,
+            'hero_interval' => 12,
+            'hero_transition' => 'zoom',
+        ]);
+
+        $sections = collect(Livewire::actingAs($admin)->test(LandingPageSettings::class)->get('data.sections'));
+        $hero = $sections->firstWhere('key', 'section_hero');
+
+        $this->assertFalse($hero['hero_pause_on_hover']);
+        $this->assertSame(12, (int) $hero['hero_interval']);
+        $this->assertSame('zoom', $hero['hero_transition']);
+    }
+
     public function test_it_keeps_section_order_and_visibility_when_saving_content(): void
     {
         $admin = User::factory()->create()->assignRole('super_admin');

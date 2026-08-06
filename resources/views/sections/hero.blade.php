@@ -1,3 +1,7 @@
+@php
+    $heroSlider ??= \App\Support\HeroSlider::fromSettings();
+@endphp
+
 {{-- Ukuran latar video mengikuti tinggi hero per breakpoint (h-130/145/160)
      sehingga iframe 16:9 selalu menutup penuh tanpa gepeng. --}}
 <style>
@@ -15,14 +19,60 @@
         border: 0;
         pointer-events: none;
     }
+
+    /* ── Perpindahan slide ────────────────────────────────────────
+       Slide yang keluar (.is-leaving) bergerak berlawanan arah dengan
+       slide yang masuk, arahnya (--hero-dir) ditentukan tombol/dot
+       yang ditekan sehingga geraknya terasa maju-mundur. */
+    .hero-slide {
+        opacity: 0;
+        z-index: 0;
+        transition: opacity var(--hero-duration, 700ms) ease,
+                    transform var(--hero-duration, 700ms) ease;
+    }
+    .hero-slide.is-active  { opacity: 1; z-index: 10; }
+    .hero-slide.is-leaving { z-index: 5; }
+
+    .hero-anim-slide .hero-slide            { transform: translateX(calc(var(--hero-dir, 1) * 100%)); }
+    .hero-anim-slide .hero-slide.is-leaving { transform: translateX(calc(var(--hero-dir, 1) * -100%)); }
+
+    .hero-anim-slide-vertical .hero-slide            { transform: translateY(calc(var(--hero-dir, 1) * 100%)); }
+    .hero-anim-slide-vertical .hero-slide.is-leaving { transform: translateY(calc(var(--hero-dir, 1) * -100%)); }
+
+    .hero-anim-zoom .hero-slide            { transform: scale(1.12); }
+    .hero-anim-zoom .hero-slide.is-leaving { transform: scale(.92); }
+
+    .hero-anim-slide .hero-slide.is-active,
+    .hero-anim-slide-vertical .hero-slide.is-active,
+    .hero-anim-zoom .hero-slide.is-active { transform: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+        .hero-slide { transition-duration: .01ms; transform: none !important; }
+    }
 </style>
 
-<section id="beranda" class="hero-media relative h-130 sm:h-145 lg:h-160 overflow-hidden -mt-17">
+<section id="beranda"
+         class="hero-media hero-anim-{{ $heroSlider->transition }} relative h-130 sm:h-145 lg:h-160 overflow-hidden -mt-17"
+         style="--hero-duration: {{ $heroSlider->duration }}ms"
+         :style="{ '--hero-dir': slideDir }"
+         @if($heroSlider->pauseOnHover)
+             {{-- Perangkat sentuh ikut memicu mouseenter tanpa selalu mengirim
+                  mouseleave, jadi jeda hanya berlaku bila kursor sungguh ada. --}}
+             @mouseenter="heroPaused = matchMedia('(hover: hover)').matches"
+             @mouseleave="heroPaused = false"
+             @focusin="heroPaused = true"
+             @focusout="heroPaused = false"
+         @endif>
 
     {{-- Slides --}}
     @forelse($slides as $index => $s)
-        <div class="slide absolute inset-0 transition-opacity duration-700"
-             :class="{{ $index }} === slide ? 'opacity-100 z-10' : 'opacity-0 z-0'">
+        {{-- Slide pertama sudah aktif dari server agar hero tidak kosong
+             selama Alpine belum sempat dimuat. --}}
+        <div class="hero-slide absolute inset-0 @if($index === 0) is-active @endif"
+             :class="{
+                 'is-active': {{ $index }} === slide,
+                 'is-leaving': {{ $index }} === prevSlide && {{ $index }} !== slide,
+             }">
 
             {{-- Background image — juga jadi poster/fallback untuk slide video --}}
             <img src="{{ $s->image_url }}"
@@ -130,7 +180,7 @@
     @if($slides->count() > 1)
         <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
             @foreach($slides as $index => $s)
-                <button @click="slide = {{ $index }}"
+                <button @click="goToSlide({{ $index }})"
                         class="transition-all duration-300 rounded-full"
                         :class="{{ $index }} === slide
                             ? 'w-7 h-2.5 opacity-100'
@@ -142,11 +192,11 @@
 
     {{-- Prev / Next arrows --}}
     @if($slides->count() > 1)
-        <button @click="slide = (slide - 1 + total) % total"
+        <button @click="stepSlide(-1)"
                 class="absolute left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/25 hover:bg-black/45 backdrop-blur-sm text-white flex items-center justify-center transition-all hover:scale-110">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <button @click="slide = (slide + 1) % total"
+        <button @click="stepSlide(1)"
                 class="absolute right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/25 hover:bg-black/45 backdrop-blur-sm text-white flex items-center justify-center transition-all hover:scale-110">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
         </button>
