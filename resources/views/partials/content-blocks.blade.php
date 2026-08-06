@@ -1,5 +1,7 @@
 {{--
-    Reusable "Konten Tambahan" image blocks renderer.
+    Reusable "Konten Tambahan" blocks renderer. Selain blok gambar, tersedia
+    bentuk isi yang sama dengan seksi dinamis halaman depan: teks bebas, gambar
+    berdampingan teks, deretan kartu, dan carousel kartu.
     Params:
       $blocks — array of block definitions (from the model's `blocks` cast)
       $title  — fallback alt/caption text (page/post/program title)
@@ -8,6 +10,13 @@
 @if(!empty($blocks))
     @foreach($blocks as $block)
         @php $type = $block['type'] ?? ''; @endphp
+
+        {{-- ── Teks ─────────────────────────────────────── --}}
+        @if($type === 'rich_text' && filled(trim(strip_tags((string) ($block['content'] ?? '')))))
+            <div class="block-prose">
+                {!! $block['content'] !!}
+            </div>
+        @endif
 
         {{-- ── Cover Image ─────────────────────────────── --}}
         @if($type === 'image_cover' && !empty($block['image']))
@@ -178,6 +187,140 @@
                     {{ $block['label'] }}
                 </a>
             </div>
+        @endif
+
+        {{-- ── Gambar & Teks ────────────────────────────── --}}
+        @if($type === 'media_text')
+            @php
+                $mediaUrl   = icon_url($block['media_image'] ?? null);
+                $imageFirst = ($block['media_position'] ?? 'right') === 'left';
+                $heading    = trim((string) ($block['heading'] ?? ''));
+                $body       = (string) ($block['text'] ?? '');
+                $hasBody    = filled(trim(strip_tags($body)));
+                $ctaLabel   = trim((string) ($block['cta_label'] ?? ''));
+                $ctaUrl     = trim((string) ($block['cta_url'] ?? ''));
+                $ctaNewTab  = !empty($block['cta_new_tab']);
+            @endphp
+            @if($mediaUrl || $heading !== '' || $hasBody)
+                <div class="block-media {{ $mediaUrl ? 'block-media-split' : '' }}">
+                    @if($mediaUrl)
+                        <div class="{{ $imageFirst ? 'lg:order-1' : 'lg:order-2' }}">
+                            <div class="fi-card overflow-hidden">
+                                <img src="{{ $mediaUrl }}"
+                                     alt="{{ $heading !== '' ? $heading : $title }}"
+                                     loading="lazy"
+                                     class="w-full object-cover aspect-4/3">
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="{{ $mediaUrl ? ($imageFirst ? 'lg:order-2' : 'lg:order-1') : '' }}">
+                        @if($heading !== '')
+                            <h3 class="block-media-title">{{ $heading }}</h3>
+                        @endif
+
+                        @if($hasBody)
+                            <div class="block-prose">{!! $body !!}</div>
+                        @endif
+
+                        @if($ctaLabel !== '' && $ctaUrl !== '')
+                            <div class="mt-6">
+                                <a href="{{ $ctaUrl }}"
+                                   class="btn-primary"
+                                   @if($ctaNewTab) target="_blank" rel="noopener noreferrer" @endif>
+                                    {{ $ctaLabel }}
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                    </svg>
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+        @endif
+
+        {{-- ── Deretan Kartu & Carousel Kartu ───────────── --}}
+        @if(in_array($type, ['cards', 'cards_carousel'], true))
+            @php
+                $cards   = \App\Support\ContentCards::fromItems($block['items'] ?? []);
+                $columns = max(1, min(4, (int) ($block['items_columns'] ?? 3) ?: 3));
+                $isCarousel = $type === 'cards_carousel';
+                $autoplay = $isCarousel && ($block['carousel_autoplay'] ?? true);
+                $delayMs  = min(15, max(2, (int) ($block['carousel_autoplay_delay'] ?? 5) ?: 5)) * 1000;
+                $loop     = (bool) ($block['carousel_loop'] ?? true);
+            @endphp
+            @if($cards->isNotEmpty())
+                @include('partials.content-cards-styles')
+
+                <div class="cs-cards block-cards"
+                     style="--cs-cols-sm:{{ min(2, $columns) }}; --cs-cols-lg:{{ $columns }}">
+
+                    @if($isCarousel)
+                        <div class="cs-carousel"
+                             x-data="contentCarousel({
+                                 autoplay: {{ $autoplay ? 'true' : 'false' }},
+                                 delay: {{ $delayMs }},
+                                 loop: {{ $loop ? 'true' : 'false' }},
+                             })"
+                             x-init="start()"
+                             @mouseenter="pause()"
+                             @mouseleave="resume()"
+                             @focusin="pause()"
+                             @focusout="resume()"
+                             @touchstart.passive="pause()">
+
+                            <div class="cs-track" x-ref="track" @scroll.passive="onScroll()">
+                                @foreach($cards as $card)
+                                    <div class="cs-slide">
+                                        <x-content-card :card="$card" />
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @if($block['carousel_arrows'] ?? true)
+                                <button type="button" class="cs-arrow cs-arrow-prev"
+                                        x-show="pages > 1"
+                                        @click="previous()"
+                                        :disabled="! loop && page === 0"
+                                        aria-label="Kartu sebelumnya">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+                                    </svg>
+                                </button>
+
+                                <button type="button" class="cs-arrow cs-arrow-next"
+                                        x-show="pages > 1"
+                                        @click="next()"
+                                        :disabled="! loop && page >= pages - 1"
+                                        aria-label="Kartu berikutnya">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                </button>
+                            @endif
+
+                            @if($block['carousel_dots'] ?? true)
+                                <div class="cs-dots" x-show="pages > 1">
+                                    <template x-for="index in pages" :key="index">
+                                        <button type="button"
+                                                class="cs-dot"
+                                                :class="{ 'is-active': index - 1 === page }"
+                                                @click="goTo(index - 1)"
+                                                :aria-label="`Ke halaman kartu ${index}`"></button>
+                                    </template>
+                                </div>
+                            @endif
+                        </div>
+                    @else
+                        <div class="cs-grid">
+                            @foreach($cards as $card)
+                                <x-content-card :card="$card" />
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endif
         @endif
 
     @endforeach

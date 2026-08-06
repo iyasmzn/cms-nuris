@@ -95,7 +95,7 @@ class PostForm
                     ->columns(2),
 
                 Section::make('Konten Tambahan')
-                    ->description('Tambahkan blok gambar opsional yang ditampilkan di bawah konten utama.')
+                    ->description('Blok opsional di bawah konten utama: teks, gambar, galeri, tombol, gambar berdampingan teks, hingga kartu & carousel.')
                     ->icon(Heroicon::OutlinedPhoto)
                     ->schema([
                         ContentBlocks::make('posts/blocks'),

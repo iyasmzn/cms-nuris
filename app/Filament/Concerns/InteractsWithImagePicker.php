@@ -204,9 +204,10 @@ trait InteractsWithImagePicker
     }
 
     /**
-     * Resolve the picker keys inside a "blocks" repeater (cover image + nested
-     * carousel/gallery image lists), stripping helper keys from the stored JSON.
-     * Uploaded images (which have no name/alt field) are named after $baseName.
+     * Resolve the picker keys inside a "blocks" repeater (cover image, gambar
+     * blok teks-gambar, dan daftar gambar/kartu bersarang), stripping helper keys
+     * from the stored JSON. Uploaded images (which have no name/alt field) are
+     * named after $baseName.
      *
      * @param  array<int, mixed>|null  $blocks
      * @return array<int, mixed>
@@ -220,17 +221,24 @@ trait InteractsWithImagePicker
                 continue;
             }
 
-            if (array_key_exists('image', $block) || array_key_exists('image_source', $block)) {
-                $block = self::resolveImageField($block, 'image', $baseName);
+            foreach (['image', 'media_image'] as $key) {
+                if (array_key_exists($key, $block) || array_key_exists("{$key}_source", $block)) {
+                    $block = self::resolveImageField($block, $key, $baseName);
+                }
             }
 
-            if (isset($block['images']) && is_array($block['images'])) {
-                foreach ($block['images'] as &$image) {
-                    if (is_array($image)) {
-                        $image = self::resolveImageField($image, 'image', $baseName);
+            /** Daftar gambar carousel/galeri (`images`) dan daftar kartu (`items`). */
+            foreach (['images', 'items'] as $listKey) {
+                if (! isset($block[$listKey]) || ! is_array($block[$listKey])) {
+                    continue;
+                }
+
+                foreach ($block[$listKey] as &$item) {
+                    if (is_array($item)) {
+                        $item = self::resolveImageField($item, 'image', $baseName);
                     }
                 }
-                unset($image);
+                unset($item);
             }
         }
         unset($block);

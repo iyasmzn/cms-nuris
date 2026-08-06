@@ -129,7 +129,7 @@ class StoryForm
                     ]),
 
                 Section::make('Konten Tambahan')
-                    ->description('Tambahkan blok gambar opsional (cover, carousel, galeri) yang ditampilkan di bawah isi cerita.')
+                    ->description('Blok opsional di bawah isi cerita: teks, gambar, galeri, tombol, gambar berdampingan teks, hingga kartu & carousel.')
                     ->icon(Heroicon::OutlinedPhoto)
                     ->schema([
                         ContentBlocks::make('stories/blocks'),

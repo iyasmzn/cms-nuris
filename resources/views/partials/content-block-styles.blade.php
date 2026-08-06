@@ -1,5 +1,47 @@
-{{-- Shared styles for the "Konten Tambahan" image blocks (cover / carousel / gallery / lightbox). --}}
+{{-- Shared styles for the "Konten Tambahan" blocks (teks / cover / carousel / gallery / lightbox / gambar-teks / kartu). --}}
 <style>
+    /* ── Teks bebas ───────────────────────────────────────── */
+    .block-prose { line-height: 1.85; color: #374151; font-size: 1.0625rem; margin: 1.5rem 0; }
+    @media (min-width: 640px) { .block-prose { font-size: 1.125rem; } }
+    .block-prose > *:first-child { margin-top: 0; }
+    .block-prose > *:last-child  { margin-bottom: 0; }
+    .block-prose h2 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 2rem 0 .875rem; line-height: 1.3; }
+    .block-prose h3 { font-size: 1.25rem; font-weight: 700; color: #1f2937; margin: 1.75rem 0 .75rem; line-height: 1.35; }
+    .block-prose p  { margin-bottom: 1.375rem; }
+    .block-prose ul, .block-prose ol { margin: 0 0 1.375rem; padding-left: 1.5rem; }
+    .block-prose ul { list-style: disc; }
+    .block-prose ol { list-style: decimal; }
+    .block-prose li { margin-bottom: .5rem; line-height: 1.75; }
+    .block-prose blockquote {
+        border-left: 3px solid var(--primary); background: var(--primary-50);
+        padding: .875rem 1.25rem; margin: 1.5rem 0; border-radius: 0 .5rem .5rem 0;
+        color: #4b5563; font-style: italic;
+    }
+    .block-prose a { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; font-weight: 500; }
+    .block-prose a:hover { color: var(--primary-700); }
+    .block-prose strong { color: #111827; font-weight: 700; }
+    .block-prose img { border-radius: .75rem; margin: 1.75rem 0; max-width: 100%; }
+    .block-prose code { background: #f3f4f6; padding: .125rem .4rem; border-radius: .25rem; font-size: .875em; color: var(--primary); }
+    .block-prose table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: .875rem; }
+    .block-prose th { background: var(--primary-50); color: var(--primary-800); font-weight: 700; padding: .625rem 1rem; text-align: left; border-bottom: 2px solid var(--primary-200); }
+    .block-prose td { padding: .625rem 1rem; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+    .block-prose tr:last-child td { border-bottom: none; }
+
+    /* ── Gambar & Teks ────────────────────────────────────── */
+    .block-media { margin: 2.5rem 0; }
+    .block-media-split { display: grid; gap: 1.75rem; }
+    @media (min-width: 1024px) {
+        .block-media-split { grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: center; }
+    }
+    .block-media-title {
+        font-size: 1.375rem; font-weight: 800; color: #111827;
+        line-height: 1.3; margin-bottom: .875rem;
+    }
+    .block-media .block-prose { margin: 0; font-size: 1rem; }
+    @media (min-width: 640px) { .block-media .block-prose { font-size: 1.0625rem; } }
+
+    /* ── Kartu ────────────────────────────────────────────── */
+    .block-cards { margin: 2.5rem 0; }
     /* ── Blocks ───────────────────────────────────────────── */
     .block-label {
         display: inline-flex; align-items: center; gap: .4rem;
