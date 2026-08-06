@@ -69,10 +69,9 @@
          Memakai kontainer scroll asli sehingga swipe di ponsel jalan
          apa adanya; rAF menambah scrollLeft dan berhenti saat disentuh. --}}
     @if($alumniUniversities->isNotEmpty())
-        @php
-            // Digandakan agar sambungan gulir terasa mulus tanpa jeda.
-            $marqueeTrack = $alumniUniversities->concat($alumniUniversities);
-        @endphp
+        {{-- Kartu dicetak sekali saja; penggandaan untuk gulir tak berujung
+             dikerjakan di sisi klien, hanya bila barisnya memang lebih panjang
+             dari layar. Bila muat seluruhnya, barisnya diam & rata tengah. --}}
         <div class="mt-14 sm:mt-16" data-aos="fade-up">
             <p class="text-center text-xs font-semibold tracking-wider uppercase mb-6" style="color:var(--muted)">
                 {{ setting('section_alumni_logos_title') ?: 'Kampus Tujuan Alumni' }}
@@ -88,17 +87,54 @@
                             scrollLeft ke piksel penuh, jadi kecepatan di bawah 1px per
                             frame akan hilang bila dibaca balik dari elemen. */
                          offset: 0,
+                         /* Lebar satu putaran penuh, yaitu lebar seluruh kartu asli. */
+                         cycle: 0,
+                         /* Baris berjalan hanya bila kartunya melebihi lebar layar. */
+                         rolling: false,
+                         originals: {{ $alumniUniversities->count() }},
                          paused: false,
                          dragging: false,
                          lastX: 0,
                          resumeTimer: null,
-                         half() { return this.$el.scrollWidth / 2 },
-                         /** Kembalikan posisi ke paruh pertama supaya gulirnya tak berujung. */
+                         resizeTimer: null,
+                         /* Diukur dari kartunya sendiri, bukan scrollWidth, sebab margin
+                            kartu terakhir tidak selalu ikut terhitung di scrollWidth. */
+                         trackWidth() {
+                             return [...this.$el.children].slice(0, this.originals).reduce(
+                                 (total, item) => total + item.offsetWidth + (parseFloat(getComputedStyle(item).marginRight) || 0),
+                                 0,
+                             )
+                         },
+                         /** Buang klon lama, ukur ulang, lalu gandakan seperlunya. */
+                         build() {
+                             const el = this.$el
+                             while (el.children.length > this.originals) { el.lastElementChild.remove() }
+                             el.scrollLeft = 0
+                             this.offset = 0
+
+                             this.cycle = this.trackWidth()
+                             this.rolling = this.cycle > el.clientWidth + 1
+
+                             if (! this.rolling) return
+
+                             /* Digandakan sampai ada cukup kartu untuk mengisi layar
+                                melewati titik lompat, supaya sambungannya tak terlihat. */
+                             const source = [...el.children]
+                             let guard = 12
+                             while (el.scrollWidth < this.cycle + el.clientWidth && guard--) {
+                                 source.forEach(item => {
+                                     const clone = item.cloneNode(true)
+                                     clone.setAttribute('aria-hidden', 'true')
+                                     clone.setAttribute('tabindex', '-1')
+                                     el.appendChild(clone)
+                                 })
+                             }
+                         },
+                         /** Kembalikan posisi ke putaran pertama supaya gulirnya tak berujung. */
                          wrap(value) {
-                             const half = this.half()
-                             if (half <= 0) return value
-                             if (value >= half) return value - half
-                             if (value < 0) return value + half
+                             if (this.cycle <= 0) return 0
+                             if (value >= this.cycle) return value - this.cycle
+                             if (value < 0) return value + this.cycle
                              return value
                          },
                          move(value) {
@@ -114,10 +150,19 @@
                              this.resumeTimer = setTimeout(() => this.paused = false, delay)
                          },
                          start() {
+                             this.build()
+
+                             /* Muat/tidaknya baris bergantung lebar layar, jadi diukur
+                                ulang setiap kali jendelanya berubah ukuran. */
+                             window.addEventListener('resize', () => {
+                                 clearTimeout(this.resizeTimer)
+                                 this.resizeTimer = setTimeout(() => this.build(), 200)
+                             }, { passive: true })
+
                              if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-                             this.offset = this.$el.scrollLeft
+
                              const step = () => {
-                                 if (! this.paused && ! this.dragging) {
+                                 if (this.rolling && ! this.paused && ! this.dragging) {
                                      this.move(this.offset + this.speed)
                                  }
                                  requestAnimationFrame(step)
@@ -148,16 +193,14 @@
                          /* Hanya gulir dari pengguna (sentuh / roda) yang disinkronkan;
                             gulir hasil rAF diabaikan agar pecahan tadi tidak terbuang. */
                          onScroll() {
-                             if (! this.paused || this.dragging) return
-                             const half = this.half()
-                             if (half <= 0) return
-                             if (this.$el.scrollLeft >= half) { this.$el.scrollLeft -= half }
-                             else if (this.$el.scrollLeft <= 0) { this.$el.scrollLeft += half }
+                             if (! this.rolling || ! this.paused || this.dragging) return
+                             if (this.$el.scrollLeft >= this.cycle) { this.$el.scrollLeft -= this.cycle }
+                             else if (this.$el.scrollLeft <= 0) { this.$el.scrollLeft += this.cycle }
                              this.offset = this.$el.scrollLeft
                          },
                      }"
                      x-init="start()"
-                     :class="dragging ? 'is-dragging' : ''"
+                     :class="{ 'is-dragging': dragging, 'is-static': ! rolling }"
                      @pointerdown="onPointerDown($event)"
                      @pointermove="onPointerMove($event)"
                      @pointerup="onPointerUp($event)"
@@ -169,16 +212,14 @@
                      @touchend.passive="release()"
                      @scroll.passive="onScroll()">
 
-                    @foreach($marqueeTrack as $index => $university)
+                    @foreach($alumniUniversities as $university)
                         @php
-                            $isClone = $index >= $alumniUniversities->count();
                             $logoUrl = $university->logo_url;
                         @endphp
                         <a class="alumni-logo"
                            role="listitem"
                            title="{{ $university->name }}"
-                           @if($university->url) href="{{ $university->url }}" target="_blank" rel="noopener noreferrer" @endif
-                           @if($isClone) aria-hidden="true" tabindex="-1" @endif>
+                           @if($university->url) href="{{ $university->url }}" target="_blank" rel="noopener noreferrer" @endif>
                             @if($logoUrl)
                                 <img src="{{ $logoUrl }}" alt="Logo {{ $university->name }}" loading="lazy" draggable="false">
                             @else
@@ -280,6 +321,14 @@
             -webkit-overflow-scrolling: touch;
         }
         .alumni-marquee::-webkit-scrollbar { display: none; }
+        /* Muat seluruhnya: tidak ada yang bisa digulir, jadi barisnya
+           dirata-tengahkan dan pudar ujungnya dimatikan agar kartu terluar
+           tidak ikut meredup. */
+        .alumni-marquee.is-static { justify-content: center; cursor: default; }
+        .alumni-marquee-wrap:has(.is-static) {
+            -webkit-mask-image: none;
+            mask-image: none;
+        }
         .alumni-marquee.is-dragging { cursor: grabbing; }
         .alumni-marquee.is-dragging .alumni-logo { pointer-events: none; }
 

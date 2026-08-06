@@ -29,7 +29,11 @@ class AlumniSectionTest extends TestCase
             ->assertSee('Ke Mana Alumni Kami Melangkah');
     }
 
-    public function test_it_shows_active_university_logos_twice_for_a_seamless_loop(): void
+    /**
+     * Kartu dicetak sekali saja — penggandaan untuk gulir tak berujung baru
+     * dikerjakan di browser, dan hanya bila barisnya melebihi lebar layar.
+     */
+    public function test_it_prints_each_active_university_logo_once(): void
     {
         AlumniUniversity::factory()->create([
             'name' => 'Universitas Gadjah Mada',
@@ -39,7 +43,7 @@ class AlumniSectionTest extends TestCase
         $response = $this->get(route('home'))->assertOk();
 
         $this->assertSame(
-            2,
+            1,
             substr_count($response->getContent(), 'alumni-logo-name">Universitas Gadjah Mada'),
         );
         $response->assertSee('Kampus Tujuan Alumni');
