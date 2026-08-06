@@ -3,12 +3,14 @@
 namespace App\Filament\Resources\Programs\Pages;
 
 use App\Filament\Concerns\InteractsWithImagePicker;
+use App\Filament\Concerns\InteractsWithPageHero;
 use App\Filament\Resources\Programs\ProgramResource;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateProgram extends CreateRecord
 {
     use InteractsWithImagePicker;
+    use InteractsWithPageHero;
 
     protected static string $resource = ProgramResource::class;
 
@@ -20,11 +22,10 @@ class CreateProgram extends CreateRecord
     {
         $data = self::applyImagePickers($data, ['image']);
 
-        $data['blocks'] = self::applyBlockImagePickers(
-            $data['blocks'] ?? [],
-            self::imageBaseName($data['title'] ?? null, 'Program'),
-        );
+        $baseName = self::imageBaseName($data['title'] ?? null, 'Program');
 
-        return $data;
+        $data['blocks'] = self::applyBlockImagePickers($data['blocks'] ?? [], $baseName);
+
+        return self::applyPageHero($data, $baseName);
     }
 }

@@ -4,9 +4,9 @@ namespace App\Filament\Resources\Programs\Schemas;
 
 use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Filament\Schemas\ContentBlocks;
+use App\Filament\Schemas\PageHeroFields;
 use App\Filament\Support\IconUpload;
 use App\Models\Category;
-use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -51,12 +51,6 @@ class ProgramForm
                             ->hint('Digunakan untuk tampilan card di halaman depan.')
                             ->columnSpanFull(),
 
-                        RichEditor::make('content')
-                            ->label('Konten Detail')
-                            ->fileAttachmentsDisk('public')
-                            ->fileAttachmentsDirectory('programs/attachments')
-                            ->fileAttachmentsVisibility('public')
-                            ->columnSpanFull(),
                     ])
                     ->columns(2),
 
@@ -88,14 +82,17 @@ class ProgramForm
                     ])
                     ->columns(2),
 
-                Section::make('Konten Tambahan')
-                    ->description('Blok opsional di bawah konten utama: teks, gambar, galeri, tombol, gambar berdampingan teks, hingga kartu & carousel.')
-                    ->icon(Heroicon::OutlinedPhoto)
+                PageHeroFields::make(
+                    directory: 'programs/hero',
+                    imageHint: 'Akan di-resize ke 1600×900px (16:9). Kosongkan untuk memakai Gambar Program di atas.',
+                ),
+
+                Section::make('Isi Program')
+                    ->description('Halaman program disusun dari seksi. Tiap seksi punya jenis isi, latar, dan jaraknya sendiri — seperti seksi di halaman depan. Seret untuk mengubah urutannya.')
+                    ->icon(Heroicon::OutlinedRectangleGroup)
                     ->schema([
-                        ContentBlocks::make('programs/blocks'),
-                    ])
-                    ->collapsible()
-                    ->collapsed(),
+                        ContentBlocks::make('programs/blocks', sections: true),
+                    ]),
 
                 Section::make('Pengaturan Tampil')
                     ->schema([
@@ -109,6 +106,12 @@ class ProgramForm
                                     ->label('Urutan Tampil')
                                     ->numeric()
                                     ->default(0),
+
+                                Toggle::make('show_sidebar')
+                                    ->label('Tampilkan Sidebar Kanan')
+                                    ->default(false)
+                                    ->helperText('Mati: seksi memakai lebar penuh layar seperti halaman depan. Nyala: seksi mengecil jadi kartu bersudut membulat, dengan daftar isi dan program lain di kanannya.')
+                                    ->columnSpanFull(),
                             ]),
                     ]),
             ]);

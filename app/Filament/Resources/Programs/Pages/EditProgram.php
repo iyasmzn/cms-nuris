@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Programs\Pages;
 
 use App\Filament\Concerns\InteractsWithImagePicker;
+use App\Filament\Concerns\InteractsWithPageHero;
 use App\Filament\Resources\Programs\ProgramResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -10,6 +11,7 @@ use Filament\Resources\Pages\EditRecord;
 class EditProgram extends EditRecord
 {
     use InteractsWithImagePicker;
+    use InteractsWithPageHero;
 
     protected static string $resource = ProgramResource::class;
 
@@ -21,12 +23,11 @@ class EditProgram extends EditRecord
     {
         $data = self::applyImagePickers($data, ['image']);
 
-        $data['blocks'] = self::applyBlockImagePickers(
-            $data['blocks'] ?? [],
-            self::imageBaseName($data['title'] ?? null, 'Program'),
-        );
+        $baseName = self::imageBaseName($data['title'] ?? null, 'Program');
 
-        return $data;
+        $data['blocks'] = self::applyBlockImagePickers($data['blocks'] ?? [], $baseName);
+
+        return self::applyPageHero($data, $baseName);
     }
 
     protected function getHeaderActions(): array

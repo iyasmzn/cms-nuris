@@ -50,8 +50,26 @@ class StaticPageSeeder extends Seeder
         foreach ($pages as $data) {
             StaticPage::firstOrCreate(
                 ['slug' => $data['slug']],
-                $data,
+                $this->contentAsBlock($data),
             );
         }
+    }
+
+    /**
+     * Konten seed lama masih ditulis sebagai satu HTML utuh; sejak isi halaman
+     * disusun dari seksi, HTML itu dipasang sebagai blok teks pertama.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function contentAsBlock(array $data): array
+    {
+        if (filled($data['content'] ?? null)) {
+            $data['blocks'] = [['type' => 'rich_text', 'content' => $data['content']]];
+        }
+
+        unset($data['content']);
+
+        return $data;
     }
 }

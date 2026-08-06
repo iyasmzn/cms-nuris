@@ -24,55 +24,6 @@
         pointer-events: none;
     }
 
-    /* ── Prose typography ─────────────────────────────────── */
-    .page-prose { line-height: 1.85; color: #374151; font-size: 1.0625rem; }
-    @media (min-width: 640px) { .page-prose { font-size: 1.125rem; } }
-
-    .page-prose h2 {
-        font-size: 1.5rem;
-        font-weight: 800;
-        color: #111827;
-        margin-top: 2.75rem;
-        margin-bottom: 1rem;
-        padding-bottom: .625rem;
-        border-bottom: 2px solid var(--primary-200);
-        display: inline-block;
-    }
-    .page-prose h3 {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #1f2937;
-        margin-top: 2rem;
-        margin-bottom: .75rem;
-    }
-    .page-prose p { margin-bottom: 1.375rem; }
-    .page-prose ul, .page-prose ol {
-        padding-left: 1.75rem;
-        margin-bottom: 1.25rem;
-    }
-    .page-prose ul  { list-style: disc; }
-    .page-prose ol  { list-style: decimal; }
-    .page-prose li  { margin-bottom: .5rem; line-height: 1.75; }
-    .page-prose blockquote {
-        border-left: 4px solid var(--primary);
-        padding: .875rem 1.25rem;
-        margin: 2rem 0;
-        background: var(--primary-50);
-        border-radius: 0 .75rem .75rem 0;
-        color: var(--primary-900);
-        font-style: italic;
-        font-size: .95rem;
-    }
-    .page-prose a     { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; font-weight: 500; }
-    .page-prose a:hover { color: var(--primary-700); }
-    .page-prose strong { color: #111827; font-weight: 700; }
-    .page-prose img    { border-radius: .75rem; margin: 1.75rem 0; max-width: 100%; }
-    .page-prose code   { background: #f3f4f6; padding: .125rem .4rem; border-radius: .25rem; font-size: .875em; color: var(--primary); }
-    .page-prose table  { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: .875rem; }
-    .page-prose th     { background: var(--primary-50); color: var(--primary-800); font-weight: 700; padding: .625rem 1rem; text-align: left; border-bottom: 2px solid var(--primary-200); }
-    .page-prose td     { padding: .625rem 1rem; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
-    .page-prose tr:last-child td { border-bottom: none; }
-
     /* ── Sidebar TOC ──────────────────────────────────────── */
     .sidebar-sticky   { position: sticky; top: 5.5rem; }
     .toc-item {
@@ -113,11 +64,17 @@
 {{-- ═══════════════════════════════════════════════════
      HERO
 ═══════════════════════════════════════════════════ --}}
+@php $heroCover = $page->hero_cover; @endphp
 <div class="page-hero -mt-17">
-    {{-- Decorative circles --}}
-    <div class="page-hero-circle" style="width:380px;height:380px;top:-120px;right:-80px;"></div>
-    <div class="page-hero-circle" style="width:220px;height:220px;bottom:-60px;left:10%;"></div>
-    <div class="page-hero-circle" style="width:80px;height:80px;top:30%;right:25%;background:rgba(255,255,255,.07)"></div>
+    @if($heroCover->hasMedia())
+        {{-- Cover pilihan admin: gambar, berkas video, atau video YouTube --}}
+        <x-page-hero-media :hero="$heroCover" :title="$page->title" />
+    @else
+        {{-- Decorative circles --}}
+        <div class="page-hero-circle" style="width:380px;height:380px;top:-120px;right:-80px;"></div>
+        <div class="page-hero-circle" style="width:220px;height:220px;bottom:-60px;left:10%;"></div>
+        <div class="page-hero-circle" style="width:80px;height:80px;top:30%;right:25%;background:rgba(255,255,255,.07)"></div>
+    @endif
 
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -168,65 +125,46 @@
 
 {{-- ═══════════════════════════════════════════════════
      CONTENT BODY
+     Isi halaman disusun dari seksi. Tanpa sidebar, tiap seksi memakai
+     lebar penuh layar seperti halaman depan; dengan sidebar, seksinya
+     dikecilkan jadi kartu bersudut membulat di kolom kiri.
 ═══════════════════════════════════════════════════ --}}
+@php $hasBlocks = filled($page->blocks); @endphp
+
+@unless($page->show_sidebar)
+    @if($hasBlocks)
+        @include('partials.content-blocks', ['blocks' => $page->blocks, 'title' => $page->title, 'mode' => 'full'])
+    @else
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl" style="background:var(--primary-50);border:1px solid var(--primary-100)">📄</div>
+            <p class="text-sm font-medium text-gray-500">Konten halaman ini belum tersedia.</p>
+        </div>
+    @endif
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14">
+        @include('pages.partials.page-footer-bar', ['page' => $page])
+    </div>
+@else
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div class="grid lg:grid-cols-4 gap-10">
 
         {{-- ── Main content ────────────────────────────────── --}}
         <article class="lg:col-span-3" data-aos="fade-up" data-aos-duration="500">
-            <div class="fi-card overflow-hidden">
-                {{-- Card amber top accent --}}
-                <div style="height:3px;background:linear-gradient(90deg,var(--primary),var(--primary-300) 60%,transparent)"></div>
-                <div class="p-6 sm:p-10">
-                    @if($page->content)
-                        <div class="page-prose">
-                            {!! $page->content !!}
-                        </div>
-                    @else
-                        <div class="text-center py-12">
-                            <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl" style="background:var(--primary-50);border:1px solid var(--primary-100)">📄</div>
-                            <p class="text-sm font-medium text-gray-500">Konten halaman ini belum tersedia.</p>
-                        </div>
-                    @endif
-
-                    {{-- ══ BLOCKS ══════════════════════════════════════════ --}}
-                    @include('partials.content-blocks', ['blocks' => $page->blocks, 'title' => $page->title])
-                    {{-- ══ END BLOCKS ══════════════════════════════════════ --}}
+            @if($hasBlocks)
+                @include('partials.content-blocks', ['blocks' => $page->blocks, 'title' => $page->title, 'mode' => 'boxed'])
+            @else
+                <div class="fi-card overflow-hidden">
+                    <div style="height:3px;background:linear-gradient(90deg,var(--primary),var(--primary-300) 60%,transparent)"></div>
+                    <div class="text-center py-12">
+                        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl" style="background:var(--primary-50);border:1px solid var(--primary-100)">📄</div>
+                        <p class="text-sm font-medium text-gray-500">Konten halaman ini belum tersedia.</p>
+                    </div>
                 </div>
-            </div>
+            @endif
 
-            {{-- Back navigation --}}
-            <div class="mt-8 flex items-center justify-between">
-                <a href="{{ url()->previous() === url()->current() ? route('home') : url()->previous() }}"
-                   class="btn-outline group text-sm">
-                    <svg class="w-4 h-4 transition-transform group-hover:-translate-x-0.5"
-                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
-                    </svg>
-                    Kembali
-                </a>
-
-                {{-- Share --}}
-                <div class="flex items-center gap-1.5">
-                    <span class="text-xs text-gray-400 mr-1">Bagikan:</span>
-                    <a href="https://wa.me/?text={{ urlencode($page->title.' — '.route('page.show', $page->slug)) }}"
-                       target="_blank" rel="noopener"
-                       class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold transition-opacity hover:opacity-80"
-                       style="background:#25d366" title="Bagikan via WhatsApp">
-                        WA
-                    </a>
-                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(route('page.show', $page->slug)) }}"
-                       target="_blank" rel="noopener"
-                       class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold transition-opacity hover:opacity-80"
-                       style="background:#1877f2" title="Bagikan via Facebook">
-                        FB
-                    </a>
-                    <button onclick="navigator.clipboard.writeText('{{ route('page.show', $page->slug) }}').then(()=>{ this.textContent='✓'; setTimeout(()=>{ this.textContent='🔗'; },2000); })"
-                            class="w-8 h-8 rounded-lg border flex items-center justify-center text-sm transition-colors"
-                            style="border-color:var(--border)" onmouseover="this.style.background='var(--primary-50)';this.style.borderColor='var(--primary-300)'" onmouseout="this.style.background='';this.style.borderColor='var(--border)'" title="Salin link">
-                        🔗
-                    </button>
-                </div>
+            {{-- Back & share --}}
+            <div class="mt-8">
+                @include('pages.partials.page-footer-bar', ['page' => $page])
             </div>
         </article>
 
@@ -234,11 +172,9 @@
         <aside class="lg:col-span-1" data-aos="fade-up" data-aos-delay="100" data-aos-duration="500">
             <div class="sidebar-sticky space-y-4">
 
-                {{-- Table of contents --}}
-                @php
-                    preg_match_all('/<h[23][^>]*>(.*?)<\/h[23]>/is', $page->content ?? '', $headings);
-                @endphp
-                @if(count($headings[1]) > 1)
+                {{-- Table of contents — dipanen dari judul seksi & heading blok teks --}}
+                @php $headings = $page->content_headings; @endphp
+                @if(count($headings) > 1)
                     <div class="fi-card p-5">
                         <div class="flex items-center gap-2 mb-3">
                             <div class="w-5 h-5 rounded-md flex items-center justify-center" style="background:var(--primary-50)">
@@ -249,10 +185,10 @@
                             <span class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--primary)">Daftar Isi</span>
                         </div>
                         <ol class="space-y-0.5">
-                            @foreach($headings[1] as $i => $heading)
+                            @foreach($headings as $i => $heading)
                                 <li class="toc-item">
                                     <span class="toc-num">{{ $i + 1 }}.</span>
-                                    <span>{{ strip_tags($heading) }}</span>
+                                    <span>{{ $heading }}</span>
                                 </li>
                             @endforeach
                         </ol>
@@ -298,6 +234,7 @@
 
     </div>
 </div>
+@endunless
 
 {{-- ═══════════════════════════════════════════════════
      OTHER PAGES — bottom strip

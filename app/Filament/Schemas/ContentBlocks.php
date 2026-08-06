@@ -13,16 +13,24 @@ use Filament\Forms\Components\Slider;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Support\Icons\Heroicon;
 
 /**
- * Shared "Konten Tambahan" blocks repeater used by static pages, posts,
- * programs, events, and stories. Selain blok gambar, tersedia juga bentuk isi
- * yang sama dengan seksi dinamis halaman depan: gambar berdampingan teks,
- * deretan kartu, dan carousel kartu. Every image upload uses the media image
- * picker (choose from library or upload a new file).
+ * Repeater blok konten. Dipakai dua cara:
+ *
+ * - `sections: true` (halaman & program) — blok adalah konten utamanya, tiap
+ *   blok dirender sebagai seksi tersendiri lengkap dengan latar, judul seksi,
+ *   dan anchor, persis seperti seksi dinamis halaman depan.
+ * - `sections: false` (artikel, kegiatan, cerita) — blok tetap sebagai konten
+ *   tambahan yang mengalir di dalam kartu artikel, tanpa pengaturan seksi.
+ *
+ * Every image upload uses the media image picker (choose from library or upload
+ * a new file).
  */
 class ContentBlocks
 {
@@ -40,10 +48,28 @@ class ContentBlocks
      */
     private const CARD_TYPES = ['cards', 'cards_carousel'];
 
-    public static function make(string $directory): Repeater
+    /**
+     * Jarak atas-bawah seksi → labelnya di panel.
+     *
+     * @var array<string, string>
+     */
+    public const PADDINGS = [
+        'none' => 'Tanpa Jarak',
+        'sm' => 'Rapat',
+        'md' => 'Sedang',
+        'lg' => 'Lega',
+    ];
+
+    /**
+     * @param  string  $directory  folder penyimpanan gambar blok
+     * @param  bool  $sections  blok berdiri sebagai seksi sendiri (konten utama)
+     */
+    public static function make(string $directory, bool $sections = false): Repeater
     {
         return Repeater::make('blocks')
             ->label('')
+            // Satu bidang per baris: kartu blok memakai lebar formulir seutuhnya.
+            ->columns(1)
             ->schema([
                 Select::make('type')
                     ->label('Jenis Blok')
@@ -58,8 +84,26 @@ class ContentBlocks
                         'cards_carousel' => '🎡  Carousel Kartu — kartu yang berjalan',
                     ])
                     ->required()
+                    ->default('rich_text')
                     ->live()
                     ->native(false)
+                    ->columnSpanFull(),
+
+                // ── Judul seksi ───────────────────────────────
+                TextInput::make('eyebrow')
+                    ->label('Label Kecil')
+                    ->maxLength(60)
+                    ->placeholder('Fasilitas Kami')
+                    ->helperText('Teks kecil di atas judul seksi. Kosongkan untuk menyembunyikan.')
+                    ->visible($sections)
+                    ->columnSpanFull(),
+
+                TextInput::make('heading')
+                    ->label($sections ? 'Judul Seksi' : 'Judul')
+                    ->maxLength(150)
+                    ->placeholder('Lingkungan Belajar yang Nyaman')
+                    ->helperText('Opsional.')
+                    ->visible($sections ? true : self::usesType('media_text'))
                     ->columnSpanFull(),
 
                 // ── Teks ──────────────────────────────────────
@@ -207,17 +251,15 @@ class ContentBlocks
                     ->visible(self::usesType('media_text'))
                     ->columnSpanFull(),
 
-                TextInput::make('heading')
-                    ->label('Judul')
-                    ->maxLength(150)
-                    ->placeholder('Lingkungan Belajar yang Nyaman')
-                    ->helperText('Opsional.')
-                    ->visible(self::usesType('media_text'))
-                    ->columnSpanFull(),
-
                 RichEditor::make('text')
                     ->label('Teks')
-                    ->toolbarButtons(['bold', 'italic', 'link', 'bulletList', 'orderedList', 'undo', 'redo'])
+                    ->toolbarButtons([
+                        ['bold', 'italic', 'underline', 'strike', 'link'],
+                        // Judul seksi sudah memakai h2, jadi h2–h4 di sini untuk subjudul
+                        ['h2', 'h3', 'h4'],
+                        ['blockquote', 'bulletList', 'orderedList'],
+                        ['undo', 'redo'],
+                    ])
                     ->placeholder('Jelaskan bagian ini dalam beberapa kalimat...')
                     // Editor menyisakan <p></p> saat isinya dihapus; simpan sebagai kosong
                     ->dehydrateStateUsing(fn (?string $state): ?string => filled(trim(strip_tags((string) $state)))
@@ -367,24 +409,164 @@ class ContentBlocks
                             ->onColor('success')
                             ->helperText('Penanda halaman di bawah kartu.'),
                     ]),
+
+                // ── Pengaturan seksi ──────────────────────────
+                ...($sections ? self::sectionSettings($directory) : []),
             ])
-            ->addActionLabel('+ Tambah Blok')
+            ->addActionLabel($sections ? '+ Tambah Seksi' : '+ Tambah Blok')
             ->reorderable()
             ->collapsible()
             ->collapsed()
-            ->defaultItems(0)
-            ->itemLabel(fn (array $state): string => match ($state['type'] ?? '') {
-                'rich_text' => '📄  Teks'.self::excerpt($state['content'] ?? null),
-                'image_cover' => '🖼️  Cover Image',
-                'image_carousel' => '🎠  Carousel — '.count($state['images'] ?? []).' gambar',
-                'image_gallery' => '🖼️🖼️  Galeri — '.count($state['images'] ?? []).' gambar',
-                'cta_button' => '🔘  Tombol CTA'.(! empty($state['label']) ? ' — '.$state['label'] : ''),
-                'media_text' => '📝  Gambar & Teks'.(! empty($state['heading']) ? ' — '.$state['heading'] : ''),
-                'cards' => '🧩  Deretan Kartu — '.count($state['items'] ?? []).' kartu',
-                'cards_carousel' => '🎡  Carousel Kartu — '.count($state['items'] ?? []).' kartu',
-                default => 'Blok Baru',
-            })
+            // Halaman baru langsung terbuka dengan satu seksi teks siap diisi,
+            // jenisnya tetap bisa diganti.
+            ->defaultItems($sections ? 1 : 0)
+            // Seksi yang sudah diberi judul dikenali dari judulnya, bukan jenisnya
+            ->itemLabel(fn (array $state): string => filled($state['heading'] ?? null)
+                ? self::icon($state['type'] ?? '').'  '.$state['heading']
+                : match ($state['type'] ?? '') {
+                    'rich_text' => '📄  Teks'.self::excerpt($state['content'] ?? null),
+                    'image_cover' => '🖼️  Cover Image',
+                    'image_carousel' => '🎠  Carousel — '.count($state['images'] ?? []).' gambar',
+                    'image_gallery' => '🖼️🖼️  Galeri — '.count($state['images'] ?? []).' gambar',
+                    'cta_button' => '🔘  Tombol CTA'.(! empty($state['label']) ? ' — '.$state['label'] : ''),
+                    'media_text' => '📝  Gambar & Teks'.(! empty($state['heading']) ? ' — '.$state['heading'] : ''),
+                    'cards' => '🧩  Deretan Kartu — '.count($state['items'] ?? []).' kartu',
+                    'cards_carousel' => '🎡  Carousel Kartu — '.count($state['items'] ?? []).' kartu',
+                    default => 'Blok Baru',
+                })
             ->columnSpanFull();
+    }
+
+    /**
+     * Emoji penanda jenis blok, dipakai pada label blok yang sudah berjudul.
+     */
+    private static function icon(string $type): string
+    {
+        return match ($type) {
+            'rich_text' => '📄',
+            'image_cover' => '🖼️',
+            'image_carousel' => '🎠',
+            'image_gallery' => '🖼️🖼️',
+            'cta_button' => '🔘',
+            'media_text' => '📝',
+            'cards' => '🧩',
+            'cards_carousel' => '🎡',
+            default => '📦',
+        };
+    }
+
+    /**
+     * Pengaturan yang membuat satu blok berdiri sebagai seksi: anchor, jarak,
+     * dan latar belakang — bentuknya sama dengan seksi dinamis halaman depan.
+     *
+     * @return list<Component>
+     */
+    private static function sectionSettings(string $directory): array
+    {
+        return [
+            Section::make('Latar & Tampilan Seksi')
+                ->description('Latar abu lembut, putih bersih, atau gambar penuh dengan blur, lapisan gelap, dan parallax.')
+                ->icon(Heroicon::OutlinedSwatch)
+                ->collapsible()
+                ->collapsed()
+                ->columns(1)
+                ->schema([
+                    Grid::make(2)->schema([
+                        Select::make('background')
+                            ->label('Jenis Latar')
+                            ->options(ContentSection::BACKGROUNDS)
+                            ->default('default')
+                            ->native(false)
+                            ->selectablePlaceholder(false)
+                            ->live()
+                            ->helperText('Selang-seling abu lembut dan putih bersih agar antar seksi tidak menyatu.'),
+
+                        Select::make('padding')
+                            ->label('Jarak Atas-Bawah')
+                            ->options(self::PADDINGS)
+                            ->default('md')
+                            ->native(false)
+                            ->selectablePlaceholder(false)
+                            ->helperText('Ruang kosong di atas dan bawah isi seksi.'),
+                    ]),
+
+                    self::imagePicker(
+                        key: 'background_image',
+                        label: 'Gambar Latar',
+                        hint: 'Gambar lebar (landscape). Akan di-resize ke 1920×1080.',
+                        accepted: self::ACCEPTED,
+                        width: 1920,
+                        height: 1080,
+                        directory: $directory.'/backgrounds',
+                        aspectRatio: '16:9',
+                        withMeta: false,
+                    )
+                        ->visible(self::usesBackgroundImage())
+                        ->columnSpanFull(),
+
+                    Grid::make(2)
+                        ->visible(self::usesBackgroundImage())
+                        ->schema([
+                            Select::make('background_blur')
+                                ->label('Blur Latar')
+                                ->options(ContentSection::BLUR_LEVELS)
+                                ->default(0)
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->helperText('Mengaburkan gambar agar teks lebih mudah dibaca.'),
+
+                            Select::make('background_overlay')
+                                ->label('Lapisan Gelap')
+                                ->options(ContentSection::OVERLAY_LEVELS)
+                                ->default(0)
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->helperText('Menggelapkan gambar agar kontras teks meningkat.'),
+
+                            Toggle::make('background_light_text')
+                                ->label('Teks Warna Terang')
+                                ->default(true)
+                                ->onColor('success')
+                                ->helperText('Nyalakan bila latarnya gelap, matikan bila latarnya terang.')
+                                ->columnSpanFull(),
+
+                            Select::make('background_parallax_mode')
+                                ->label('Gerak Saat Digulir')
+                                ->options(ContentSection::PARALLAX_MODES)
+                                ->default('none')
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->live()
+                                ->helperText('Bergeser: gambar tertinggal di belakang konten. Diam: gambar terkunci ke layar.')
+                                ->columnSpanFull(),
+
+                            Slider::make('background_parallax_speed')
+                                ->label('Kekuatan Parallax')
+                                ->range(minValue: ContentSection::PARALLAX_MIN_SPEED, maxValue: ContentSection::PARALLAX_MAX_SPEED)
+                                ->step(1)
+                                ->tooltips()
+                                ->default(30)
+                                ->visible(fn (Get $get): bool => $get('background_parallax_mode') === 'scroll')
+                                ->helperText('Makin tinggi, gambar latar makin diperbesar agar tepinya tidak menyingkap.')
+                                ->columnSpanFull(),
+                        ]),
+
+                    TextInput::make('anchor')
+                        ->label('ID Anchor')
+                        ->maxLength(60)
+                        ->placeholder('fasilitas')
+                        ->helperText('Untuk tautan menu, misal #fasilitas. Kosongkan bila tidak perlu.')
+                        ->columnSpanFull(),
+                ]),
+        ];
+    }
+
+    /**
+     * Opsi latar gambar hanya relevan saat jenis latarnya "Gambar".
+     */
+    private static function usesBackgroundImage(): Closure
+    {
+        return fn (Get $get): bool => $get('background') === 'image';
     }
 
     /**

@@ -76,6 +76,31 @@ class SectionBackground
     }
 
     /**
+     * Latar satu blok konten, dibaca dari kunci JSON-nya. Bentuk pengaturannya
+     * sama dengan seksi dinamis, hanya sumbernya array dan bukan record.
+     *
+     * @param  array<string, mixed>  $block
+     * @param  string  $baseMode  latar untuk pilihan "Abu Lembut"; seksi berkartu
+     *                            memakai putih agar kartunya lepas dari latar halaman
+     */
+    public static function fromBlock(array $block, string $baseMode = 'base'): self
+    {
+        return new self(
+            mode: match ($block['background'] ?? 'default') {
+                'image' => 'image',
+                'alt' => 'alt',
+                default => $baseMode,
+            },
+            image: $block['background_image'] ?? null,
+            blur: (int) ($block['background_blur'] ?? 0),
+            overlay: (int) ($block['background_overlay'] ?? 0),
+            parallaxMode: (string) (($block['background_parallax_mode'] ?? null) ?: 'none'),
+            parallaxSpeed: (int) ($block['background_parallax_speed'] ?? 30),
+            lightText: (bool) ($block['background_light_text'] ?? true),
+        );
+    }
+
+    /**
      * Latar gambar hanya aktif bila modenya dipilih dan gambarnya terisi.
      */
     public function hasImage(): bool

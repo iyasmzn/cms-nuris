@@ -15,8 +15,9 @@ class StaticPageController extends Controller
 
         $seo = [
             'title' => $page->title.' | '.setting('site_name', config('app.name')),
-            'description' => $page->meta_description ?? '',
+            'description' => $page->seo_description,
             'canonical' => route('page.show', $page->slug),
+            'og_image' => $page->hero_cover->imageUrl(),
         ];
 
         $otherPages = StaticPage::active()

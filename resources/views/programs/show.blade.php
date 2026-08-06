@@ -38,11 +38,12 @@
     </div>
 </div>
 
-{{-- ── Hero Image ───────────────────────────────────────────── --}}
+{{-- ── Hero Cover ───────────────────────────────────────────── --}}
+@php $heroCover = $program->hero_cover; @endphp
 <div class="relative h-64 sm:h-80 lg:h-96 overflow-hidden">
-    <img src="{{ $program->thumbnail_url }}" alt="{{ $program->title }}"
-         class="w-full h-full object-cover">
-    <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,.78),rgba(0,0,0,.2))"></div>
+    <x-page-hero-media :hero="$heroCover"
+                       :poster="$program->thumbnail_url"
+                       :title="$program->title" />
     <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
         <div class="max-w-7xl mx-auto">
             <div class="flex items-center gap-3 mb-3">
@@ -66,30 +67,39 @@
 {{-- Accent bar --}}
 <div style="height:4px;background:linear-gradient(90deg,var(--primary),var(--primary-300) 50%,var(--primary-100) 100%)"></div>
 
-{{-- ── Content ──────────────────────────────────────────────── --}}
+{{-- ── Content ────────────────────────────────────────────────
+     Isi program disusun dari seksi. Tanpa sidebar, tiap seksi memakai
+     lebar penuh layar seperti halaman depan; dengan sidebar, seksinya
+     dikecilkan jadi kartu bersudut membulat di kolom kiri.
+--}}
+@unless($program->show_sidebar)
+    @if($program->excerpt)
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
+            <p class="article-lead">{{ $program->excerpt }}</p>
+        </div>
+    @endif
+
+    @include('partials.content-blocks', ['blocks' => $program->blocks, 'title' => $program->title, 'mode' => 'full'])
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14">
+        <a href="{{ route('programs.index') }}" class="btn-outline group text-sm">
+            <svg class="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
+            </svg>
+            Semua Program
+        </a>
+    </div>
+@else
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div class="grid lg:grid-cols-4 gap-10">
 
         {{-- ── Main content ────────────────────────────────── --}}
         <article class="lg:col-span-3" data-aos="fade-up" data-aos-duration="500">
-            <div class="fi-card overflow-hidden">
-                <div style="height:3px;background:linear-gradient(90deg,var(--primary),var(--primary-300) 60%,transparent)"></div>
-                <div class="p-6 sm:p-10">
+            @if($program->excerpt)
+                <p class="article-lead mb-6">{{ $program->excerpt }}</p>
+            @endif
 
-                    @if($program->excerpt)
-                        <p class="article-lead">{{ $program->excerpt }}</p>
-                    @endif
-
-                    @if($program->content)
-                        <div class="article-prose">
-                            {!! $program->content !!}
-                        </div>
-                    @endif
-
-                    {{-- Konten tambahan (blocks) --}}
-                    @include('partials.content-blocks', ['blocks' => $program->blocks, 'title' => $program->title])
-                </div>
-            </div>
+            @include('partials.content-blocks', ['blocks' => $program->blocks, 'title' => $program->title, 'mode' => 'boxed'])
 
             {{-- Back --}}
             <div class="mt-8">
@@ -106,11 +116,9 @@
         <aside class="lg:col-span-1" data-aos="fade-up" data-aos-delay="100" data-aos-duration="500">
             <div class="sidebar-sticky space-y-4">
 
-                {{-- Table of contents --}}
-                @php
-                    preg_match_all('/<h[23][^>]*>(.*?)<\/h[23]>/is', $program->content ?? '', $headings);
-                @endphp
-                @if(count($headings[1]) > 1)
+                {{-- Table of contents — dipanen dari judul seksi & heading blok teks --}}
+                @php $headings = $program->content_headings; @endphp
+                @if(count($headings) > 1)
                     <div class="fi-card p-5">
                         <div class="flex items-center gap-2 mb-3">
                             <div class="w-5 h-5 rounded-md flex items-center justify-center" style="background:var(--primary-50)">
@@ -121,10 +129,10 @@
                             <span class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--primary)">Daftar Isi</span>
                         </div>
                         <ol class="space-y-0.5">
-                            @foreach($headings[1] as $i => $heading)
+                            @foreach($headings as $i => $heading)
                                 <li class="toc-item">
                                     <span class="toc-num">{{ $i + 1 }}.</span>
-                                    <span>{{ strip_tags($heading) }}</span>
+                                    <span>{{ $heading }}</span>
                                 </li>
                             @endforeach
                         </ol>
@@ -167,6 +175,7 @@
 
     </div>
 </div>
+@endunless
 
 {{-- ── Related ──────────────────────────────────────────────── --}}
 @if($related->isNotEmpty())

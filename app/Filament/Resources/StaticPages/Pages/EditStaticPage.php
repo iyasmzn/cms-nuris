@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StaticPages\Pages;
 
 use App\Filament\Concerns\InteractsWithImagePicker;
+use App\Filament\Concerns\InteractsWithPageHero;
 use App\Filament\Resources\StaticPages\StaticPageResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -10,6 +11,7 @@ use Filament\Resources\Pages\EditRecord;
 class EditStaticPage extends EditRecord
 {
     use InteractsWithImagePicker;
+    use InteractsWithPageHero;
 
     protected static string $resource = StaticPageResource::class;
 
@@ -19,12 +21,11 @@ class EditStaticPage extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $data['blocks'] = self::applyBlockImagePickers(
-            $data['blocks'] ?? [],
-            self::imageBaseName($data['title'] ?? null, 'Halaman'),
-        );
+        $baseName = self::imageBaseName($data['title'] ?? null, 'Halaman');
 
-        return $data;
+        $data['blocks'] = self::applyBlockImagePickers($data['blocks'] ?? [], $baseName);
+
+        return self::applyPageHero($data, $baseName);
     }
 
     protected function getHeaderActions(): array

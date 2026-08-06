@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\StaticPages\Schemas;
 
 use App\Filament\Schemas\ContentBlocks;
+use App\Filament\Schemas\PageHeroFields;
 use App\Models\StaticPage;
-use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
@@ -55,24 +55,17 @@ class StaticPageForm
                     ])
                     ->columns(2),
 
-                Section::make('Konten')
-                    ->schema([
-                        RichEditor::make('content')
-                            ->label('Isi Halaman')
-                            ->fileAttachmentsDisk('public')
-                            ->fileAttachmentsDirectory('pages/attachments')
-                            ->fileAttachmentsVisibility('public')
-                            ->columnSpanFull(),
-                    ]),
+                PageHeroFields::make(
+                    directory: 'pages/hero',
+                    imageHint: 'Akan di-resize ke 1600×900px (16:9). Kosongkan untuk memakai latar gradasi bawaan.',
+                ),
 
-                Section::make('Konten Tambahan')
-                    ->description('Blok opsional di bawah konten utama: teks, gambar, galeri, tombol, gambar berdampingan teks, hingga kartu & carousel.')
-                    ->icon(Heroicon::OutlinedPhoto)
+                Section::make('Isi Halaman')
+                    ->description('Halaman disusun dari seksi. Tiap seksi punya jenis isi, latar, dan jaraknya sendiri — seperti seksi di halaman depan. Seret untuk mengubah urutannya.')
+                    ->icon(Heroicon::OutlinedRectangleGroup)
                     ->schema([
-                        ContentBlocks::make('pages/blocks'),
-                    ])
-                    ->collapsible()
-                    ->collapsed(),
+                        ContentBlocks::make('pages/blocks', sections: true),
+                    ]),
 
                 Section::make('Pengaturan')
                     ->schema([
@@ -89,6 +82,12 @@ class StaticPageForm
                                 Toggle::make('is_active')
                                     ->label('Aktif')
                                     ->default(true),
+
+                                Toggle::make('show_sidebar')
+                                    ->label('Tampilkan Sidebar Kanan')
+                                    ->default(false)
+                                    ->helperText('Mati: seksi memakai lebar penuh layar seperti halaman depan. Nyala: seksi mengecil jadi kartu bersudut membulat, dengan daftar isi dan tautan halaman lain di kanannya.')
+                                    ->columnSpanFull(),
                             ]),
                     ])
                     ->columns(1),

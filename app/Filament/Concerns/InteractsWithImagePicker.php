@@ -221,7 +221,7 @@ trait InteractsWithImagePicker
                 continue;
             }
 
-            foreach (['image', 'media_image'] as $key) {
+            foreach (['image', 'media_image', 'background_image'] as $key) {
                 if (array_key_exists($key, $block) || array_key_exists("{$key}_source", $block)) {
                     $block = self::resolveImageField($block, $key, $baseName);
                 }

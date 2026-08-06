@@ -1,12 +1,70 @@
 {{-- Shared styles for the "Konten Tambahan" blocks (teks / cover / carousel / gallery / lightbox / gambar-teks / kartu). --}}
 <style>
+    /* ── Seksi ────────────────────────────────────────────
+       Tiap blok berdiri sebagai seksi sendiri saat dipakai sebagai
+       konten utama. Warnanya memakai token tema agar seksi berlatar
+       gambar gelap (.section-light) ikut berubah terang. */
+    .block-section-inner { max-width: 80rem; margin: 0 auto; padding-left: 1rem; padding-right: 1rem; }
+    @media (min-width: 640px) { .block-section-inner { padding-left: 1.5rem; padding-right: 1.5rem; } }
+    @media (min-width: 1024px) { .block-section-inner { padding-left: 2rem; padding-right: 2rem; } }
+
+    .block-pad-none { padding-top: 0; padding-bottom: 0; }
+    .block-pad-sm   { padding-top: 2.5rem; padding-bottom: 2.5rem; }
+    .block-pad-md   { padding-top: 4rem;   padding-bottom: 4rem; }
+    .block-pad-lg   { padding-top: 6rem;   padding-bottom: 6rem; }
+    @media (min-width: 640px) {
+        .block-pad-sm { padding-top: 3rem; padding-bottom: 3rem; }
+        .block-pad-md { padding-top: 5rem; padding-bottom: 5rem; }
+        .block-pad-lg { padding-top: 7rem; padding-bottom: 7rem; }
+    }
+
+    /* Seksi berkartu: dikecilkan ke lebar kolom artikel dan dibulatkan sudutnya */
+    .block-section-boxed {
+        border-radius: 1.5rem;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        box-shadow: 0 2px 12px rgba(0,0,0,.06);
+        margin-bottom: 1.5rem;
+    }
+    .block-section-boxed .block-section-inner {
+        max-width: none;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+    @media (min-width: 640px) {
+        .block-section-boxed .block-section-inner { padding-left: 2.5rem; padding-right: 2.5rem; }
+    }
+    .block-section-boxed.block-pad-md { padding-top: 2.5rem; padding-bottom: 2.5rem; }
+    .block-section-boxed.block-pad-lg { padding-top: 3.5rem; padding-bottom: 3.5rem; }
+    .block-section-boxed.block-pad-sm { padding-top: 1.75rem; padding-bottom: 1.75rem; }
+
+    /* Sudut kartu memotong apa pun yang keluar batas, jadi panah carousel
+       ditarik masuk agar tidak ikut terpotong */
+    .block-section-boxed .cs-arrow-prev { left: 0; }
+    .block-section-boxed .cs-arrow-next { right: 0; }
+
+    .block-section-head { margin-bottom: 1.75rem; }
+    .block-section-eyebrow { display: block; margin-bottom: .5rem; }
+    .block-section-title {
+        font-size: 1.75rem; font-weight: 800; letter-spacing: -.02em;
+        line-height: 1.2; color: var(--text);
+    }
+    @media (min-width: 640px) { .block-section-title { font-size: 2.25rem; } }
+    .block-section-boxed .block-section-title { font-size: 1.5rem; }
+    @media (min-width: 640px) { .block-section-boxed .block-section-title { font-size: 1.75rem; } }
+
+    /* Blok pertama & terakhir dalam satu seksi tidak perlu jarak luar sendiri */
+    .block-section-inner > :first-child { margin-top: 0; }
+    .block-section-inner > :last-child  { margin-bottom: 0; }
+
     /* ── Teks bebas ───────────────────────────────────────── */
-    .block-prose { line-height: 1.85; color: #374151; font-size: 1.0625rem; margin: 1.5rem 0; }
+    .block-prose { line-height: 1.85; color: var(--muted); font-size: 1.0625rem; margin: 1.5rem 0; }
     @media (min-width: 640px) { .block-prose { font-size: 1.125rem; } }
     .block-prose > *:first-child { margin-top: 0; }
     .block-prose > *:last-child  { margin-bottom: 0; }
-    .block-prose h2 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 2rem 0 .875rem; line-height: 1.3; }
-    .block-prose h3 { font-size: 1.25rem; font-weight: 700; color: #1f2937; margin: 1.75rem 0 .75rem; line-height: 1.35; }
+    .block-prose h2 { font-size: 1.5rem; font-weight: 800; color: var(--text); margin: 2rem 0 .875rem; line-height: 1.3; }
+    .block-prose h3 { font-size: 1.25rem; font-weight: 700; color: var(--text); margin: 1.75rem 0 .75rem; line-height: 1.35; }
+    .block-prose h4 { font-size: 1.0625rem; font-weight: 700; color: var(--text); margin: 1.5rem 0 .625rem; line-height: 1.4; }
     .block-prose p  { margin-bottom: 1.375rem; }
     .block-prose ul, .block-prose ol { margin: 0 0 1.375rem; padding-left: 1.5rem; }
     .block-prose ul { list-style: disc; }
@@ -15,16 +73,17 @@
     .block-prose blockquote {
         border-left: 3px solid var(--primary); background: var(--primary-50);
         padding: .875rem 1.25rem; margin: 1.5rem 0; border-radius: 0 .5rem .5rem 0;
-        color: #4b5563; font-style: italic;
+        color: var(--text); font-style: italic;
     }
+    .section-light .block-prose blockquote { background: rgba(255,255,255,.08); }
     .block-prose a { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; font-weight: 500; }
     .block-prose a:hover { color: var(--primary-700); }
-    .block-prose strong { color: #111827; font-weight: 700; }
+    .block-prose strong { color: var(--text); font-weight: 700; }
     .block-prose img { border-radius: .75rem; margin: 1.75rem 0; max-width: 100%; }
-    .block-prose code { background: #f3f4f6; padding: .125rem .4rem; border-radius: .25rem; font-size: .875em; color: var(--primary); }
+    .block-prose code { background: var(--primary-50); padding: .125rem .4rem; border-radius: .25rem; font-size: .875em; color: var(--primary); }
     .block-prose table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: .875rem; }
     .block-prose th { background: var(--primary-50); color: var(--primary-800); font-weight: 700; padding: .625rem 1rem; text-align: left; border-bottom: 2px solid var(--primary-200); }
-    .block-prose td { padding: .625rem 1rem; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+    .block-prose td { padding: .625rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; }
     .block-prose tr:last-child td { border-bottom: none; }
 
     /* ── Gambar & Teks ────────────────────────────────────── */
@@ -34,7 +93,7 @@
         .block-media-split { grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: center; }
     }
     .block-media-title {
-        font-size: 1.375rem; font-weight: 800; color: #111827;
+        font-size: 1.375rem; font-weight: 800; color: var(--text);
         line-height: 1.3; margin-bottom: .875rem;
     }
     .block-media .block-prose { margin: 0; font-size: 1rem; }
@@ -61,7 +120,7 @@
         box-shadow: 0 8px 32px rgba(0,0,0,.12);
     }
     .block-cover figcaption {
-        text-align: center; font-size: .8rem; color: #9ca3af;
+        text-align: center; font-size: .8rem; color: var(--muted);
         margin-top: .625rem; font-style: italic;
     }
 
