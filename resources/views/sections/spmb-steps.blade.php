@@ -20,6 +20,7 @@
 
 <x-section-background :config="section_background('section_spmb_steps')"
                       background="var(--bg)"
+                      id="tahapan-spmb"
                       class="py-20 sm:py-28">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 

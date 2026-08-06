@@ -245,6 +245,58 @@ class LandingPageSettingsTest extends TestCase
     }
 
     /**
+     * ID anchor yang ditampilkan di panel harus sama persis dengan atribut `id`
+     * pada partial Blade seksinya — kalau tidak, tautan menu yang dibuat admin
+     * dari situ tidak akan menemukan tujuannya. Partial-nya diperiksa langsung
+     * sebab sebagian seksi hanya tampil bila datanya ada.
+     */
+    public function test_every_section_row_carries_the_anchor_id_declared_by_its_partial(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+        $section = ContentSection::factory()->create([
+            'is_published' => true,
+            'anchor' => 'Fasilitas Kami',
+        ]);
+
+        $anchors = collect(
+            Livewire::actingAs($admin)->test(LandingPageSettings::class)->get('data.sections')
+        )->pluck('anchor', 'key');
+
+        $this->assertSame('fasilitas-kami', $anchors[$section->order_key]);
+
+        foreach ($anchors as $key => $anchor) {
+            $this->assertNotEmpty($anchor, "Seksi {$key} tidak punya ID anchor.");
+
+            if ($key === $section->order_key) {
+                continue;
+            }
+
+            $partial = resource_path(
+                'views/sections/'.str_replace(['section_', '_'], ['', '-'], $key).'.blade.php'
+            );
+
+            $this->assertFileExists($partial);
+            $this->assertStringContainsString(
+                'id="'.$anchor.'"',
+                (string) file_get_contents($partial),
+                "ID anchor #{$anchor} tidak ada di partial seksi {$key}.",
+            );
+        }
+    }
+
+    public function test_a_dynamic_section_renders_the_anchor_id_shown_in_the_panel(): void
+    {
+        $section = ContentSection::factory()->create([
+            'is_published' => true,
+            'anchor' => 'Fasilitas Kami',
+        ]);
+
+        $this->get('/')
+            ->assertSuccessful()
+            ->assertSee('id="fasilitas-kami"', false);
+    }
+
+    /**
      * Seksi kini diurutkan sekaligus diubah teksnya dalam satu repeater, jadi
      * mengisi satu kolom berarti mengirim ulang seluruh state daftarnya.
      *

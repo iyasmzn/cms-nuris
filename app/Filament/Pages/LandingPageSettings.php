@@ -63,16 +63,23 @@ class LandingPageSettings extends Page
      * Seksi bawaan ditambah seksi dinamis (ContentSection) yang dibuat admin,
      * sehingga keduanya bisa diurutkan dalam satu daftar.
      *
-     * @return array<int, array{key: string, label: string, visible: bool}>
+     * @return array<int, array{key: string, label: string, anchor: string, visible: bool}>
      */
     private static function defaultSections(): array
     {
-        $sections = self::builtInSections();
+        $sections = array_map(
+            fn (array $section): array => [
+                ...$section,
+                'anchor' => self::BUILT_IN_ANCHORS[$section['key']] ?? '',
+            ],
+            self::builtInSections(),
+        );
 
         foreach (ContentSection::ordered()->get() as $contentSection) {
             $sections[] = [
                 'key' => $contentSection->order_key,
                 'label' => '🧩  '.$contentSection->title,
+                'anchor' => $contentSection->anchor_id,
                 'visible' => $contentSection->is_published,
             ];
         }
@@ -80,7 +87,7 @@ class LandingPageSettings extends Page
         return $sections;
     }
 
-    /** @return array<int, array{key: string, label: string, visible: bool}> */
+    /** @return array<int, array{key: string, label: string, anchor: string, visible: bool}> */
     private static function builtInSections(): array
     {
         return [
@@ -100,6 +107,30 @@ class LandingPageSettings extends Page
             ['key' => 'section_contact',     'label' => '📞  Kontak Kami',               'visible' => true],
         ];
     }
+
+    /**
+     * ID anchor tiap seksi bawaan — harus sama persis dengan atribut `id` pada
+     * partial Blade-nya di `resources/views/sections/`, sebab nilainya dipakai
+     * admin sebagai tujuan tautan menu (`#profil`).
+     *
+     * @var array<string, string>
+     */
+    private const BUILT_IN_ANCHORS = [
+        'section_hero' => 'beranda',
+        'section_quick_links' => 'tautan-cepat',
+        'section_spmb' => 'spmb',
+        'section_stats' => 'profil',
+        'section_principal' => 'sambutan',
+        'section_spmb_steps' => 'tahapan-spmb',
+        'section_programs' => 'program',
+        'section_events' => 'kegiatan-upcoming',
+        'section_gallery' => 'galeri',
+        'section_blog' => 'blog',
+        'section_alumni' => 'alumni',
+        'section_testimonials' => 'kesan-pesan',
+        'section_faq' => 'faq',
+        'section_contact' => 'kontak-section',
+    ];
 
     /**
      * Sections whose header text (eyebrow, title, subtitle) can be edited here.
@@ -291,7 +322,7 @@ class LandingPageSettings extends Page
      * Satu baris repeater: identitas seksi plus teksnya yang sedang tayang,
      * dengan teks bawaan sebagai cadangan agar admin melihat apa yang live.
      *
-     * @param  array{key: string, label: string, visible: bool}  $section
+     * @param  array{key: string, label: string, anchor: string, visible: bool}  $section
      * @return array<string, mixed>
      */
     private function sectionItem(array $section, ?bool $visible = null): array
@@ -299,6 +330,7 @@ class LandingPageSettings extends Page
         $item = [
             'key' => $section['key'],
             'label' => $section['label'],
+            'anchor' => $section['anchor'] ?? '',
             'visible' => $visible ?? $section['visible'],
         ];
 
@@ -395,7 +427,8 @@ class LandingPageSettings extends Page
     }
 
     /**
-     * Judul kartu repeater: nama seksi, ditambah penanda bila disembunyikan.
+     * Judul kartu repeater: nama seksi, ID anchor-nya, ditambah penanda bila
+     * seksi itu disembunyikan.
      *
      * @param  array<string, mixed>  $state
      */
@@ -405,6 +438,10 @@ class LandingPageSettings extends Page
 
         if ($label === null) {
             return null;
+        }
+
+        if (filled($state['anchor'] ?? null)) {
+            $label .= '   ·   #'.$state['anchor'];
         }
 
         return ($state['visible'] ?? true) ? $label : $label.'   ·   disembunyikan';
@@ -424,6 +461,12 @@ class LandingPageSettings extends Page
         return [
             Hidden::make('key'),
             Hidden::make('label'),
+            Hidden::make('anchor'),
+
+            Placeholder::make('anchor_hint')
+                ->label('ID Seksi (Anchor)')
+                ->content(fn (Get $get): HtmlString => self::anchorHint($get('key'), $get('anchor')))
+                ->columnSpanFull(),
 
             Toggle::make('visible')
                 ->label('Tampilkan seksi ini di halaman depan')
@@ -629,6 +672,34 @@ class LandingPageSettings extends Page
         return new HtmlString(
             '<a href="'.e($url).'" class="fi-link fi-size-sm" style="color:var(--primary-600,#2563eb);font-weight:600;text-decoration:underline;">'
             .'Ubah gambar, judul, deskripsi &amp; tombol seksi ini →</a>'
+        );
+    }
+
+    /**
+     * ID anchor seksi beserta contoh pemakaiannya sebagai tujuan tautan menu.
+     * Seksi bawaan memakai id tetap dari partial Blade-nya; seksi dinamis
+     * memakai kolom "ID Anchor" pada record-nya.
+     */
+    private static function anchorHint(?string $key, ?string $anchor): HtmlString
+    {
+        if (blank($anchor)) {
+            return new HtmlString('<span style="opacity:.7">Seksi ini belum punya ID anchor.</span>');
+        }
+
+        // Latar & garis chip diracik dari warna teks yang berlaku, sehingga
+        // tetap terbaca baik di tema terang maupun gelap.
+        $chip = '<code style="background:color-mix(in oklab, currentColor 12%, transparent);'
+            .'border:1px solid color-mix(in oklab, currentColor 20%, transparent);'
+            .'border-radius:.375rem;padding:.125rem .375rem;font-weight:600">#'.e($anchor).'</code>';
+
+        $note = self::isDynamic($key)
+            ? 'Ubah lewat kolom "ID Anchor" pada seksi dinamisnya.'
+            : 'Dari halaman lain, tulis <code>/#'.e($anchor).'</code>.';
+
+        return new HtmlString(
+            $chip.'<div style="margin-top:.35rem;font-size:.8125rem;opacity:.75">'
+            .'Pakai sebagai URL menu atau tautan cepat untuk meluncur ke seksi ini. '.$note
+            .'</div>'
         );
     }
 
