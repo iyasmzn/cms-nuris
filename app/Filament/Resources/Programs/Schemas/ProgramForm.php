@@ -92,7 +92,9 @@ class ProgramForm
                     ->icon(Heroicon::OutlinedRectangleGroup)
                     ->schema([
                         ContentBlocks::make('programs/blocks', sections: true),
-                    ]),
+                    ])
+                    // Penyusun seksi butuh satu baris penuh; kartu lain tetap dua kolom
+                    ->columnSpanFull(),
 
                 Section::make('Pengaturan Tampil')
                     ->schema([

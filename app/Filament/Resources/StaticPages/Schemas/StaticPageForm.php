@@ -65,7 +65,9 @@ class StaticPageForm
                     ->icon(Heroicon::OutlinedRectangleGroup)
                     ->schema([
                         ContentBlocks::make('pages/blocks', sections: true),
-                    ]),
+                    ])
+                    // Penyusun seksi butuh satu baris penuh; kartu lain tetap dua kolom
+                    ->columnSpanFull(),
 
                 Section::make('Pengaturan')
                     ->schema([
