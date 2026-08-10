@@ -6,6 +6,7 @@ use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Filament\Resources\ContentSections\ContentSectionResource;
 use App\Models\ContentSection;
 use App\Models\Setting;
+use App\Support\AlumniMarquee;
 use App\Support\HeroSlider;
 use App\Support\SectionBackground;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
@@ -54,6 +55,12 @@ class LandingPageSettings extends Page
      * slider di kartunya.
      */
     private const HERO_KEY = 'section_hero';
+
+    /**
+     * Kunci seksi alumni — satu-satunya seksi bawaan yang punya pengaturan
+     * baris logo berjalan di kartunya.
+     */
+    private const ALUMNI_KEY = 'section_alumni';
 
     /**
      * Seksi bawaan yang latarnya tidak bisa diatur di sini: hero sudah punya
@@ -349,6 +356,10 @@ class LandingPageSettings extends Page
             $item = [...$item, ...self::heroSliderState()];
         }
 
+        if ($section['key'] === self::ALUMNI_KEY) {
+            $item = [...$item, ...self::alumniMarqueeState()];
+        }
+
         $config = self::contentConfig($section['key']);
 
         if ($config === null) {
@@ -387,6 +398,28 @@ class LandingPageSettings extends Page
             'hero_interval' => $hero->interval,
             'hero_transition' => $hero->transition,
             'hero_transition_duration' => $hero->duration,
+        ];
+    }
+
+    /**
+     * Perilaku & ukuran baris logo kampus yang sedang tayang.
+     *
+     * @return array<string, mixed>
+     */
+    private static function alumniMarqueeState(): array
+    {
+        $marquee = AlumniMarquee::fromSettings();
+
+        return [
+            'alumni_autoplay' => $marquee->autoplay,
+            'alumni_pause_on_hover' => $marquee->pauseOnHover,
+            'alumni_speed' => $marquee->speed,
+            'alumni_direction' => $marquee->direction,
+            'alumni_logo_height' => $marquee->logoHeight,
+            'alumni_card_width' => $marquee->cardWidth,
+            'alumni_gap' => $marquee->gap,
+            'alumni_grayscale' => $marquee->grayscale,
+            'alumni_show_name' => $marquee->showName,
         ];
     }
 
@@ -554,7 +587,113 @@ class LandingPageSettings extends Page
 
             ...$this->heroSliderFields(),
 
+            ...$this->alumniMarqueeFields(),
+
             ...$this->backgroundFields(),
+        ];
+    }
+
+    /**
+     * Perilaku & ukuran baris logo kampus pada seksi Jejak Alumni. Isinya
+     * dibaca `AlumniMarquee`.
+     *
+     * @return array<int, mixed>
+     */
+    private function alumniMarqueeFields(): array
+    {
+        $isRolling = fn (Get $get): bool => (bool) $get('alumni_autoplay');
+
+        return [
+            Section::make('Baris Logo Kampus')
+                ->description('Logo kampusnya sendiri diatur di menu Kampus Alumni. Di sini cara barisnya berjalan dan ukuran kartunya.')
+                ->icon(Heroicon::OutlinedArrowsRightLeft)
+                ->visible(fn (Get $get): bool => $get('key') === self::ALUMNI_KEY)
+                ->collapsible()
+                ->collapsed()
+                ->columnSpanFull()
+                ->schema([
+                    Toggle::make('alumni_autoplay')
+                        ->label('Jalan Otomatis')
+                        ->default(true)
+                        ->onColor('success')
+                        ->live()
+                        ->helperText('Matikan agar barisnya diam dan hanya bergerak saat pengunjung menggeser atau mengusapnya.')
+                        ->columnSpanFull(),
+
+                    Toggle::make('alumni_pause_on_hover')
+                        ->label('Berhenti Saat Kursor di Atas Baris')
+                        ->default(true)
+                        ->onColor('success')
+                        ->visible($isRolling)
+                        ->helperText('Nyalakan agar baris berhenti selama kursor berada di atasnya, matikan agar tetap berjalan terus.')
+                        ->columnSpanFull(),
+
+                    ToggleButtons::make('alumni_direction')
+                        ->label('Arah Jalan')
+                        ->options(AlumniMarquee::DIRECTIONS)
+                        ->icons([
+                            'left' => Heroicon::OutlinedArrowLeft,
+                            'right' => Heroicon::OutlinedArrowRight,
+                        ])
+                        ->default('left')
+                        ->required()
+                        ->inline()
+                        ->visible($isRolling)
+                        ->columnSpanFull(),
+
+                    Slider::make('alumni_speed')
+                        ->label('Kecepatan (piksel per detik)')
+                        ->range(minValue: AlumniMarquee::MIN_SPEED, maxValue: AlumniMarquee::MAX_SPEED)
+                        ->step(1)
+                        ->tooltips()
+                        ->default(AlumniMarquee::DEFAULT_SPEED)
+                        ->required()
+                        ->visible($isRolling)
+                        ->helperText('18 px/detik terasa tenang; makin besar makin cepat barisnya melaju.')
+                        ->columnSpanFull(),
+
+                    Slider::make('alumni_logo_height')
+                        ->label('Tinggi Logo (piksel)')
+                        ->range(minValue: AlumniMarquee::MIN_LOGO_HEIGHT, maxValue: AlumniMarquee::MAX_LOGO_HEIGHT)
+                        ->step(2)
+                        ->tooltips()
+                        ->default(AlumniMarquee::DEFAULT_LOGO_HEIGHT)
+                        ->required()
+                        ->helperText('Lebar logo menyesuaikan sendiri mengikuti tingginya.')
+                        ->columnSpanFull(),
+
+                    Slider::make('alumni_card_width')
+                        ->label('Lebar Kartu (piksel)')
+                        ->range(minValue: AlumniMarquee::MIN_CARD_WIDTH, maxValue: AlumniMarquee::MAX_CARD_WIDTH)
+                        ->step(4)
+                        ->tooltips()
+                        ->default(AlumniMarquee::DEFAULT_CARD_WIDTH)
+                        ->required()
+                        ->helperText('Kotak putih tempat logo berdiri. Perbesar bila nama kampusnya panjang.')
+                        ->columnSpanFull(),
+
+                    Slider::make('alumni_gap')
+                        ->label('Jarak Antar Kartu (piksel)')
+                        ->range(minValue: AlumniMarquee::MIN_GAP, maxValue: AlumniMarquee::MAX_GAP)
+                        ->step(2)
+                        ->tooltips()
+                        ->default(AlumniMarquee::DEFAULT_GAP)
+                        ->required()
+                        ->columnSpanFull(),
+
+                    Toggle::make('alumni_grayscale')
+                        ->label('Logo Abu-abu Sampai Disentuh Kursor')
+                        ->default(true)
+                        ->onColor('success')
+                        ->helperText('Matikan agar semua logo langsung tampil berwarna penuh.')
+                        ->columnSpanFull(),
+
+                    Toggle::make('alumni_show_name')
+                        ->label('Tampilkan Nama Kampus di Bawah Logo')
+                        ->default(true)
+                        ->onColor('success')
+                        ->columnSpanFull(),
+                ]),
         ];
     }
 
@@ -834,6 +973,7 @@ class LandingPageSettings extends Page
                 ...self::contentPayload($key, $section),
                 ...self::backgroundPayload($key, $section),
                 ...self::heroSliderPayload($key, $section),
+                ...self::alumniMarqueePayload($key, $section),
             ];
         }
 
@@ -900,6 +1040,32 @@ class LandingPageSettings extends Page
             'hero_interval' => (int) ($section['hero_interval'] ?? HeroSlider::DEFAULT_INTERVAL),
             'hero_transition' => $section['hero_transition'] ?? 'fade',
             'hero_transition_duration' => (int) ($section['hero_transition_duration'] ?? HeroSlider::DEFAULT_DURATION),
+        ];
+    }
+
+    /**
+     * Perilaku & ukuran baris logo kampus, disimpan sebagai setting
+     * `alumni_marquee_*` yang dibaca `AlumniMarquee::fromSettings()`.
+     *
+     * @param  array<string, mixed>  $section
+     * @return array<string, mixed>
+     */
+    private static function alumniMarqueePayload(string $key, array $section): array
+    {
+        if ($key !== self::ALUMNI_KEY) {
+            return [];
+        }
+
+        return [
+            'alumni_marquee_autoplay' => (bool) ($section['alumni_autoplay'] ?? true),
+            'alumni_marquee_pause_on_hover' => (bool) ($section['alumni_pause_on_hover'] ?? true),
+            'alumni_marquee_speed' => (int) ($section['alumni_speed'] ?? AlumniMarquee::DEFAULT_SPEED),
+            'alumni_marquee_direction' => $section['alumni_direction'] ?? 'left',
+            'alumni_marquee_logo_height' => (int) ($section['alumni_logo_height'] ?? AlumniMarquee::DEFAULT_LOGO_HEIGHT),
+            'alumni_marquee_card_width' => (int) ($section['alumni_card_width'] ?? AlumniMarquee::DEFAULT_CARD_WIDTH),
+            'alumni_marquee_gap' => (int) ($section['alumni_gap'] ?? AlumniMarquee::DEFAULT_GAP),
+            'alumni_marquee_grayscale' => (bool) ($section['alumni_grayscale'] ?? true),
+            'alumni_marquee_show_name' => (bool) ($section['alumni_show_name'] ?? true),
         ];
     }
 

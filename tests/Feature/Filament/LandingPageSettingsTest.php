@@ -7,6 +7,7 @@ use App\Models\ContentSection;
 use App\Models\Media;
 use App\Models\Setting;
 use App\Models\User;
+use App\Support\AlumniMarquee;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -200,6 +201,83 @@ class LandingPageSettingsTest extends TestCase
         $this->assertFalse($hero['hero_pause_on_hover']);
         $this->assertSame(12, (int) $hero['hero_interval']);
         $this->assertSame('zoom', $hero['hero_transition']);
+    }
+
+    public function test_it_persists_the_alumni_logo_row_behaviour(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
+
+        $component
+            ->fillForm([
+                'sections' => $this->withSectionState($component, 'section_alumni', [
+                    'alumni_autoplay' => true,
+                    'alumni_pause_on_hover' => false,
+                    'alumni_speed' => 45,
+                    'alumni_direction' => 'right',
+                    'alumni_logo_height' => 96,
+                    'alumni_card_width' => 260,
+                    'alumni_gap' => 8,
+                    'alumni_grayscale' => false,
+                    'alumni_show_name' => false,
+                ]),
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertTrue(setting_bool('alumni_marquee_autoplay'));
+        $this->assertFalse(setting_bool('alumni_marquee_pause_on_hover', true));
+        $this->assertSame('45', (string) Setting::get('alumni_marquee_speed'));
+        $this->assertSame('right', Setting::get('alumni_marquee_direction'));
+        $this->assertSame('96', (string) Setting::get('alumni_marquee_logo_height'));
+        $this->assertSame('260', (string) Setting::get('alumni_marquee_card_width'));
+        $this->assertSame('8', (string) Setting::get('alumni_marquee_gap'));
+        $this->assertFalse(setting_bool('alumni_marquee_grayscale', true));
+        $this->assertFalse(setting_bool('alumni_marquee_show_name', true));
+    }
+
+    public function test_the_saved_alumni_logo_row_behaviour_is_shown_again_when_the_page_is_reopened(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        Setting::setMany([
+            'alumni_marquee_autoplay' => false,
+            'alumni_marquee_speed' => 60,
+            'alumni_marquee_direction' => 'right',
+            'alumni_marquee_card_width' => 300,
+        ]);
+
+        $sections = collect(Livewire::actingAs($admin)->test(LandingPageSettings::class)->get('data.sections'));
+        $alumni = $sections->firstWhere('key', 'section_alumni');
+
+        $this->assertFalse($alumni['alumni_autoplay']);
+        $this->assertSame(60, (int) $alumni['alumni_speed']);
+        $this->assertSame('right', $alumni['alumni_direction']);
+        $this->assertSame(300, (int) $alumni['alumni_card_width']);
+    }
+
+    /**
+     * Repeater Filament memberi setiap barisnya kumpulan kolom yang sama, jadi
+     * yang menentukan nilainya tersimpan adalah kunci seksinya — bukan kolom
+     * mana saja yang kebetulan ada di state baris lain.
+     */
+    public function test_only_the_alumni_section_stores_logo_row_settings(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
+
+        $component
+            ->fillForm([
+                'sections' => $this->withSectionState($component, 'section_blog', [
+                    'alumni_speed' => 99,
+                ]),
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame((string) AlumniMarquee::DEFAULT_SPEED, (string) Setting::get('alumni_marquee_speed'));
     }
 
     public function test_it_keeps_section_order_and_visibility_when_saving_content(): void

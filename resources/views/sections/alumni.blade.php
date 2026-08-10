@@ -4,6 +4,9 @@
 
     /** @var \Illuminate\Support\Collection<int, \App\Models\AlumniUniversity> $alumniUniversities */
     $alumniUniversities = $alumniUniversities ?? \App\Models\AlumniUniversity::active()->get();
+
+    /** @var \App\Support\AlumniMarquee $alumniMarquee */
+    $alumniMarquee = $alumniMarquee ?? \App\Support\AlumniMarquee::fromSettings();
 @endphp
 
 @if($alumniStats->isNotEmpty() || $alumniUniversities->isNotEmpty())
@@ -77,12 +80,14 @@
                 {{ setting('section_alumni_logos_title') ?: 'Kampus Tujuan Alumni' }}
             </p>
 
-            <div class="alumni-marquee-wrap">
-                <div class="alumni-marquee"
+            <div class="alumni-marquee-wrap" style="{{ $alumniMarquee->styleAttribute() }}">
+                <div @class(['alumni-marquee', 'is-color' => ! $alumniMarquee->grayscale])
                      role="list"
                      aria-label="Logo kampus tujuan alumni"
                      x-data="{
-                         speed: 0.3,
+                         /* Piksel per detik, bertanda: negatif berarti ke kanan. */
+                         speed: {{ $alumniMarquee->signedSpeed() }},
+                         autoplay: {{ $alumniMarquee->autoplay ? 'true' : 'false' }},
                          /* Posisi disimpan sendiri sebagai pecahan: browser membulatkan
                             scrollLeft ke piksel penuh, jadi kecepatan di bawah 1px per
                             frame akan hilang bila dibaca balik dari elemen. */
@@ -159,11 +164,19 @@
                                  this.resizeTimer = setTimeout(() => this.build(), 200)
                              }, { passive: true })
 
+                             if (! this.autoplay) return
                              if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-                             const step = () => {
+                             /* Perpindahan dihitung dari selisih waktu antar frame supaya
+                                kecepatannya sama di layar 60 Hz maupun 120 Hz. Lompatan
+                                besar (tab kembali aktif) dibatasi agar baris tidak melesat. */
+                             let previous = 0
+                             const step = (now) => {
+                                 const elapsed = previous ? Math.min((now - previous) / 1000, 0.1) : 0
+                                 previous = now
+
                                  if (this.rolling && ! this.paused && ! this.dragging) {
-                                     this.move(this.offset + this.speed)
+                                     this.move(this.offset + this.speed * elapsed)
                                  }
                                  requestAnimationFrame(step)
                              }
@@ -193,7 +206,8 @@
                          /* Hanya gulir dari pengguna (sentuh / roda) yang disinkronkan;
                             gulir hasil rAF diabaikan agar pecahan tadi tidak terbuang. */
                          onScroll() {
-                             if (! this.rolling || ! this.paused || this.dragging) return
+                             if (! this.rolling || this.dragging) return
+                             if (this.autoplay && ! this.paused) return
                              if (this.$el.scrollLeft >= this.cycle) { this.$el.scrollLeft -= this.cycle }
                              else if (this.$el.scrollLeft <= 0) { this.$el.scrollLeft += this.cycle }
                              this.offset = this.$el.scrollLeft
@@ -206,8 +220,10 @@
                      @pointerup="onPointerUp($event)"
                      @pointercancel="onPointerUp($event)"
                      @pointerleave="onPointerUp($event)"
+                     @if($alumniMarquee->autoplay && $alumniMarquee->pauseOnHover)
                      @mouseenter="hold()"
                      @mouseleave="release(0)"
+                     @endif
                      @touchstart.passive="hold()"
                      @touchend.passive="release()"
                      @scroll.passive="onScroll()">
@@ -225,7 +241,9 @@
                             @else
                                 <span class="alumni-logo-fallback">{{ $university->initials }}</span>
                             @endif
-                            <span class="alumni-logo-name">{{ $university->name }}</span>
+                            @if($alumniMarquee->showName)
+                                <span class="alumni-logo-name">{{ $university->name }}</span>
+                            @endif
                         </a>
                     @endforeach
                 </div>
@@ -339,8 +357,10 @@
             align-items: center;
             justify-content: center;
             gap: .625rem;
-            width: 13.5rem;
-            margin-right: 1.25rem;
+            /* Lebar kartu, jarak antar-kartu, dan tinggi logo diatur admin lewat
+               Pengaturan Halaman Depan; nilai cadangannya = rancangan aslinya. */
+            width: var(--alumni-logo-card-width, 13.5rem);
+            margin-right: var(--alumni-logo-gap, 1.25rem);
             padding: 1.5rem 1rem;
             border-radius: 1.25rem;
             border: 1px solid var(--border);
@@ -356,7 +376,7 @@
             box-shadow: 0 14px 34px rgba(0,0,0,.10);
         }
         .alumni-logo img {
-            height: 4.5rem;
+            height: var(--alumni-logo-height, 4.5rem);
             max-width: 100%;
             object-fit: contain;
             filter: grayscale(1);
@@ -365,11 +385,15 @@
             -webkit-user-drag: none;
         }
         .alumni-logo:hover img { filter: grayscale(0); opacity: 1; }
+        /* Logo berwarna sejak awal, tanpa efek abu-abu. */
+        .alumni-marquee.is-color .alumni-logo img { filter: none; opacity: 1; }
         .alumni-logo-fallback {
             display: flex; align-items: center; justify-content: center;
-            width: 4.5rem; height: 4.5rem;
+            width: var(--alumni-logo-height, 4.5rem); height: var(--alumni-logo-height, 4.5rem);
             border-radius: 9999px;
-            font-size: 1.125rem; font-weight: 800; letter-spacing: .02em;
+            /* Inisial ikut mengecil bersama ukuran logo agar tetap muat di lingkarannya. */
+            font-size: clamp(.75rem, calc(var(--alumni-logo-height, 4.5rem) * .25), 1.75rem);
+            font-weight: 800; letter-spacing: .02em;
             background: var(--primary-50);
             color: var(--primary-800);
         }

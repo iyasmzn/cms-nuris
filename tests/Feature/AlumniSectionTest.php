@@ -103,6 +103,102 @@ class AlumniSectionTest extends TestCase
             ->assertDontSee('Ke Mana Alumni Kami Melangkah');
     }
 
+    public function test_the_logo_row_uses_the_default_marquee_behaviour(): void
+    {
+        AlumniUniversity::factory()->create(['is_active' => true]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('speed: 18,', false)
+            ->assertSee('autoplay: true,', false)
+            ->assertSee('--alumni-logo-card-width: 216px', false)
+            ->assertSee('--alumni-logo-height: 72px', false)
+            ->assertSee('--alumni-logo-gap: 20px', false)
+            ->assertSee('@mouseenter="hold()"', false)
+            ->assertDontSee('alumni-marquee is-color', false);
+    }
+
+    public function test_the_configured_speed_direction_and_sizes_are_rendered(): void
+    {
+        AlumniUniversity::factory()->create(['is_active' => true]);
+
+        Setting::setMany([
+            'alumni_marquee_speed' => 45,
+            'alumni_marquee_direction' => 'right',
+            'alumni_marquee_logo_height' => 96,
+            'alumni_marquee_card_width' => 260,
+            'alumni_marquee_gap' => 8,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            // Arah ke kanan dikirim sebagai kecepatan bertanda negatif
+            ->assertSee('speed: -45,', false)
+            ->assertSee('--alumni-logo-card-width: 260px', false)
+            ->assertSee('--alumni-logo-height: 96px', false)
+            ->assertSee('--alumni-logo-gap: 8px', false);
+    }
+
+    public function test_pause_on_hover_can_be_turned_off(): void
+    {
+        AlumniUniversity::factory()->create(['is_active' => true]);
+
+        Setting::set('alumni_marquee_pause_on_hover', false);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertDontSee('@mouseenter="hold()"', false);
+    }
+
+    public function test_autoplay_can_be_turned_off_entirely(): void
+    {
+        AlumniUniversity::factory()->create(['is_active' => true]);
+
+        Setting::set('alumni_marquee_autoplay', false);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('autoplay: false,', false)
+            // Jeda saat kursor lewat tidak relevan bila barisnya memang diam
+            ->assertDontSee('@mouseenter="hold()"', false);
+    }
+
+    public function test_out_of_range_and_unknown_marquee_values_fall_back_to_safe_ones(): void
+    {
+        AlumniUniversity::factory()->create(['is_active' => true]);
+
+        Setting::setMany([
+            'alumni_marquee_speed' => 9999,
+            'alumni_marquee_direction' => 'diagonal',
+            'alumni_marquee_logo_height' => 4,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('speed: 150,', false)
+            ->assertSee('--alumni-logo-height: 32px', false);
+    }
+
+    public function test_logo_colour_and_campus_name_can_be_switched(): void
+    {
+        AlumniUniversity::factory()->create([
+            'name' => 'Universitas Airlangga',
+            'is_active' => true,
+        ]);
+
+        Setting::setMany([
+            'alumni_marquee_grayscale' => false,
+            'alumni_marquee_show_name' => false,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('alumni-marquee is-color', false)
+            ->assertDontSee('alumni-logo-name">', false)
+            // Nama tetap dipakai sebagai judul & teks alternatif logo
+            ->assertSee('Universitas Airlangga');
+    }
+
     public function test_the_section_can_be_hidden_from_landing_page_settings(): void
     {
         AlumniStat::factory()->create(['label' => 'Alumni Terdata']);
