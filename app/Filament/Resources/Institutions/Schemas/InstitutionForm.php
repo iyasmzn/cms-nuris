@@ -139,6 +139,14 @@ class InstitutionForm
                         ->required(fn (Get $get): bool => $get('form_mode') === Institution::FORM_MODE_EMBED)
                         ->visible(fn (Get $get): bool => $get('form_mode') === Institution::FORM_MODE_EMBED)
                         ->columnSpanFull(),
+
+                    Toggle::make('show_status_button')
+                        ->label('Tampilkan tombol "Cek Status & Pembayaran"')
+                        ->default(true)
+                        ->onColor('success')
+                        ->offColor('danger')
+                        ->helperText('Matikan untuk menyembunyikan tombol cek status pendaftaran dan tagihan pembayaran di halaman PPDB jenjang ini — misalnya bila pendaftarannya ditangani situs lain.')
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Biaya Pendaftaran')

@@ -231,9 +231,11 @@
         <button @click="tab = 'form'" :class="tab === 'form' ? 'active' : ''" class="tab-pill" id="form-pendaftaran">
             📝 Form Pendaftaran
         </button>
+        @if($institution->showsStatusButton())
         <a href="{{ route('ppdb.status') }}" class="tab-pill">
             🔎 Cek Status &amp; Pembayaran
         </a>
+        @endif
     </div>
 
     {{-- ──────── TAB: PROSEDUR ──────── --}}
@@ -344,11 +346,13 @@
                 <p class="text-2xl font-extrabold" style="color:var(--text)">{{ rupiah($institution->registration_fee) }}</p>
                 <p class="text-xs mt-1" style="color:var(--muted)">Tagihan beserta nomor rekening tujuan muncul otomatis setelah formulir pendaftaran dikirim.</p>
             </div>
+            @if($institution->showsStatusButton())
             <a href="{{ route('ppdb.status') }}"
                class="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-50 font-bold text-xs transition-all">
                 Sudah daftar? Cek tagihan
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
             </a>
+            @endif
         </div>
         @endif
 

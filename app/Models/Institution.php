@@ -41,11 +41,13 @@ class Institution extends Model
         'form_title',
         'form_description',
         'closed_message',
+        'show_status_button',
     ];
 
     protected $casts = [
         'sort_order' => 'integer',
         'is_active' => 'boolean',
+        'show_status_button' => 'boolean',
         'procedures' => 'array',
         'fees' => 'array',
         'registration_fee' => 'integer',
@@ -195,6 +197,16 @@ class Institution extends Model
     public function resolvedFormDescription(): string
     {
         return $this->form_description ?: (string) Setting::get('spmb_form_description', 'Isi formulir di bawah ini dengan data yang benar dan lengkap.');
+    }
+
+    /**
+     * Whether the "Cek Status & Pembayaran" entry points are shown on this
+     * jenjang's public page. Jenjang yang mendaftar lewat situs lain biasanya
+     * mengurus status dan pembayarannya di luar sistem ini.
+     */
+    public function showsStatusButton(): bool
+    {
+        return (bool) ($this->show_status_button ?? true);
     }
 
     public function resolvedClosedMessage(): string
