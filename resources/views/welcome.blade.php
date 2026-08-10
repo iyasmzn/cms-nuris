@@ -191,6 +191,8 @@
         .fade-up { animation: fadeUp .6s ease both; }
         .d1 { animation-delay: .1s; } .d2 { animation-delay: .2s; } .d3 { animation-delay: .3s; }
     </style>
+
+    @include('partials.page-layout-styles')
 </head>
 
 @php

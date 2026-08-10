@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Setting;
 use App\Support\ContentTypography;
+use App\Support\PageGutter;
+use App\Support\PageWidth;
 use Illuminate\Database\Seeder;
 
 class SettingSeeder extends Seeder
@@ -188,6 +190,8 @@ class SettingSeeder extends Seeder
             'theme_primary_color' => '#08484A',
             'theme_font' => 'plus-jakarta-sans',
             ContentTypography::SETTING_KEY => ContentTypography::DEFAULT_SIZE,
+            PageWidth::SETTING_KEY => PageWidth::DEFAULT_WIDTH,
+            ...PageGutter::settingDefaults(),
         ];
     }
 }

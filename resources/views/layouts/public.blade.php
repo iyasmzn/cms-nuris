@@ -186,6 +186,8 @@
         .prose strong { color: var(--text); }
     </style>
 
+    @include('partials.page-layout-styles')
+
     @stack('head')
 </head>
 

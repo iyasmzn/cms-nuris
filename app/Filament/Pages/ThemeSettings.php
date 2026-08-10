@@ -4,6 +4,8 @@ namespace App\Filament\Pages;
 
 use App\Models\Setting;
 use App\Support\ContentTypography;
+use App\Support\PageGutter;
+use App\Support\PageWidth;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
 use Filament\Forms\Components\ColorPicker;
@@ -50,6 +52,8 @@ class ThemeSettings extends Page
             'theme_font_custom_url' => Setting::get('theme_font_custom_url', ''),
             'theme_font_custom_family' => Setting::get('theme_font_custom_family', ''),
             'content_font_size' => ContentTypography::size(),
+            PageWidth::SETTING_KEY => PageWidth::key(),
+            ...self::gutterFormState(PageGutter::values()),
         ]);
     }
 
@@ -153,6 +157,41 @@ class ThemeSettings extends Page
                             (int) ($get('content_font_size') ?? ContentTypography::DEFAULT_SIZE)
                         )),
                 ]),
+
+            Section::make('Lebar & Margin Halaman')
+                ->description('Mengatur seberapa lebar isi website dan berapa jaraknya dari tepi layar. Berlaku untuk seluruh halaman publik — beranda, artikel, program, dan lainnya — termasuk menu atas dan footer.')
+                ->icon(Heroicon::OutlinedArrowsRightLeft)
+                ->schema([
+                    Select::make(PageWidth::SETTING_KEY)
+                        ->label('Lebar Maksimum Isi Halaman')
+                        ->options(PageWidth::options())
+                        ->selectablePlaceholder(false)
+                        ->live()
+                        ->default(PageWidth::DEFAULT_WIDTH)
+                        ->helperText('Batas lebar isi website di layar besar; isinya tetap dipusatkan. "Penuh Layar" membuat isi melebar mengikuti layar, sehingga yang menyisakan ruang tepi hanya margin di bawah ini.'),
+
+                    Grid::make(['default' => 1, 'sm' => 2, 'lg' => 5])->schema(
+                        collect(PageGutter::BREAKPOINTS)
+                            ->map(fn (array $breakpoint, string $key): TextInput => TextInput::make(PageGutter::settingKey($key))
+                                ->label($breakpoint['label'])
+                                ->numeric()
+                                ->live(onBlur: true)
+                                ->minValue(PageGutter::MIN)
+                                ->maxValue(PageGutter::MAX)
+                                ->step(1)
+                                ->suffix('px')
+                                ->required()
+                                ->default($breakpoint['default'])
+                                ->helperText($breakpoint['hint'].' — bawaan '.$breakpoint['default'].'px')
+                                ->columnSpan(1))
+                            ->values()
+                            ->all()
+                    ),
+
+                    Placeholder::make('page_layout_preview')
+                        ->label('Pratinjau')
+                        ->content(fn (Get $get): HtmlString => self::layoutPreview($get)),
+                ]),
         ]);
     }
 
@@ -166,10 +205,18 @@ class ThemeSettings extends Page
         Setting::set('theme_font_custom_family', clean_font_family_name($data['theme_font_custom_family'] ?? ''));
         Setting::set(ContentTypography::SETTING_KEY, ContentTypography::sanitizeSize($data['content_font_size'] ?? null));
 
+        Setting::set(PageWidth::SETTING_KEY, PageWidth::sanitize($data[PageWidth::SETTING_KEY] ?? null));
+
+        foreach (array_keys(PageGutter::BREAKPOINTS) as $breakpoint) {
+            $key = PageGutter::settingKey($breakpoint);
+
+            Setting::set($key, PageGutter::sanitize($data[$key] ?? null, $breakpoint));
+        }
+
         Notification::make()
             ->success()
             ->title('Tema berhasil disimpan')
-            ->body('Perubahan warna, font, dan ukuran teks konten akan langsung terlihat di website.')
+            ->body('Perubahan warna, font, ukuran teks konten, serta lebar dan margin halaman akan langsung terlihat di website.')
             ->send();
     }
 
@@ -187,13 +234,19 @@ class ThemeSettings extends Page
                 ->icon(Heroicon::OutlinedArrowPath)
                 ->requiresConfirmation()
                 ->modalHeading('Reset Tema?')
-                ->modalDescription('Warna akan dikembalikan ke Amber, font ke Instrument Sans, dan ukuran teks konten ke '.ContentTypography::DEFAULT_SIZE.'px (default).')
+                ->modalDescription('Warna akan dikembalikan ke Amber, font ke Instrument Sans, ukuran teks konten ke '.ContentTypography::DEFAULT_SIZE.'px, serta lebar dan margin halaman ke ukuran bawaan.')
                 ->action(function (): void {
                     Setting::set('theme_primary_color', '#d97706');
                     Setting::set('theme_font', 'instrument-sans');
                     Setting::set('theme_font_custom_url', '');
                     Setting::set('theme_font_custom_family', '');
                     Setting::set(ContentTypography::SETTING_KEY, ContentTypography::DEFAULT_SIZE);
+
+                    Setting::set(PageWidth::SETTING_KEY, PageWidth::DEFAULT_WIDTH);
+
+                    foreach (PageGutter::settingDefaults() as $key => $value) {
+                        Setting::set($key, $value);
+                    }
 
                     $this->form->fill([
                         'theme_preset' => '#d97706',
@@ -202,6 +255,8 @@ class ThemeSettings extends Page
                         'theme_font_custom_url' => '',
                         'theme_font_custom_family' => '',
                         'content_font_size' => ContentTypography::DEFAULT_SIZE,
+                        PageWidth::SETTING_KEY => PageWidth::DEFAULT_WIDTH,
+                        ...self::gutterFormState(PageGutter::defaults()),
                     ]);
 
                     Notification::make()
@@ -308,6 +363,96 @@ class ThemeSettings extends Page
                 <p style="font-size: 16px; line-height: 1.6; margin-top: .875rem; padding-top: .625rem; border-top: 1px dashed rgba(0,0,0,.12); color: #6e6e73;">Pembanding — teks umum website berukuran 16px.</p>
             </div>
         HTML);
+    }
+
+    /**
+     * Maps breakpoint-keyed gutter values onto their form field names.
+     *
+     * @param  array<string, int>  $values
+     * @return array<string, int>
+     */
+    protected static function gutterFormState(array $values): array
+    {
+        $state = [];
+
+        foreach ($values as $breakpoint => $value) {
+            $state[PageGutter::settingKey($breakpoint)] = $value;
+        }
+
+        return $state;
+    }
+
+    /**
+     * Renders a scaled mock-up per screen size: the shaded bands are the empty
+     * space left by the margin plus the max-width cap, and the middle block is
+     * the resulting content width — so the admin can judge both settings
+     * together before saving.
+     */
+    protected static function layoutPreview(Get $get): HtmlString
+    {
+        $gutters = [];
+
+        foreach (array_keys(PageGutter::BREAKPOINTS) as $breakpoint) {
+            $gutters[$breakpoint] = PageGutter::sanitize($get(PageGutter::settingKey($breakpoint)), $breakpoint);
+        }
+
+        $maxWidth = PageWidth::pixels(PageWidth::sanitize($get(PageWidth::SETTING_KEY)));
+        $rows = '';
+
+        foreach (self::previewScreens($gutters) as $screen) {
+            $available = max(0, $screen['width'] - (2 * $screen['gutter']));
+            $content = $maxWidth === null ? $available : min($maxWidth, $available);
+            $contentPercent = $screen['width'] > 0 ? round($content / $screen['width'] * 100, 2) : 0;
+            $sidePercent = round((100 - $contentPercent) / 2, 2);
+            $capped = $maxWidth !== null && $content < $available ? ' (dibatasi lebar maksimum)' : '';
+
+            $rows .= <<<HTML
+                <div style="display: flex; align-items: center; gap: .75rem; margin-top: .5rem;">
+                    <div style="flex: 0 0 8.5rem; font-size: .75rem; color: #6e6e73;">{$screen['label']}<br><span style="color:#9ca3af;">layar {$screen['width']}px</span></div>
+                    <div style="flex: 1; display: flex; align-items: stretch; height: 2.25rem; border: 1px solid rgba(0,0,0,.12); border-radius: .375rem; overflow: hidden; background: #fff;">
+                        <div style="width: {$sidePercent}%; background: repeating-linear-gradient(45deg, rgba(0,0,0,.06) 0 4px, transparent 4px 8px);"></div>
+                        <div style="width: {$contentPercent}%; display: flex; align-items: center; justify-content: center; background: #f5f5f7; font-size: .6875rem; color: #6e6e73;">konten</div>
+                        <div style="width: {$sidePercent}%; background: repeating-linear-gradient(45deg, rgba(0,0,0,.06) 0 4px, transparent 4px 8px);"></div>
+                    </div>
+                    <div style="flex: 0 0 9rem; text-align: right; font-size: .75rem; font-weight: 600; color: #374151;">{$content}px<span style="display:block; font-weight:400; color:#9ca3af;">margin {$screen['gutter']}px{$capped}</span></div>
+                </div>
+            HTML;
+        }
+
+        return new HtmlString(<<<HTML
+            <div style="border: 1px solid rgba(0,0,0,.1); border-radius: .75rem; padding: 1rem 1.25rem; background: #fff;">
+                {$rows}
+                <p style="font-size: .75rem; color: #6e6e73; margin-top: .875rem;">Bagian bergaris adalah ruang kosong di kiri &amp; kanan, blok tengah adalah lebar isi website. Gambar ini diskalakan, jadi bacalah angkanya — bukan ukuran di layar ini.</p>
+            </div>
+        HTML);
+    }
+
+    /**
+     * Screen widths used by the preview: one typical width per breakpoint, plus
+     * a wide monitor to show where the max-width cap starts to matter.
+     *
+     * @param  array<string, int>  $gutters
+     * @return array<int, array{label: string, width: int, gutter: int}>
+     */
+    protected static function previewScreens(array $gutters): array
+    {
+        $screens = [];
+
+        foreach (PageGutter::BREAKPOINTS as $breakpoint => $config) {
+            $screens[] = [
+                'label' => $config['label'],
+                'width' => $config['reference_width'],
+                'gutter' => $gutters[$breakpoint],
+            ];
+        }
+
+        $screens[] = [
+            'label' => 'Monitor Lebar',
+            'width' => 1920,
+            'gutter' => $gutters['xl'],
+        ];
+
+        return $screens;
     }
 
     /**

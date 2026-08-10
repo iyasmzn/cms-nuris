@@ -4,6 +4,8 @@ use App\Models\AcademicYear;
 use App\Models\RegistrationWave;
 use App\Models\Setting;
 use App\Support\ContentTypography;
+use App\Support\PageGutter;
+use App\Support\PageWidth;
 use App\Support\SectionBackground;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -250,6 +252,28 @@ if (! function_exists('content_font_scale')) {
     function content_font_scale(): float
     {
         return ContentTypography::scale();
+    }
+}
+
+if (! function_exists('page_gutter_css')) {
+    /**
+     * CSS jarak tepi kiri & kanan halaman pilihan admin — nilai `--page-gutter`
+     * per ukuran layar beserta penerapannya ke pembungkus konten baku.
+     */
+    function page_gutter_css(): string
+    {
+        return PageGutter::css();
+    }
+}
+
+if (! function_exists('page_max_width_css')) {
+    /**
+     * CSS lebar maksimum isi halaman pilihan admin — nilai `--page-max-width`
+     * beserta penerapannya ke pembungkus konten baku.
+     */
+    function page_max_width_css(): string
+    {
+        return PageWidth::css();
     }
 }
 
