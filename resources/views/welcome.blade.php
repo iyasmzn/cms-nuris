@@ -78,6 +78,9 @@
 
             --primary: {{ setting('theme_primary_color', '#08484A') }};
 
+            /* Pengali ukuran huruf teks konten — diatur di Tema & Tampilan */
+            --content-scale: {{ content_font_scale() }};
+
             --primary-50:  color-mix(in oklab, var(--primary)  8%, white);
             --primary-100: color-mix(in oklab, var(--primary) 15%, white);
             --primary-200: color-mix(in oklab, var(--primary) 28%, white);

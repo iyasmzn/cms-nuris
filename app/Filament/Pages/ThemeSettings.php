@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Setting;
+use App\Support\ContentTypography;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
 use Filament\Forms\Components\ColorPicker;
@@ -48,6 +49,7 @@ class ThemeSettings extends Page
             'theme_font' => $savedFont,
             'theme_font_custom_url' => Setting::get('theme_font_custom_url', ''),
             'theme_font_custom_family' => Setting::get('theme_font_custom_family', ''),
+            'content_font_size' => ContentTypography::size(),
         ]);
     }
 
@@ -132,6 +134,25 @@ class ThemeSettings extends Page
                             return self::fontPreview($get('theme_font') ?? 'instrument-sans');
                         }),
                 ]),
+
+            Section::make('Ukuran Teks Konten')
+                ->description('Berlaku untuk isi artikel, halaman, program, agenda, kisah, dan blok "Konten Tambahan". Bagian lain website — judul seksi, kartu, dan menu — tidak terpengaruh.')
+                ->icon(Heroicon::OutlinedBars3BottomLeft)
+                ->schema([
+                    Select::make('content_font_size')
+                        ->label('Ukuran Teks Konten')
+                        ->options(ContentTypography::SIZES)
+                        ->selectablePlaceholder(false)
+                        ->live()
+                        ->default(ContentTypography::DEFAULT_SIZE)
+                        ->helperText('Ukuran di layar lebar; di layar kecil ikut mengecil dengan proporsi yang sama. Judul, kutipan, dan tabel di dalam konten ikut menyesuaikan. Pilih 16px agar teks konten setara dengan teks umum website.'),
+
+                    Placeholder::make('content_font_preview')
+                        ->label('Pratinjau')
+                        ->content(fn (Get $get): HtmlString => self::contentSizePreview(
+                            (int) ($get('content_font_size') ?? ContentTypography::DEFAULT_SIZE)
+                        )),
+                ]),
         ]);
     }
 
@@ -143,11 +164,12 @@ class ThemeSettings extends Page
         Setting::set('theme_font', $data['theme_font'] ?? 'instrument-sans');
         Setting::set('theme_font_custom_url', google_font_url($data['theme_font_custom_url'] ?? '') ?? '');
         Setting::set('theme_font_custom_family', clean_font_family_name($data['theme_font_custom_family'] ?? ''));
+        Setting::set(ContentTypography::SETTING_KEY, ContentTypography::sanitizeSize($data['content_font_size'] ?? null));
 
         Notification::make()
             ->success()
             ->title('Tema berhasil disimpan')
-            ->body('Perubahan warna dan font akan langsung terlihat di website.')
+            ->body('Perubahan warna, font, dan ukuran teks konten akan langsung terlihat di website.')
             ->send();
     }
 
@@ -165,12 +187,13 @@ class ThemeSettings extends Page
                 ->icon(Heroicon::OutlinedArrowPath)
                 ->requiresConfirmation()
                 ->modalHeading('Reset Tema?')
-                ->modalDescription('Warna akan dikembalikan ke Amber dan font ke Instrument Sans (default).')
+                ->modalDescription('Warna akan dikembalikan ke Amber, font ke Instrument Sans, dan ukuran teks konten ke '.ContentTypography::DEFAULT_SIZE.'px (default).')
                 ->action(function (): void {
                     Setting::set('theme_primary_color', '#d97706');
                     Setting::set('theme_font', 'instrument-sans');
                     Setting::set('theme_font_custom_url', '');
                     Setting::set('theme_font_custom_family', '');
+                    Setting::set(ContentTypography::SETTING_KEY, ContentTypography::DEFAULT_SIZE);
 
                     $this->form->fill([
                         'theme_preset' => '#d97706',
@@ -178,6 +201,7 @@ class ThemeSettings extends Page
                         'theme_font' => 'instrument-sans',
                         'theme_font_custom_url' => '',
                         'theme_font_custom_family' => '',
+                        'content_font_size' => ContentTypography::DEFAULT_SIZE,
                     ]);
 
                     Notification::make()
@@ -266,6 +290,24 @@ class ThemeSettings extends Page
         $stylesheet = $href ? '<link rel="stylesheet" href="'.e($href).'">' : '';
 
         return self::buildPreview($family, $stylesheet);
+    }
+
+    /**
+     * Renders a sample content block at the chosen size, with a 16px reference
+     * line below it so the admin can judge it against the rest of the website.
+     */
+    protected static function contentSizePreview(int $size): HtmlString
+    {
+        $size = ContentTypography::sanitizeSize($size);
+        $heading = round(1.65 * 16 * ContentTypography::scale($size));
+
+        return new HtmlString(<<<HTML
+            <div style="border: 1px solid rgba(0,0,0,.1); border-radius: .75rem; padding: 1rem 1.25rem; background: #fff;">
+                <div style="font-size: {$heading}px; font-weight: 800; line-height: 1.3; color: #111827;">Judul di Dalam Konten</div>
+                <p style="font-size: {$size}px; line-height: 1.85; margin-top: .625rem; color: #374151;">Isi artikel, halaman, dan program akan tampil seukuran ini. Aturlah sampai enak dibaca tanpa terasa lebih besar daripada bagian website lainnya.</p>
+                <p style="font-size: 16px; line-height: 1.6; margin-top: .875rem; padding-top: .625rem; border-top: 1px dashed rgba(0,0,0,.12); color: #6e6e73;">Pembanding — teks umum website berukuran 16px.</p>
+            </div>
+        HTML);
     }
 
     /**

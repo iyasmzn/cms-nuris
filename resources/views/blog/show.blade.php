@@ -73,9 +73,11 @@
         background: linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.35) 50%, rgba(0,0,0,.1) 100%);
     }
 
-    /* Prose typography */
+    /* Prose typography — tiap ukuran dikali --content-scale (pengaturan
+       global "Ukuran Teks Konten" di Tema & Tampilan). */
+    .article-prose { font-size: calc(1rem * var(--content-scale, 1)); }
     .article-prose h2 {
-        font-size: 1.5rem;
+        font-size: calc(1.5rem * var(--content-scale, 1));
         font-weight: 800;
         margin-top: 2.75rem;
         margin-bottom: 1rem;
@@ -86,7 +88,7 @@
         display: inline-block;
     }
     .article-prose h3 {
-        font-size: 1.2rem;
+        font-size: calc(1.2rem * var(--content-scale, 1));
         font-weight: 700;
         margin-top: 2rem;
         margin-bottom: .75rem;
@@ -96,7 +98,7 @@
         margin-bottom: 1.375rem;
         line-height: 1.85;
         color: #374151;
-        font-size: 1.0625rem;
+        font-size: calc(1.0625rem * var(--content-scale, 1));
     }
     .article-prose ul, .article-prose ol {
         padding-left: 1.5rem;

@@ -3,6 +3,7 @@
 use App\Models\AcademicYear;
 use App\Models\RegistrationWave;
 use App\Models\Setting;
+use App\Support\ContentTypography;
 use App\Support\SectionBackground;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -238,6 +239,17 @@ if (! function_exists('resolved_font')) {
                 ? 'https://fonts.googleapis.com/css2?family='.$font['google'].'&display=swap'
                 : null,
         ];
+    }
+}
+
+if (! function_exists('content_font_scale')) {
+    /**
+     * Pengali ukuran huruf teks konten pilihan admin, dipasang sebagai
+     * `--content-scale` pada layout publik. 1 berarti ukuran bawaan rancangan.
+     */
+    function content_font_scale(): float
+    {
+        return ContentTypography::scale();
     }
 }
 

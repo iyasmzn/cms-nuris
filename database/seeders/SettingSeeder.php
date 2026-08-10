@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Setting;
+use App\Support\ContentTypography;
 use Illuminate\Database\Seeder;
 
 class SettingSeeder extends Seeder
@@ -186,6 +187,7 @@ class SettingSeeder extends Seeder
         return [
             'theme_primary_color' => '#08484A',
             'theme_font' => 'plus-jakarta-sans',
+            ContentTypography::SETTING_KEY => ContentTypography::DEFAULT_SIZE,
         ];
     }
 }

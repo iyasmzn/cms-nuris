@@ -1,4 +1,10 @@
-{{-- Shared styles for the "Konten Tambahan" blocks (teks / cover / carousel / gallery / lightbox / gambar-teks / kartu). --}}
+{{--
+    Shared styles for the "Konten Tambahan" blocks (teks / cover / carousel / gallery / lightbox / gambar-teks / kartu).
+
+    Ukuran teks isi blok dikali `--content-scale` — pengaturan global "Ukuran
+    Teks Konten" di Tema & Tampilan. Judul seksi tidak ikut karena mengikuti
+    skala judul seksi lain di website.
+--}}
 <style>
     /* ── Seksi ────────────────────────────────────────────
        Tiap blok berdiri sebagai seksi sendiri saat dipakai sebagai
@@ -58,13 +64,13 @@
     .block-section-inner > :last-child  { margin-bottom: 0; }
 
     /* ── Teks bebas ───────────────────────────────────────── */
-    .block-prose { line-height: 1.85; color: var(--muted); font-size: 1.0625rem; margin: 1.5rem 0; }
-    @media (min-width: 640px) { .block-prose { font-size: 1.125rem; } }
+    .block-prose { line-height: 1.85; color: var(--muted); font-size: calc(1.0625rem * var(--content-scale, 1)); margin: 1.5rem 0; }
+    @media (min-width: 640px) { .block-prose { font-size: calc(1.125rem * var(--content-scale, 1)); } }
     .block-prose > *:first-child { margin-top: 0; }
     .block-prose > *:last-child  { margin-bottom: 0; }
-    .block-prose h2 { font-size: 1.5rem; font-weight: 800; color: var(--text); margin: 2rem 0 .875rem; line-height: 1.3; }
-    .block-prose h3 { font-size: 1.25rem; font-weight: 700; color: var(--text); margin: 1.75rem 0 .75rem; line-height: 1.35; }
-    .block-prose h4 { font-size: 1.0625rem; font-weight: 700; color: var(--text); margin: 1.5rem 0 .625rem; line-height: 1.4; }
+    .block-prose h2 { font-size: calc(1.5rem * var(--content-scale, 1)); font-weight: 800; color: var(--text); margin: 2rem 0 .875rem; line-height: 1.3; }
+    .block-prose h3 { font-size: calc(1.25rem * var(--content-scale, 1)); font-weight: 700; color: var(--text); margin: 1.75rem 0 .75rem; line-height: 1.35; }
+    .block-prose h4 { font-size: calc(1.0625rem * var(--content-scale, 1)); font-weight: 700; color: var(--text); margin: 1.5rem 0 .625rem; line-height: 1.4; }
     .block-prose p  { margin-bottom: 1.375rem; }
     .block-prose ul, .block-prose ol { margin: 0 0 1.375rem; padding-left: 1.5rem; }
     .block-prose ul { list-style: disc; }
@@ -81,7 +87,7 @@
     .block-prose strong { color: var(--text); font-weight: 700; }
     .block-prose img { border-radius: .75rem; margin: 1.75rem 0; max-width: 100%; }
     .block-prose code { background: var(--primary-50); padding: .125rem .4rem; border-radius: .25rem; font-size: .875em; color: var(--primary); }
-    .block-prose table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: .875rem; }
+    .block-prose table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: calc(.875rem * var(--content-scale, 1)); }
     .block-prose th { background: var(--primary-50); color: var(--primary-800); font-weight: 700; padding: .625rem 1rem; text-align: left; border-bottom: 2px solid var(--primary-200); }
     .block-prose td { padding: .625rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; }
     .block-prose tr:last-child td { border-bottom: none; }
@@ -93,7 +99,7 @@
         .block-media-split { grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: center; }
     }
     .block-media-title {
-        font-size: 1.375rem; font-weight: 800; color: var(--text);
+        font-size: calc(1.375rem * var(--content-scale, 1)); font-weight: 800; color: var(--text);
         line-height: 1.3; margin-bottom: .875rem;
     }
     /* Perataan kolom teks; tombol CTA ikut karena inline-flex mengikuti text-align.
@@ -107,8 +113,8 @@
     .block-text-right .block-prose ul,
     .block-text-right .block-prose ol { list-style-position: inside; padding-left: 0; }
 
-    .block-media .block-prose { margin: 0; font-size: 1rem; }
-    @media (min-width: 640px) { .block-media .block-prose { font-size: 1.0625rem; } }
+    .block-media .block-prose { margin: 0; font-size: calc(1rem * var(--content-scale, 1)); }
+    @media (min-width: 640px) { .block-media .block-prose { font-size: calc(1.0625rem * var(--content-scale, 1)); } }
 
     /* ── Kartu ────────────────────────────────────────────── */
     .block-cards { margin: 2.5rem 0; }

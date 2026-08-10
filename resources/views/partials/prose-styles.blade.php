@@ -2,17 +2,21 @@
     Shared rich prose typography for public detail pages (program / event / etc).
     Themed on --primary. Tuned for comfortable long-form reading:
     larger body text, generous line-height, constrained measure via .article-prose wrapper.
+
+    Setiap ukuran huruf dikali `--content-scale` — pengaturan global "Ukuran Teks
+    Konten" di Tema & Tampilan — supaya seluruh teks konten mengecil/membesar
+    serentak tanpa mengubah langkah responsifnya.
 --}}
 <style>
     .article-prose {
         color: #374151;
-        font-size: 1.0625rem;
+        font-size: calc(1.0625rem * var(--content-scale, 1));
         line-height: 1.85;
     }
     .article-prose > *:first-child { margin-top: 0; }
 
     .article-prose h2 {
-        font-size: 1.5rem;
+        font-size: calc(1.5rem * var(--content-scale, 1));
         font-weight: 800;
         color: #111827;
         line-height: 1.3;
@@ -23,14 +27,14 @@
         display: inline-block;
     }
     .article-prose h3 {
-        font-size: 1.2rem;
+        font-size: calc(1.2rem * var(--content-scale, 1));
         font-weight: 700;
         color: #1f2937;
         margin-top: 2rem;
         margin-bottom: .75rem;
     }
     .article-prose h4 {
-        font-size: 1.0625rem;
+        font-size: calc(1.0625rem * var(--content-scale, 1));
         font-weight: 700;
         color: #1f2937;
         margin-top: 1.5rem;
@@ -54,7 +58,7 @@
         border-radius: 0 .75rem .75rem 0;
         color: var(--primary-900);
         font-style: italic;
-        font-size: 1.05rem;
+        font-size: calc(1.05rem * var(--content-scale, 1));
     }
     .article-prose blockquote p:last-child { margin-bottom: 0; }
 
@@ -102,7 +106,7 @@
         border-radius: .75rem;
         overflow-x: auto;
         margin: 1.75rem 0;
-        font-size: .9rem;
+        font-size: calc(.9rem * var(--content-scale, 1));
         line-height: 1.7;
     }
     .article-prose pre code { background: none; color: inherit; padding: 0; }
@@ -111,7 +115,7 @@
         width: 100%;
         border-collapse: collapse;
         margin: 1.75rem 0;
-        font-size: .9375rem;
+        font-size: calc(.9375rem * var(--content-scale, 1));
         display: block;
         overflow-x: auto;
     }
@@ -146,7 +150,7 @@
 
     /* Lead paragraph shown above the article body */
     .article-lead {
-        font-size: 1.1875rem;
+        font-size: calc(1.1875rem * var(--content-scale, 1));
         line-height: 1.7;
         color: #4b5563;
         font-weight: 500;
@@ -156,7 +160,7 @@
     }
 
     @media (min-width: 640px) {
-        .article-prose { font-size: 1.125rem; }
-        .article-prose h2 { font-size: 1.65rem; }
+        .article-prose { font-size: calc(1.125rem * var(--content-scale, 1)); }
+        .article-prose h2 { font-size: calc(1.65rem * var(--content-scale, 1)); }
     }
 </style>
