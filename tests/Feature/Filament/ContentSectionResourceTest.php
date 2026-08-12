@@ -216,6 +216,36 @@ class ContentSectionResourceTest extends TestCase
         ]);
     }
 
+    public function test_can_create_a_carousel_that_keeps_running_while_hovered(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm([
+                'title' => 'Terus Berjalan',
+                'description' => '<p>Deskripsi.</p>',
+                'layout' => 'carousel',
+                'items' => [['title' => 'Kartu A'], ['title' => 'Kartu B']],
+                'carousel_autoplay' => true,
+                'carousel_pause_on_hover' => false,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas(ContentSection::class, [
+            'title' => 'Terus Berjalan',
+            'carousel_autoplay' => true,
+            'carousel_pause_on_hover' => false,
+        ]);
+    }
+
+    public function test_the_hover_pause_toggle_follows_the_autoplay_toggle(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm(['layout' => 'carousel', 'carousel_autoplay' => true])
+            ->assertFormFieldVisible('carousel_pause_on_hover')
+            ->fillForm(['carousel_autoplay' => false])
+            ->assertFormFieldHidden('carousel_pause_on_hover');
+    }
+
     public function test_the_card_fields_only_appear_on_a_card_layout(): void
     {
         Livewire::test(CreateContentSection::class)

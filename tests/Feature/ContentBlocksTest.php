@@ -121,8 +121,31 @@ class ContentBlocksTest extends TestCase
             ->assertSee('class="cs-track"', false)
             ->assertSee('delay: 7000', false)
             ->assertSee('loop: false', false)
+            ->assertSee('pauseOnHover: true', false)
             ->assertSee('cs-arrow cs-arrow-prev', false)
             ->assertDontSee('class="cs-dots"', false);
+    }
+
+    public function test_carousel_cards_block_can_keep_running_while_hovered(): void
+    {
+        $page = StaticPage::factory()->create([
+            'blocks' => [
+                [
+                    'type' => 'cards_carousel',
+                    'carousel_autoplay' => true,
+                    'carousel_pause_on_hover' => false,
+                    'items' => [
+                        ['title' => 'Kartu Satu'],
+                        ['title' => 'Kartu Dua'],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->get(route('page.show', $page->slug))
+            ->assertOk()
+            ->assertSee('autoplay: true', false)
+            ->assertSee('pauseOnHover: false', false);
     }
 
     public function test_card_block_without_valid_cards_renders_nothing(): void

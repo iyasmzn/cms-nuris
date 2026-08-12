@@ -150,6 +150,7 @@
             autoplay: config.autoplay ?? false,
             delay: config.delay ?? 5000,
             loop: config.loop ?? true,
+            pauseOnHover: config.pauseOnHover ?? true,
             pages: 1,
             page: 0,
             pageWidth: 0,
@@ -240,6 +241,14 @@
 
             pause() { this.paused = true },
             resume() { this.paused = false },
+
+            /**
+             * Jeda karena kursor menyorot bisa dimatikan admin. Sentuhan dan
+             * fokus keyboard tetap menjeda apa pun pengaturannya — di sana
+             * pengunjung sedang berinteraksi, bukan sekadar melintas.
+             */
+            hoverPause() { if (this.pauseOnHover) { this.pause() } },
+            hoverResume() { if (this.pauseOnHover) { this.resume() } },
         }))
     })
 </script>

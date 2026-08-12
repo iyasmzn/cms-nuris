@@ -258,6 +258,7 @@
             $autoplay = $isCarousel && ($block['carousel_autoplay'] ?? true);
             $delayMs  = min(15, max(2, (int) ($block['carousel_autoplay_delay'] ?? 5) ?: 5)) * 1000;
             $loop     = (bool) ($block['carousel_loop'] ?? true);
+            $pauseOnHover = $autoplay && ($block['carousel_pause_on_hover'] ?? true);
         @endphp
         @if($cards->isNotEmpty())
             @include('partials.content-cards-styles')
@@ -271,10 +272,11 @@
                              autoplay: {{ $autoplay ? 'true' : 'false' }},
                              delay: {{ $delayMs }},
                              loop: {{ $loop ? 'true' : 'false' }},
+                             pauseOnHover: {{ $pauseOnHover ? 'true' : 'false' }},
                          })"
                          x-init="start()"
-                         @mouseenter="pause()"
-                         @mouseleave="resume()"
+                         @mouseenter="hoverPause()"
+                         @mouseleave="hoverResume()"
                          @focusin="pause()"
                          @focusout="resume()"
                          @touchstart.passive="pause()">

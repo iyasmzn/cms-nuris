@@ -130,6 +130,7 @@ class ContentSection extends Model
         'items_columns',
         'carousel_autoplay',
         'carousel_autoplay_delay',
+        'carousel_pause_on_hover',
         'carousel_loop',
         'carousel_arrows',
         'carousel_dots',
@@ -156,6 +157,7 @@ class ContentSection extends Model
             'items_columns' => 'integer',
             'carousel_autoplay' => 'boolean',
             'carousel_autoplay_delay' => 'integer',
+            'carousel_pause_on_hover' => 'boolean',
             'carousel_loop' => 'boolean',
             'carousel_arrows' => 'boolean',
             'carousel_dots' => 'boolean',
@@ -256,6 +258,15 @@ class ContentSection extends Model
     public function getUsesAutoplayAttribute(): bool
     {
         return $this->uses_carousel && (bool) $this->carousel_autoplay;
+    }
+
+    /**
+     * Apakah carousel yang berjalan sendiri ikut berhenti saat disorot kursor.
+     * Hanya berarti bila autoplay-nya memang menyala.
+     */
+    public function getPausesOnHoverAttribute(): bool
+    {
+        return $this->uses_autoplay && (bool) ($this->carousel_pause_on_hover ?? true);
     }
 
     /**

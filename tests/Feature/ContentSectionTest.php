@@ -359,9 +359,40 @@ class ContentSectionTest extends TestCase
             ->assertSee('autoplay: true', false)
             ->assertSee('delay: 8000', false)
             ->assertSee('loop: false', false)
+            ->assertSee('pauseOnHover: true', false)
             ->assertSee('class="cs-arrow cs-arrow-prev"', false)
             ->assertSee('class="cs-dots"', false)
             ->assertDontSee('class="cs-grid"', false);
+    }
+
+    public function test_the_carousel_can_keep_running_while_hovered(): void
+    {
+        ContentSection::factory()->withCarousel(6)->create([
+            'title' => 'Terus Berjalan',
+            'carousel_autoplay' => true,
+            'carousel_pause_on_hover' => false,
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('autoplay: true', false)
+            ->assertSee('pauseOnHover: false', false);
+    }
+
+    public function test_the_hover_pause_is_moot_without_autoplay(): void
+    {
+        ContentSection::factory()->withCarousel(4)->create([
+            'title' => 'Carousel Manual',
+            'carousel_autoplay' => false,
+            'carousel_pause_on_hover' => true,
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('autoplay: false', false)
+            ->assertSee('pauseOnHover: false', false);
     }
 
     public function test_the_carousel_navigation_can_be_switched_off(): void

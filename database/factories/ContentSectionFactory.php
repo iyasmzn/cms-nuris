@@ -29,6 +29,7 @@ class ContentSectionFactory extends Factory
             'items_columns' => 3,
             'carousel_autoplay' => true,
             'carousel_autoplay_delay' => 5,
+            'carousel_pause_on_hover' => true,
             'carousel_loop' => true,
             'carousel_arrows' => true,
             'carousel_dots' => true,

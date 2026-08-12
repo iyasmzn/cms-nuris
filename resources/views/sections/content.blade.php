@@ -142,10 +142,11 @@
                              autoplay: {{ $contentSection->uses_autoplay ? 'true' : 'false' }},
                              delay: {{ $contentSection->autoplay_delay_ms }},
                              loop: {{ $contentSection->carousel_loop ? 'true' : 'false' }},
+                             pauseOnHover: {{ $contentSection->pauses_on_hover ? 'true' : 'false' }},
                          })"
                          x-init="start()"
-                         @mouseenter="pause()"
-                         @mouseleave="resume()"
+                         @mouseenter="hoverPause()"
+                         @mouseleave="hoverResume()"
                          @focusin="pause()"
                          @focusout="resume()"
                          @touchstart.passive="pause()">

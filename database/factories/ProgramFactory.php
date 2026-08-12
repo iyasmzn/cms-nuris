@@ -33,7 +33,7 @@ class ProgramFactory extends Factory
             'excerpt' => $this->faker->sentence(12),
             'content' => '<p>'.$this->faker->paragraphs(3, true).'</p>',
             'image' => null,
-            'icon' => $this->faker->randomElement(['academic-cap', 'book-open', 'star', 'heart', 'globe-alt']),
+            'icon' => $this->faker->randomElement(['🎓', '📖', '🕌', '⭐', '🌍']),
             'category' => $this->faker->randomElement(['Formal', 'Non-Formal', 'Unggulan']),
             'is_published' => true,
             'sort_order' => $this->faker->numberBetween(0, 10),

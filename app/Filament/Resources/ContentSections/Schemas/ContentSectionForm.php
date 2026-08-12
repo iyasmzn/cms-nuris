@@ -208,7 +208,7 @@ class ContentSectionForm
                             ->default(true)
                             ->onColor('success')
                             ->live()
-                            ->helperText('Berhenti sementara saat kartunya disentuh atau disorot kursor.'),
+                            ->helperText('Kartu berpindah sendiri sesuai jeda di bawah.'),
 
                         Toggle::make('carousel_loop')
                             ->label('Kembali ke Awal')
@@ -224,6 +224,14 @@ class ContentSectionForm
                             ->default(5)
                             ->required()
                             ->visible(fn (Get $get): bool => (bool) $get('carousel_autoplay'))
+                            ->columnSpanFull(),
+
+                        Toggle::make('carousel_pause_on_hover')
+                            ->label('Berhenti saat Disorot Kursor')
+                            ->default(true)
+                            ->onColor('success')
+                            ->visible(fn (Get $get): bool => (bool) $get('carousel_autoplay'))
+                            ->helperText('Matikan agar kartu terus berjalan meski kursor berada di atasnya. Perpindahan tetap berhenti saat kartunya disentuh di ponsel atau dijelajahi lewat keyboard.')
                             ->columnSpanFull(),
 
                         Toggle::make('carousel_arrows')
