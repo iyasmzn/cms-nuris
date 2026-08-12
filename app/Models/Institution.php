@@ -37,19 +37,23 @@ class Institution extends Model
         'embed_url',
         'procedures',
         'fees',
+        'requirements',
         'registration_fee',
         'form_title',
         'form_description',
         'closed_message',
         'show_status_button',
+        'show_requirements',
     ];
 
     protected $casts = [
         'sort_order' => 'integer',
         'is_active' => 'boolean',
         'show_status_button' => 'boolean',
+        'show_requirements' => 'boolean',
         'procedures' => 'array',
         'fees' => 'array',
+        'requirements' => 'array',
         'registration_fee' => 'integer',
     ];
 
@@ -176,6 +180,36 @@ class Institution extends Model
     public function resolvedFees(): array
     {
         return $this->fees ?: (json_decode((string) Setting::get('spmb_fees', ''), true) ?: []);
+    }
+
+    /**
+     * Document requirements shown on this jenjang's PPDB page, falling back to
+     * the global Setting. Returns an empty list when this jenjang hides them,
+     * so a global list can still be switched off for a single jenjang.
+     *
+     * @return array<int, string>
+     */
+    public function resolvedRequirements(): array
+    {
+        if (! $this->showsRequirements()) {
+            return [];
+        }
+
+        $requirements = $this->requirements ?: (json_decode((string) Setting::get('spmb_requirements', ''), true) ?: []);
+
+        return array_values(array_filter(
+            array_map(static fn ($requirement): string => trim((string) $requirement), $requirements),
+            static fn (string $requirement): bool => $requirement !== '',
+        ));
+    }
+
+    /**
+     * Whether the "Persyaratan Dokumen" card appears on this jenjang's public
+     * page at all — some jenjang mengurus berkasnya di luar sistem ini.
+     */
+    public function showsRequirements(): bool
+    {
+        return (bool) ($this->show_requirements ?? true);
     }
 
     /**

@@ -250,6 +250,33 @@ class InstitutionForm
                         ->collapsible()
                         ->collapsed()
                         ->columnSpanFull(),
+
+                    Toggle::make('show_requirements')
+                        ->label('Tampilkan Persyaratan Dokumen')
+                        ->default(true)
+                        ->onColor('success')
+                        ->offColor('danger')
+                        ->live()
+                        ->helperText('Matikan untuk menyembunyikan kartu persyaratan dokumen di halaman PPDB jenjang ini, meskipun daftar globalnya terisi.')
+                        ->columnSpanFull(),
+
+                    Repeater::make('requirements')
+                        ->label('Persyaratan Dokumen')
+                        ->visible(fn (Get $get): bool => (bool) $get('show_requirements'))
+                        ->simple(
+                            TextInput::make('requirement')
+                                ->hiddenLabel()
+                                ->required()
+                                ->maxLength(200)
+                                ->placeholder('Fotokopi Kartu Keluarga'),
+                        )
+                        ->addActionLabel('+ Tambah Persyaratan')
+                        ->reorderable()
+                        ->reorderableWithDragAndDrop()
+                        ->maxItems(20)
+                        ->defaultItems(0)
+                        ->helperText('Kosongkan untuk memakai daftar persyaratan global.')
+                        ->columnSpanFull(),
                 ]),
         ]);
     }

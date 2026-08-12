@@ -309,19 +309,11 @@
         @endif
 
         {{-- Syarat Pendaftaran --}}
+        @if(!empty($requirements))
         <div class="fi-card p-6 sm:p-8" data-aos="fade-up">
             <h3 class="font-bold text-base mb-5" style="color:var(--text)">📎 Persyaratan Dokumen</h3>
             <div class="grid sm:grid-cols-2 gap-3">
-                @foreach([
-                    'Ijazah / Surat Keterangan Lulus (SKL) asli dan fotokopi',
-                    'Rapor kelas 7, 8, dan 9 yang telah dilegalisasi',
-                    'Akta Kelahiran asli dan fotokopi',
-                    'Kartu Keluarga asli dan fotokopi',
-                    'Pas foto terbaru ukuran 3×4 (5 lembar, latar merah)',
-                    'Surat keterangan domisili (untuk jalur Zonasi)',
-                    'Piagam / sertifikat prestasi (untuk jalur Prestasi)',
-                    'Surat keterangan tidak mampu (untuk jalur Afirmasi)',
-                ] as $doc)
+                @foreach($requirements as $doc)
                 <div class="flex items-start gap-2.5">
                     <svg class="w-4 h-4 mt-0.5 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                     <span class="text-sm" style="color:var(--muted)">{{ $doc }}</span>
@@ -329,6 +321,7 @@
                 @endforeach
             </div>
         </div>
+        @endif
     </div>
 
     {{-- ──────── TAB: BIAYA ──────── --}}

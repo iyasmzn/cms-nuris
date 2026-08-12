@@ -155,6 +155,14 @@ class SettingSeeder extends Seeder
             ['category' => 'Paket Materi',      'amount' => 'Rp 250.000', 'note' => 'Opsional, sesuai kebutuhan'],
         ];
 
+        $requirements = [
+            'Ijazah / Surat Keterangan Lulus (SKL) asli dan fotokopi',
+            'Rapor yang telah dilegalisasi',
+            'Akta Kelahiran asli dan fotokopi',
+            'Kartu Keluarga asli dan fotokopi',
+            'Pas foto terbaru ukuran 3×4 (5 lembar)',
+        ];
+
         return [
             // Kartu di halaman depan
             'spmb_card_title' => 'Pendaftaran {year} Telah Dibuka!',
@@ -175,9 +183,10 @@ class SettingSeeder extends Seeder
             'spmb_form_description' => 'Isi formulir di bawah ini dengan data yang benar dan lengkap. Tim kami akan menghubungi Anda untuk proses verifikasi.',
             'spmb_closed_message' => 'Pendaftaran saat ini sedang ditutup. Pantau informasi terbaru melalui halaman ini atau hubungi kami.',
 
-            // Konten prosedur & biaya
+            // Konten prosedur, biaya & persyaratan
             'spmb_procedures' => json_encode($procedures),
             'spmb_fees' => json_encode($fees),
+            'spmb_requirements' => json_encode($requirements),
         ];
     }
 

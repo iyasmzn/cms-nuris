@@ -58,6 +58,7 @@ class SpmbController extends Controller
     {
         $procedures = $institution->resolvedProcedures() ?: $this->defaultProcedures();
         $fees = $institution->resolvedFees();
+        $requirements = $institution->resolvedRequirements();
         $formTitle = $institution->resolvedFormTitle();
         $formDesc = $institution->resolvedFormDescription();
         $closedMessage = $institution->resolvedClosedMessage();
@@ -88,7 +89,7 @@ class SpmbController extends Controller
             'canonical' => route('ppdb.show', $institution),
         ];
 
-        return view('ppdb.show', compact('institution', 'procedures', 'fees', 'formTitle', 'formDesc', 'closedMessage', 'paths', 'fields', 'waves', 'scheduleWave', 'spmbOpen', 'seo'));
+        return view('ppdb.show', compact('institution', 'procedures', 'fees', 'requirements', 'formTitle', 'formDesc', 'closedMessage', 'paths', 'fields', 'waves', 'scheduleWave', 'spmbOpen', 'seo'));
     }
 
     public function store(Request $request, Institution $institution): RedirectResponse

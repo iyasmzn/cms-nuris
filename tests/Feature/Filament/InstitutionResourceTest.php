@@ -91,6 +91,35 @@ class InstitutionResourceTest extends TestCase
         ]);
     }
 
+    public function test_it_saves_per_jenjang_document_requirements(): void
+    {
+        $institution = Institution::factory()->create();
+
+        Livewire::test(EditInstitution::class, ['record' => $institution->id])
+            ->fillForm([
+                'show_requirements' => true,
+                'requirements' => [
+                    ['requirement' => 'Sertifikat hafalan Al-Quran'],
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(['Sertifikat hafalan Al-Quran'], $institution->refresh()->requirements);
+    }
+
+    public function test_it_hides_document_requirements_for_a_jenjang(): void
+    {
+        $institution = Institution::factory()->create();
+
+        Livewire::test(EditInstitution::class, ['record' => $institution->id])
+            ->fillForm(['show_requirements' => false])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertFalse($institution->refresh()->showsRequirements());
+    }
+
     public function test_it_requires_a_name_and_slug(): void
     {
         Livewire::test(CreateInstitution::class)

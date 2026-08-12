@@ -71,6 +71,52 @@ class SpmbRegistrationTest extends TestCase
         $response->assertSee('PPDB');
     }
 
+    public function test_document_requirements_fall_back_to_the_global_setting(): void
+    {
+        Setting::set('spmb_requirements', json_encode(['Fotokopi Kartu Keluarga', 'Pas foto 3x4']));
+
+        $response = $this->get(route('ppdb.show', $this->institution));
+
+        $response->assertStatus(200);
+        $response->assertSee('Persyaratan Dokumen');
+        $response->assertSee('Fotokopi Kartu Keluarga');
+        $response->assertSee('Pas foto 3x4');
+    }
+
+    public function test_jenjang_document_requirements_override_the_global_setting(): void
+    {
+        Setting::set('spmb_requirements', json_encode(['Fotokopi Kartu Keluarga']));
+        $this->institution->update(['requirements' => ['Sertifikat hafalan Al-Quran']]);
+
+        $response = $this->get(route('ppdb.show', $this->institution));
+
+        $response->assertStatus(200);
+        $response->assertSee('Sertifikat hafalan Al-Quran');
+        $response->assertDontSee('Fotokopi Kartu Keluarga');
+    }
+
+    public function test_jenjang_can_hide_document_requirements_despite_a_global_list(): void
+    {
+        Setting::set('spmb_requirements', json_encode(['Fotokopi Kartu Keluarga']));
+        $this->institution->update(['show_requirements' => false]);
+
+        $response = $this->get(route('ppdb.show', $this->institution));
+
+        $response->assertStatus(200);
+        $response->assertDontSee('Persyaratan Dokumen');
+        $response->assertDontSee('Fotokopi Kartu Keluarga');
+    }
+
+    public function test_document_requirements_card_is_hidden_when_nothing_is_configured(): void
+    {
+        Setting::set('spmb_requirements', json_encode([]));
+
+        $response = $this->get(route('ppdb.show', $this->institution));
+
+        $response->assertStatus(200);
+        $response->assertDontSee('Persyaratan Dokumen');
+    }
+
     public function test_homepage_spmb_section_links_to_open_jenjang(): void
     {
         $response = $this->get(route('home'));

@@ -44,6 +44,7 @@ class SpmbSettings extends Page
     {
         $procedures = json_decode(Setting::get('spmb_procedures', ''), true);
         $fees = json_decode(Setting::get('spmb_fees', ''), true);
+        $requirements = json_decode(Setting::get('spmb_requirements', ''), true);
         $bankAccounts = json_decode(Setting::get('spmb_bank_accounts', ''), true);
 
         $this->form->fill([
@@ -71,6 +72,9 @@ class SpmbSettings extends Page
 
             // Biaya
             'fees' => is_array($fees) ? $fees : $this->defaultFees(),
+
+            // Persyaratan dokumen
+            'requirements' => is_array($requirements) ? $requirements : $this->defaultRequirements(),
 
             // Pembayaran biaya pendaftaran
             'spmb_payment_enabled' => (bool) Setting::get('spmb_payment_enabled', false),
@@ -265,6 +269,27 @@ class SpmbSettings extends Page
                         ->columnSpanFull(),
                 ]),
 
+            Section::make('Persyaratan Dokumen')
+                ->description('Berkas yang harus disiapkan calon pendaftar. Tampil sebagai daftar centang di halaman PPDB. Kosongkan untuk menyembunyikan bagian ini di semua jenjang.')
+                ->icon(Heroicon::OutlinedPaperClip)
+                ->schema([
+                    Repeater::make('requirements')
+                        ->label('')
+                        ->simple(
+                            TextInput::make('requirement')
+                                ->hiddenLabel()
+                                ->required()
+                                ->maxLength(200)
+                                ->placeholder('Fotokopi Kartu Keluarga'),
+                        )
+                        ->addActionLabel('+ Tambah Persyaratan')
+                        ->reorderable()
+                        ->reorderableWithDragAndDrop()
+                        ->maxItems(20)
+                        ->defaultItems(0)
+                        ->columnSpanFull(),
+                ]),
+
             Section::make('Pembayaran Biaya Pendaftaran')
                 ->description('Aktifkan untuk menagih biaya pendaftaran lewat transfer manual. Nominal yang ditagih diatur per jenjang di menu Jenjang / Unit, bukan di daftar biaya informatif di atas.')
                 ->icon(Heroicon::OutlinedCreditCard)
@@ -373,6 +398,7 @@ class SpmbSettings extends Page
             // Konten
             'spmb_procedures' => json_encode(array_values($data['procedures'] ?? [])),
             'spmb_fees' => json_encode(array_values($data['fees'] ?? [])),
+            'spmb_requirements' => json_encode(array_values($data['requirements'] ?? [])),
 
             // Pembayaran
             'spmb_payment_enabled' => (int) ($data['spmb_payment_enabled'] ?? false),
@@ -462,6 +488,18 @@ class SpmbSettings extends Page
             ['category' => 'Biaya Pendaftaran', 'amount' => 'Rp 0', 'note' => 'Gratis'],
             ['category' => 'Seragam Sekolah', 'amount' => 'Rp 500.000', 'note' => '3 stel seragam'],
             ['category' => 'Buku Paket', 'amount' => 'Rp 350.000', 'note' => 'Per semester'],
+        ];
+    }
+
+    /** @return array<int, string> */
+    private function defaultRequirements(): array
+    {
+        return [
+            'Ijazah / Surat Keterangan Lulus (SKL) asli dan fotokopi',
+            'Rapor yang telah dilegalisasi',
+            'Akta Kelahiran asli dan fotokopi',
+            'Kartu Keluarga asli dan fotokopi',
+            'Pas foto terbaru ukuran 3×4 (5 lembar)',
         ];
     }
 }
