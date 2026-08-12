@@ -118,6 +118,72 @@ class ContentSection extends Model
     ];
 
     /**
+     * Pola SVG yang bisa dilukis di atas latar polos. Gambarnya sendiri
+     * disimpan di `App\Support\SectionPatterns`; di sini hanya daftar pilihan
+     * yang tampil di panel.
+     *
+     * @var array<string, string>
+     */
+    public const BACKGROUND_PATTERNS = [
+        'none' => 'Tanpa Pola',
+        'dots' => 'Titik-Titik',
+        'grid' => 'Garis Kotak',
+        'diagonal' => 'Garis Miring',
+        'waves' => 'Gelombang',
+        'arabesque' => 'Ornamen Islami',
+    ];
+
+    /**
+     * Kepekatan pola (persen) → label. Sengaja bertingkat halus: pola latar
+     * bertugas menghias, bukan merebut perhatian dari isi seksi.
+     *
+     * @var array<int, string>
+     */
+    public const PATTERN_OPACITY_LEVELS = [
+        4 => 'Samar',
+        8 => 'Halus',
+        14 => 'Sedang',
+        22 => 'Tegas',
+        32 => 'Kuat',
+    ];
+
+    public const DEFAULT_PATTERN_OPACITY = 8;
+
+    /**
+     * Cara pola bergerak saat animasinya dinyalakan. `scroll` tidak berjalan
+     * sendiri: polanya bergeser mengikuti posisi guliran halaman.
+     *
+     * @var array<string, string>
+     */
+    public const PATTERN_MOTIONS = [
+        'drift' => 'Hanyut Diagonal',
+        'drift_x' => 'Hanyut Mendatar',
+        'pulse' => 'Denyut Halus',
+        'scroll' => 'Ikut Guliran',
+    ];
+
+    public const DEFAULT_PATTERN_MOTION = 'drift';
+
+    /**
+     * Laju gerak pola dalam piksel per detik → label.
+     *
+     * Sengaja piksel/detik, bukan lama satu putaran: satu putaran hanya sejauh
+     * satu ubin (16–60px), sehingga "sekian detik per putaran" menghasilkan
+     * kecepatan yang jauh berbeda antar pola — dan pada ubin kecil pergerakannya
+     * jadi terlalu pelan untuk terlihat sama sekali.
+     *
+     * @var array<int, string>
+     */
+    public const PATTERN_SPEEDS = [
+        3 => 'Sangat Lambat',
+        6 => 'Lambat',
+        12 => 'Sedang',
+        20 => 'Cepat',
+    ];
+
+    public const DEFAULT_PATTERN_SPEED = 6;
+
+    /**
      * Cara gambar latar bereaksi terhadap guliran halaman.
      *
      * @var array<string, string>
@@ -154,6 +220,11 @@ class ContentSection extends Model
         'carousel_dots',
         'background',
         'background_image',
+        'background_pattern',
+        'background_pattern_opacity',
+        'background_pattern_animated',
+        'background_pattern_motion',
+        'background_pattern_speed',
         'background_blur',
         'background_overlay',
         'background_parallax_mode',
@@ -179,6 +250,9 @@ class ContentSection extends Model
             'carousel_loop' => 'boolean',
             'carousel_arrows' => 'boolean',
             'carousel_dots' => 'boolean',
+            'background_pattern_opacity' => 'integer',
+            'background_pattern_animated' => 'boolean',
+            'background_pattern_speed' => 'integer',
             'background_blur' => 'integer',
             'background_overlay' => 'integer',
             'background_parallax_speed' => 'integer',

@@ -259,7 +259,7 @@ class ContentSectionForm
                 ]),
 
             Section::make('Latar Belakang Seksi')
-                ->description('Latar abu lembut, putih bersih, atau gambar penuh dengan efek blur, lapisan gelap, dan parallax.')
+                ->description('Latar abu lembut, putih bersih, atau gambar penuh dengan efek blur, lapisan gelap, dan parallax. Latar polos bisa dihias pola SVG.')
                 ->icon(Heroicon::OutlinedSwatch)
                 ->schema([
                     ToggleButtons::make('background')
@@ -276,6 +276,62 @@ class ContentSectionForm
                         ->live()
                         ->helperText('Abu lembut = warna dasar halaman, sama seperti seksi bawaan. Selang-seling dengan putih agar antar seksi tidak menyatu.')
                         ->columnSpanFull(),
+
+                    Grid::make(2)
+                        ->visible(fn (Get $get): bool => $get('background') !== 'image')
+                        ->schema([
+                            Select::make('background_pattern')
+                                ->label('Pola Latar')
+                                ->options(ContentSection::BACKGROUND_PATTERNS)
+                                ->default('none')
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->live()
+                                ->helperText('Hiasan SVG halus di atas warna dasar, diwarnai mengikuti warna utama tema.'),
+
+                            Select::make('background_pattern_opacity')
+                                ->label('Kepekatan Pola')
+                                ->options(ContentSection::PATTERN_OPACITY_LEVELS)
+                                ->default(ContentSection::DEFAULT_PATTERN_OPACITY)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none')
+                                ->helperText('Makin pekat makin terlihat. Pola yang terlalu kuat membuat teks susah dibaca.'),
+
+                            Toggle::make('background_pattern_animated')
+                                ->label('Animasikan Pola')
+                                ->default(false)
+                                ->onColor('success')
+                                ->live()
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none')
+                                ->helperText('Pola bergerak pelan. Otomatis padam bagi pengunjung yang menyetel perangkatnya untuk mengurangi gerak. Pakai seperlunya — beberapa seksi bergerak sekaligus membuat halaman terasa gelisah.')
+                                ->columnSpanFull(),
+
+                            Select::make('background_pattern_motion')
+                                ->label('Jenis Gerak')
+                                ->options(ContentSection::PATTERN_MOTIONS)
+                                ->default(ContentSection::DEFAULT_PATTERN_MOTION)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->live()
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none' && (bool) $get('background_pattern_animated'))
+                                ->helperText('Hanyut = mengalir terus. Denyut = kepekatannya naik-turun. Ikut Guliran = bergeser hanya saat halaman digulir.'),
+
+                            Select::make('background_pattern_speed')
+                                ->label('Kecepatan Gerak')
+                                ->options(ContentSection::PATTERN_SPEEDS)
+                                ->default(ContentSection::DEFAULT_PATTERN_SPEED)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none'
+                                    && (bool) $get('background_pattern_animated')
+                                    && $get('background_pattern_motion') !== 'scroll')
+                                ->helperText('Laju alir pola dalam piksel per detik. "Ikut Guliran" tidak memakainya karena kecepatannya mengikuti guliran pengunjung.'),
+                        ]),
 
                     self::imagePicker(
                         key: 'background_image',

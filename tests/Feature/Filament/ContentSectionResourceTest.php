@@ -216,6 +216,82 @@ class ContentSectionResourceTest extends TestCase
         ]);
     }
 
+    public function test_can_decorate_a_plain_background_with_an_svg_pattern(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm([
+                'title' => 'Seksi Berpola',
+                'description' => '<p>Deskripsi.</p>',
+                'layout' => 'media',
+                'background' => 'alt',
+                'background_pattern' => 'arabesque',
+                'background_pattern_opacity' => 14,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas(ContentSection::class, [
+            'title' => 'Seksi Berpola',
+            'background_pattern' => 'arabesque',
+            'background_pattern_opacity' => 14,
+        ]);
+    }
+
+    public function test_the_pattern_fields_follow_the_background_choice(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm(['background' => 'alt', 'background_pattern' => 'none'])
+            ->assertFormFieldVisible('background_pattern')
+            ->assertFormFieldHidden('background_pattern_opacity')
+            ->assertFormFieldHidden('background_pattern_animated')
+            ->fillForm(['background_pattern' => 'dots'])
+            ->assertFormFieldVisible('background_pattern_opacity')
+            ->assertFormFieldVisible('background_pattern_animated')
+            ->fillForm(['background' => 'image'])
+            ->assertFormFieldHidden('background_pattern')
+            ->assertFormFieldHidden('background_pattern_opacity')
+            ->assertFormFieldHidden('background_pattern_animated');
+    }
+
+    public function test_the_motion_fields_only_appear_once_the_animation_is_on(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm(['background' => 'alt', 'background_pattern' => 'waves', 'background_pattern_animated' => false])
+            ->assertFormFieldHidden('background_pattern_motion')
+            ->assertFormFieldHidden('background_pattern_speed')
+            ->fillForm(['background_pattern_animated' => true, 'background_pattern_motion' => 'drift'])
+            ->assertFormFieldVisible('background_pattern_motion')
+            ->assertFormFieldVisible('background_pattern_speed')
+            // Gerak yang mengikuti guliran tidak punya kecepatan sendiri
+            ->fillForm(['background_pattern_motion' => 'scroll'])
+            ->assertFormFieldHidden('background_pattern_speed');
+    }
+
+    public function test_can_animate_a_background_pattern(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm([
+                'title' => 'Seksi Berpola Gerak',
+                'description' => '<p>Deskripsi.</p>',
+                'layout' => 'media',
+                'background' => 'alt',
+                'background_pattern' => 'waves',
+                'background_pattern_animated' => true,
+                'background_pattern_motion' => 'drift_x',
+                'background_pattern_speed' => 3,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas(ContentSection::class, [
+            'title' => 'Seksi Berpola Gerak',
+            'background_pattern' => 'waves',
+            'background_pattern_animated' => true,
+            'background_pattern_motion' => 'drift_x',
+            'background_pattern_speed' => 3,
+        ]);
+    }
+
     public function test_can_choose_the_card_media_ratio(): void
     {
         Livewire::test(CreateContentSection::class)

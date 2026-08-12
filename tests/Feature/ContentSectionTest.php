@@ -100,6 +100,125 @@ class ContentSectionTest extends TestCase
         );
     }
 
+    public function test_a_background_pattern_is_painted_over_the_base_colour(): void
+    {
+        ContentSection::factory()->create([
+            'anchor' => 'latar-pola',
+            'background' => 'alt',
+            'background_pattern' => 'dots',
+            'background_pattern_opacity' => 14,
+            'is_published' => true,
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        // Warna dasar pindah ke lapisan latar, jadi seksinya sendiri transparan
+        $this->assertStringContainsString('background:transparent', $this->sectionTag('latar-pola'));
+        $this->assertStringContainsString('class="section-bg-layer section-bg-layer-pattern"', $html);
+        $this->assertStringContainsString('background-color:var(--bg-alt, var(--bg))', $html);
+        $this->assertStringContainsString('data:image/svg+xml,', $html);
+        $this->assertStringContainsString('opacity:0.14', $html);
+    }
+
+    public function test_an_animated_pattern_drifts_by_exactly_one_tile(): void
+    {
+        ContentSection::factory()->create([
+            'anchor' => 'pola-hanyut',
+            'background_pattern' => 'dots',
+            'background_pattern_animated' => true,
+            'background_pattern_motion' => 'drift',
+            'background_pattern_speed' => 12,
+            'is_published' => true,
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('class="section-bg-pattern section-bg-pattern-moving section-bg-pattern-drift"', $html);
+        // Ubin dots berukuran 24×24, jadi satu putaran menempuh 24px di kedua sumbu
+        $this->assertStringContainsString('--section-pattern-travel-x:24px', $html);
+        $this->assertStringContainsString('--section-pattern-travel-y:24px', $html);
+        // 24px pada laju 12 px/detik = 2 detik per putaran
+        $this->assertStringContainsString('--section-pattern-duration:2s', $html);
+    }
+
+    public function test_a_pulsing_pattern_breathes_faster_than_one_drift_cycle(): void
+    {
+        ContentSection::factory()->create([
+            'anchor' => 'pola-denyut',
+            'background_pattern' => 'arabesque',
+            'background_pattern_animated' => true,
+            'background_pattern_motion' => 'pulse',
+            'background_pattern_speed' => 6,
+            'is_published' => true,
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('class="section-bg-pattern section-bg-pattern-pulse"', $html);
+        $this->assertStringContainsString('--section-pattern-duration:12s', $html);
+    }
+
+    public function test_a_scroll_driven_pattern_is_wired_to_the_scroll_listener(): void
+    {
+        ContentSection::factory()->create([
+            'anchor' => 'pola-guliran',
+            'background_pattern' => 'waves',
+            'background_pattern_animated' => true,
+            'background_pattern_motion' => 'scroll',
+            'is_published' => true,
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        // Digerakkan guliran, bukan animasi CSS yang berjalan sendiri
+        $this->assertStringContainsString('class="section-bg-pattern section-bg-pattern-moving"', $html);
+        $this->assertStringContainsString('x-on:scroll.window.passive', $html);
+    }
+
+    public function test_a_pattern_stays_still_until_its_animation_is_switched_on(): void
+    {
+        ContentSection::factory()->create([
+            'anchor' => 'pola-diam',
+            'background_pattern' => 'grid',
+            'background_pattern_animated' => false,
+            'background_pattern_motion' => 'drift',
+            'is_published' => true,
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('class="section-bg-layer section-bg-layer-pattern"', $html);
+        // Tanpa satu pun kelas gerak pada lapisan polanya
+        $this->assertStringContainsString('class="section-bg-pattern"', $html);
+        $this->assertStringNotContainsString('class="section-bg-pattern section-bg-pattern', $html);
+    }
+
+    public function test_a_background_pattern_gives_way_to_a_background_image(): void
+    {
+        ContentSection::factory()->withBackgroundImage()->create([
+            'anchor' => 'pola-vs-gambar',
+            'background_pattern' => 'waves',
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertDontSee('class="section-bg-layer section-bg-layer-pattern"', false);
+    }
+
+    public function test_an_unknown_pattern_leaves_the_section_plain(): void
+    {
+        ContentSection::factory()->create([
+            'anchor' => 'pola-ngawur',
+            'background' => 'default',
+            'background_pattern' => 'entah',
+            'is_published' => true,
+        ]);
+
+        $this->assertStringContainsString('background:var(--bg)', $this->sectionTag('pola-ngawur'));
+        $this->get(route('home'))->assertDontSee('class="section-bg-layer section-bg-layer-pattern"', false);
+    }
+
     /**
      * Tag <section> pembuka milik seksi dengan anchor tertentu, agar assertion
      * gaya tidak tertukar dengan seksi lain di halaman depan.

@@ -52,6 +52,73 @@
             background-repeat: no-repeat;
         }
         .section-bg-parallax { will-change: transform; }
+
+        /*
+            Pola SVG dipakai sebagai mask, bukan gambar: yang tampak adalah
+            warna aksen tema di baliknya, sehingga polanya ikut berganti warna
+            saat admin mengganti warna utama situs.
+        */
+        .section-bg-pattern {
+            position: absolute;
+            inset: 0;
+            background-color: var(--primary);
+            -webkit-mask-image: var(--section-pattern);
+            mask-image: var(--section-pattern);
+            -webkit-mask-size: var(--section-pattern-size);
+            mask-size: var(--section-pattern-size);
+            -webkit-mask-repeat: repeat;
+            mask-repeat: repeat;
+        }
+        /* Lapisan pola memakai warna dasar seksi, bukan gelap bawaan latar gambar */
+        .section-bg-layer-pattern { background-color: transparent; }
+
+        /*
+            Pola bergerak. Yang dianimasikan hanya transform & opacity — dua
+            properti yang ditangani compositor — sehingga tidak ada repaint
+            selebar seksi tiap frame. Lapisannya dilebihkan satu ubin ke segala
+            arah supaya tepinya tidak pernah tersingkap saat digeser, dan
+            jarak tempuhnya persis satu ubin agar perputarannya tak terlihat.
+        */
+        .section-bg-pattern-moving {
+            inset: calc(-1 * var(--section-pattern-travel-y)) calc(-1 * var(--section-pattern-travel-x));
+            will-change: transform;
+        }
+        .section-bg-pattern-drift {
+            animation: section-pattern-drift var(--section-pattern-duration) linear infinite;
+        }
+        .section-bg-pattern-drift-x {
+            animation: section-pattern-drift-x var(--section-pattern-duration) linear infinite;
+        }
+        .section-bg-pattern-pulse {
+            animation: section-pattern-pulse var(--section-pattern-duration) ease-in-out infinite;
+            will-change: opacity;
+        }
+
+        /*
+            Cukup translate() dua dimensi: lapisannya sudah dipromosikan ke
+            compositor lewat will-change di atas, jadi varian tiga dimensinya
+            tidak menambah apa pun selain kebingungan saat membaca markup.
+        */
+        @keyframes section-pattern-drift {
+            from { transform: translate(0, 0); }
+            to { transform: translate(var(--section-pattern-travel-x), var(--section-pattern-travel-y)); }
+        }
+        @keyframes section-pattern-drift-x {
+            from { transform: translate(0, 0); }
+            to { transform: translate(var(--section-pattern-travel-x), 0); }
+        }
+        @keyframes section-pattern-pulse {
+            0%, 100% { opacity: var(--section-pattern-opacity); }
+            50% { opacity: calc(var(--section-pattern-opacity) * 1.8); }
+        }
+
+        /* Pengunjung yang meminta gerak seminimal mungkin mendapat pola diam */
+        @media (prefers-reduced-motion: reduce) {
+            .section-bg-pattern {
+                animation: none !important;
+                transform: none !important;
+            }
+        }
         .section-bg-overlay {
             position: absolute;
             inset: 0;
@@ -111,6 +178,73 @@
         'section-light' => $config->usesLightText(),
         'section-clip' => $usesFixedBackground,
     ])->merge(['style' => 'background:'.$config->style($background)]) }}>
+
+    @if($config->hasPattern())
+        @php
+            $patternMotion = $config->resolvedPatternMotion();
+            $patternMoves = $config->usesPatternAnimation() || $config->usesPatternScrollMotion();
+        @endphp
+
+        <div class="section-bg-layer section-bg-layer-pattern"
+             aria-hidden="true"
+             style="background-color:{{ $config->baseColor($background) }}">
+            <div @class([
+                    'section-bg-pattern',
+                    'section-bg-pattern-moving' => $patternMoves && $patternMotion !== 'pulse',
+                    'section-bg-pattern-drift' => $patternMotion === 'drift',
+                    'section-bg-pattern-drift-x' => $patternMotion === 'drift_x',
+                    'section-bg-pattern-pulse' => $patternMotion === 'pulse',
+                 ])
+                 style="--section-pattern:{{ $config->patternMaskUrl() }};
+                        --section-pattern-size:{{ $config->patternSize() }};
+                        --section-pattern-opacity:{{ $config->patternOpacityValue() }};
+                        --section-pattern-travel-x:{{ $config->patternTravelX() }}px;
+                        --section-pattern-travel-y:{{ $config->patternTravelY() }}px;
+                        --section-pattern-duration:{{ $patternMotion === 'pulse' ? $config->patternPulseDuration() : $config->patternDuration() }}s;
+                        opacity:var(--section-pattern-opacity)"
+                 @if($config->usesPatternScrollMotion())
+                     {{-- Pola bergeser mengikuti posisi seksi di layar, bukan berjalan sendiri --}}
+                     x-data="{
+                         offsetX: 0,
+                         offsetY: 0,
+                         travelX: {{ $config->patternTravelX() }},
+                         travelY: {{ $config->patternTravelY() }},
+                         ticking: false,
+                         update() {
+                             if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                                 this.offsetX = this.offsetY = 0;
+                                 return;
+                             }
+
+                             const rect = this.$el.getBoundingClientRect();
+                             const travel = (window.innerHeight + rect.height) / 2;
+
+                             if (travel <= 0) {
+                                 return;
+                             }
+
+                             const distance = window.innerHeight / 2 - (rect.top + rect.height / 2);
+                             const progress = Math.max(-1, Math.min(1, distance / travel));
+
+                             this.offsetX = progress * this.travelX;
+                             this.offsetY = progress * this.travelY;
+                         },
+                         schedule() {
+                             if (this.ticking) {
+                                 return;
+                             }
+
+                             this.ticking = true;
+                             requestAnimationFrame(() => { this.ticking = false; this.update() });
+                         },
+                     }"
+                     x-init="update(); window.addEventListener('load', () => update())"
+                     x-on:scroll.window.passive="schedule()"
+                     x-on:resize.window.passive="schedule()"
+                     x-bind:style="{ transform: `translate3d(${offsetX}px, ${offsetY}px, 0)` }"
+                 @endif></div>
+        </div>
+    @endif
 
     @if($usesFixedBackground)
         {{-- Latar terkunci ke layar: konten yang meluncur, gambarnya diam --}}
