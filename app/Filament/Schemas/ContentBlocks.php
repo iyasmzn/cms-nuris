@@ -383,6 +383,16 @@ class ContentBlocks
                     ->visible(self::usesCards())
                     ->columnSpanFull(),
 
+                Select::make('items_ratio')
+                    ->label('Ratio Gambar Kartu')
+                    ->options(ContentSection::CARD_RATIOS)
+                    ->default(ContentSection::DEFAULT_CARD_RATIO)
+                    ->native(false)
+                    ->selectablePlaceholder(false)
+                    ->helperText('Bentuk area gambar di setiap kartu. Gambar dipotong menyesuaikan bidangnya, jadi tinggi gambar seragam meski ukuran aslinya berbeda-beda. Kartu tanpa gambar tidak terpengaruh.')
+                    ->visible(self::usesCards())
+                    ->columnSpanFull(),
+
                 Fieldset::make('Pengaturan Carousel')
                     ->columns(2)
                     ->visible(self::usesType('cards_carousel'))

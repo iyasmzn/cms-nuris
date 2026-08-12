@@ -134,7 +134,7 @@
 
         @if($usesCards)
             <div class="cs-cards mt-14"
-                 style="--cs-cols-sm:{{ min(2, $contentSection->card_columns) }}; --cs-cols-lg:{{ $contentSection->card_columns }}">
+                 style="--cs-cols-sm:{{ min(2, $contentSection->card_columns) }}; --cs-cols-lg:{{ $contentSection->card_columns }}; --cs-media-ratio:{{ $contentSection->card_media_ratio }}">
 
                 @if($usesCarousel)
                     <div class="cs-carousel"

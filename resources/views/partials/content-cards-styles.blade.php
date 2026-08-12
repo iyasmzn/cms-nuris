@@ -29,7 +29,8 @@
         overflow: hidden;
     }
     .cs-card-media {
-        aspect-ratio: 4 / 3;
+        /* Perbandingan sisi dipilih admin lewat --cs-media-ratio */
+        aspect-ratio: var(--cs-media-ratio, 4 / 3);
         overflow: hidden;
         background: color-mix(in oklab, var(--text) 6%, transparent);
     }

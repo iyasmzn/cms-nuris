@@ -216,6 +216,25 @@ class ContentSectionResourceTest extends TestCase
         ]);
     }
 
+    public function test_can_choose_the_card_media_ratio(): void
+    {
+        Livewire::test(CreateContentSection::class)
+            ->fillForm([
+                'title' => 'Kartu Persegi',
+                'description' => '<p>Deskripsi.</p>',
+                'layout' => 'cards',
+                'items' => [['title' => 'Kartu A']],
+                'items_ratio' => '1-1',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas(ContentSection::class, [
+            'title' => 'Kartu Persegi',
+            'items_ratio' => '1-1',
+        ]);
+    }
+
     public function test_can_create_a_carousel_that_keeps_running_while_hovered(): void
     {
         Livewire::test(CreateContentSection::class)
@@ -253,11 +272,13 @@ class ContentSectionResourceTest extends TestCase
             ->assertFormFieldVisible('image_position')
             ->assertFormFieldHidden('items')
             ->assertFormFieldHidden('items_columns')
+            ->assertFormFieldHidden('items_ratio')
             ->assertFormFieldHidden('carousel_autoplay')
             ->fillForm(['layout' => 'cards'])
             ->assertFormFieldHidden('image_position')
             ->assertFormFieldVisible('items')
             ->assertFormFieldVisible('items_columns')
+            ->assertFormFieldVisible('items_ratio')
             ->assertFormFieldHidden('carousel_autoplay')
             ->fillForm(['layout' => 'carousel'])
             ->assertFormFieldVisible('items')

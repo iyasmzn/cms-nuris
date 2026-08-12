@@ -41,6 +41,7 @@ class StaticPageBlocksTest extends TestCase
                     [
                         'type' => 'cards',
                         'items_columns' => 2,
+                        'items_ratio' => '16-9',
                         'items' => [
                             [
                                 'title' => 'Tahfidz',
@@ -67,5 +68,6 @@ class StaticPageBlocksTest extends TestCase
         $this->assertArrayNotHasKey('image_source', $blocks[2]['items'][0]);
         $this->assertArrayNotHasKey('image_library', $blocks[2]['items'][0]);
         $this->assertSame('Tahfidz', $blocks[2]['items'][0]['title']);
+        $this->assertSame('16-9', $blocks[2]['items_ratio']);
     }
 }

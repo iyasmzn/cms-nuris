@@ -195,6 +195,16 @@ class ContentSectionForm
                         ->selectablePlaceholder(false)
                         ->helperText('Berlaku di layar lebar. Layar ponsel selalu satu kartu, layar sedang paling banyak dua.')
                         ->columnSpanFull(),
+
+                    Select::make('items_ratio')
+                        ->label('Ratio Gambar Kartu')
+                        ->options(ContentSection::CARD_RATIOS)
+                        ->default(ContentSection::DEFAULT_CARD_RATIO)
+                        ->required()
+                        ->native(false)
+                        ->selectablePlaceholder(false)
+                        ->helperText('Bentuk area gambar di setiap kartu. Gambar dipotong menyesuaikan bidangnya, jadi tinggi gambar seragam meski ukuran aslinya berbeda-beda. Kartu tanpa gambar tidak terpengaruh.')
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Pengaturan Carousel')

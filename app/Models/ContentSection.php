@@ -51,6 +51,23 @@ class ContentSection extends Model
     ];
 
     /**
+     * Perbandingan sisi gambar kartu → label. Kuncinya dipakai apa adanya di
+     * basis data maupun di JSON blok, lalu diterjemahkan ke nilai CSS oleh
+     * `cardRatioCss()`.
+     *
+     * @var array<string, string>
+     */
+    public const CARD_RATIOS = [
+        '4-3' => 'Lanskap 4:3',
+        '16-9' => 'Lebar 16:9',
+        '3-2' => 'Lanskap 3:2',
+        '1-1' => 'Persegi 1:1',
+        '3-4' => 'Potret 3:4',
+    ];
+
+    public const DEFAULT_CARD_RATIO = '4-3';
+
+    /**
      * Jeda perpindahan carousel yang bisa dipilih admin (detik).
      */
     public const AUTOPLAY_MIN_DELAY = 2;
@@ -128,6 +145,7 @@ class ContentSection extends Model
         'image_position',
         'items',
         'items_columns',
+        'items_ratio',
         'carousel_autoplay',
         'carousel_autoplay_delay',
         'carousel_pause_on_hover',
@@ -258,6 +276,26 @@ class ContentSection extends Model
     public function getUsesAutoplayAttribute(): bool
     {
         return $this->uses_carousel && (bool) $this->carousel_autoplay;
+    }
+
+    /**
+     * Perbandingan sisi gambar kartu sebagai nilai CSS `aspect-ratio`. Nilai
+     * yang tidak dikenal — termasuk milik blok lama yang belum punya setelan
+     * ini — jatuh ke bawaan 4:3 supaya tampilannya tidak berubah.
+     */
+    public static function cardRatioCss(?string $ratio): string
+    {
+        $ratio = array_key_exists((string) $ratio, self::CARD_RATIOS) ? (string) $ratio : self::DEFAULT_CARD_RATIO;
+
+        return str_replace('-', ' / ', $ratio);
+    }
+
+    /**
+     * Perbandingan sisi gambar kartu milik seksi ini, siap dipakai di CSS.
+     */
+    public function getCardMediaRatioAttribute(): string
+    {
+        return self::cardRatioCss($this->items_ratio);
     }
 
     /**

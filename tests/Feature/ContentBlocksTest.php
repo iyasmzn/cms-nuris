@@ -126,6 +126,45 @@ class ContentBlocksTest extends TestCase
             ->assertDontSee('class="cs-dots"', false);
     }
 
+    public function test_card_blocks_carry_their_media_ratio(): void
+    {
+        $page = StaticPage::factory()->create([
+            'blocks' => [
+                [
+                    'type' => 'cards',
+                    'items_ratio' => '16-9',
+                    'items' => [['title' => 'Kartu Lebar']],
+                ],
+                [
+                    'type' => 'cards_carousel',
+                    'items_ratio' => '1-1',
+                    'items' => [['title' => 'Kartu Persegi'], ['title' => 'Kartu Dua']],
+                ],
+            ],
+        ]);
+
+        $this->get(route('page.show', $page->slug))
+            ->assertOk()
+            ->assertSee('--cs-media-ratio:16 / 9', false)
+            ->assertSee('--cs-media-ratio:1 / 1', false);
+    }
+
+    public function test_card_block_without_a_ratio_keeps_the_four_by_three_default(): void
+    {
+        $page = StaticPage::factory()->create([
+            'blocks' => [
+                [
+                    'type' => 'cards',
+                    'items' => [['title' => 'Kartu Lama']],
+                ],
+            ],
+        ]);
+
+        $this->get(route('page.show', $page->slug))
+            ->assertOk()
+            ->assertSee('--cs-media-ratio:4 / 3', false);
+    }
+
     public function test_carousel_cards_block_can_keep_running_while_hovered(): void
     {
         $page = StaticPage::factory()->create([

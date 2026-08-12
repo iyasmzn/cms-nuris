@@ -259,12 +259,13 @@
             $delayMs  = min(15, max(2, (int) ($block['carousel_autoplay_delay'] ?? 5) ?: 5)) * 1000;
             $loop     = (bool) ($block['carousel_loop'] ?? true);
             $pauseOnHover = $autoplay && ($block['carousel_pause_on_hover'] ?? true);
+            $mediaRatio = \App\Models\ContentSection::cardRatioCss($block['items_ratio'] ?? null);
         @endphp
         @if($cards->isNotEmpty())
             @include('partials.content-cards-styles')
 
             <div class="cs-cards block-cards"
-                 style="--cs-cols-sm:{{ min(2, $columns) }}; --cs-cols-lg:{{ $columns }}">
+                 style="--cs-cols-sm:{{ min(2, $columns) }}; --cs-cols-lg:{{ $columns }}; --cs-media-ratio:{{ $mediaRatio }}">
 
                 @if($isCarousel)
                     <div class="cs-carousel"

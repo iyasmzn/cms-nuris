@@ -27,6 +27,7 @@ class ContentSectionFactory extends Factory
             'image_position' => $this->faker->randomElement(array_keys(ContentSection::IMAGE_POSITIONS)),
             'items' => null,
             'items_columns' => 3,
+            'items_ratio' => ContentSection::DEFAULT_CARD_RATIO,
             'carousel_autoplay' => true,
             'carousel_autoplay_delay' => 5,
             'carousel_pause_on_hover' => true,

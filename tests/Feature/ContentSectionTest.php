@@ -365,6 +365,32 @@ class ContentSectionTest extends TestCase
             ->assertDontSee('class="cs-grid"', false);
     }
 
+    public function test_the_card_media_ratio_is_carried_into_the_markup(): void
+    {
+        ContentSection::factory()->withCards(3)->create([
+            'title' => 'Kartu Potret',
+            'items_ratio' => '3-4',
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('--cs-media-ratio:3 / 4', false);
+    }
+
+    public function test_the_card_media_ratio_falls_back_to_four_by_three(): void
+    {
+        ContentSection::factory()->withCarousel(3)->create([
+            'title' => 'Ratio Ngawur',
+            'items_ratio' => '9-16',
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('--cs-media-ratio:4 / 3', false);
+    }
+
     public function test_the_carousel_can_keep_running_while_hovered(): void
     {
         ContentSection::factory()->withCarousel(6)->create([
