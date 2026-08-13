@@ -140,6 +140,8 @@ class LandingPageSettingsTest extends TestCase
                     'background' => 'base',
                     'background_pattern' => 'arabesque',
                     'background_pattern_opacity' => 14,
+                    'background_pattern_scale' => 150,
+                    'background_pattern_color' => 'white',
                     'background_pattern_animated' => true,
                     'background_pattern_motion' => 'drift',
                     'background_pattern_speed' => 12,
@@ -150,6 +152,8 @@ class LandingPageSettingsTest extends TestCase
 
         $this->assertSame('arabesque', Setting::get('section_stats_background_pattern'));
         $this->assertSame('14', (string) Setting::get('section_stats_background_pattern_opacity'));
+        $this->assertSame('150', (string) Setting::get('section_stats_background_pattern_scale'));
+        $this->assertSame('white', Setting::get('section_stats_background_pattern_color'));
         $this->assertTrue(setting_bool('section_stats_background_pattern_animated'));
         $this->assertSame('drift', Setting::get('section_stats_background_pattern_motion'));
         $this->assertSame('12', (string) Setting::get('section_stats_background_pattern_speed'));

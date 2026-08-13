@@ -4,6 +4,7 @@ namespace App\Filament\Schemas;
 
 use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Models\ContentSection;
+use App\Support\SectionPatterns;
 use App\Support\SectionTypography;
 use Closure;
 use Filament\Forms\Components\ColorPicker;
@@ -529,6 +530,90 @@ class ContentBlocks
                             ->columnSpanFull(),
                     ]),
 
+                    Grid::make(2)
+                        ->visible(fn (Get $get): bool => $get('background') !== 'image')
+                        ->schema([
+                            Select::make('background_pattern')
+                                ->label('Pola Latar')
+                                ->options(SectionPatterns::selectOptions())
+                                ->allowHtml()
+                                ->default('none')
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->live()
+                                ->helperText('Hiasan SVG halus di atas warna dasar seksi.'),
+
+                            Select::make('background_pattern_opacity')
+                                ->label('Kepekatan Pola')
+                                ->options(ContentSection::PATTERN_OPACITY_LEVELS)
+                                ->default(ContentSection::DEFAULT_PATTERN_OPACITY)
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->visible(self::usesBackgroundPattern())
+                                ->helperText('Makin pekat makin terlihat. Pola yang terlalu kuat membuat teks susah dibaca.'),
+
+                            Select::make('background_pattern_scale')
+                                ->label('Ukuran Pola')
+                                ->options(ContentSection::PATTERN_SCALES)
+                                ->default(ContentSection::DEFAULT_PATTERN_SCALE)
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->visible(self::usesBackgroundPattern())
+                                ->helperText('Ukuran ubin polanya. Makin rapat, makin ramai.'),
+
+                            Select::make('background_pattern_color')
+                                ->label('Warna Pola')
+                                ->options(ContentSection::PATTERN_COLORS)
+                                ->default(ContentSection::DEFAULT_PATTERN_COLOR)
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->live()
+                                ->visible(self::usesBackgroundPattern())
+                                ->helperText('Pilihan bertoken ikut berubah sendiri saat warna tema diganti.'),
+
+                            ColorPicker::make('background_pattern_custom_color')
+                                ->label('Hex Warna Pola')
+                                ->default('#08484A')
+                                ->visible(fn (Get $get): bool => $get('background') !== 'image'
+                                    && ($get('background_pattern') ?? 'none') !== 'none'
+                                    && $get('background_pattern_color') === 'custom')
+                                ->helperText('Kosong atau tidak berbentuk hex akan kembali ke warna utama tema.')
+                                ->columnSpanFull(),
+
+                            Toggle::make('background_pattern_animated')
+                                ->label('Animasikan Pola')
+                                ->default(false)
+                                ->onColor('success')
+                                ->live()
+                                ->visible(self::usesBackgroundPattern())
+                                ->helperText('Pola bergerak pelan. Otomatis padam bagi pengunjung yang menyetel perangkatnya untuk mengurangi gerak.')
+                                ->columnSpanFull(),
+
+                            Select::make('background_pattern_motion')
+                                ->label('Jenis Gerak')
+                                ->options(ContentSection::PATTERN_MOTIONS)
+                                ->default(ContentSection::DEFAULT_PATTERN_MOTION)
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->live()
+                                ->visible(fn (Get $get): bool => $get('background') !== 'image'
+                                    && ($get('background_pattern') ?? 'none') !== 'none'
+                                    && (bool) $get('background_pattern_animated'))
+                                ->helperText('Hanyut = mengalir terus. Denyut = kepekatannya naik-turun. Ikut Guliran = bergeser saat digulir.'),
+
+                            Select::make('background_pattern_speed')
+                                ->label('Kecepatan Gerak')
+                                ->options(ContentSection::PATTERN_SPEEDS)
+                                ->default(ContentSection::DEFAULT_PATTERN_SPEED)
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->visible(fn (Get $get): bool => $get('background') !== 'image'
+                                    && ($get('background_pattern') ?? 'none') !== 'none'
+                                    && (bool) $get('background_pattern_animated')
+                                    && $get('background_pattern_motion') !== 'scroll')
+                                ->helperText('Laju alir pola dalam piksel per detik.'),
+                        ]),
+
                     self::imagePicker(
                         key: 'background_image',
                         label: 'Gambar Latar',
@@ -606,6 +691,18 @@ class ContentBlocks
     private static function usesBackgroundImage(): Closure
     {
         return fn (Get $get): bool => $get('background') === 'image';
+    }
+
+    /**
+     * Pola hanya berlaku di latar non-gambar, dan setelan turunannya baru
+     * muncul setelah polanya dipilih.
+     *
+     * @return Closure(Get): bool
+     */
+    private static function usesBackgroundPattern(): Closure
+    {
+        return fn (Get $get): bool => $get('background') !== 'image'
+            && ($get('background_pattern') ?? 'none') !== 'none';
     }
 
     /**

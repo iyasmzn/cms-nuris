@@ -120,6 +120,90 @@ class ContentSectionTest extends TestCase
         $this->assertStringContainsString('opacity:0.14', $html);
     }
 
+    public function test_the_pattern_colour_follows_the_chosen_token(): void
+    {
+        $section = ContentSection::factory()->create([
+            'anchor' => 'warna-pola',
+            'background_pattern' => 'dots',
+            'is_published' => true,
+        ]);
+
+        // Bawaan: warna utama tema, jadi ikut berubah saat temanya diganti
+        $this->assertStringContainsString(
+            '--section-pattern-color:var(--primary)',
+            $this->get(route('home'))->assertOk()->getContent(),
+        );
+
+        $section->update(['background_pattern_color' => 'white']);
+
+        $this->assertStringContainsString(
+            '--section-pattern-color:#ffffff',
+            $this->get(route('home'))->assertOk()->getContent(),
+        );
+
+        $section->update(['background_pattern_color' => 'custom', 'background_pattern_custom_color' => '#ff8800']);
+
+        $this->assertStringContainsString(
+            '--section-pattern-color:#ff8800',
+            $this->get(route('home'))->assertOk()->getContent(),
+        );
+    }
+
+    public function test_a_custom_pattern_colour_that_is_not_a_hex_is_refused(): void
+    {
+        ContentSection::factory()->create([
+            'anchor' => 'warna-nakal',
+            'background_pattern' => 'dots',
+            'background_pattern_color' => 'custom',
+            // Kolomnya sendiri hanya memuat 9 karakter; penyaring hex diuji
+            // langsung terhadap masukan yang lebih ganas di SectionBackgroundColorTest
+            'background_pattern_custom_color' => 'red',
+            'is_published' => true,
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('--section-pattern-color:var(--primary)', $html);
+        $this->assertStringNotContainsString('--section-pattern-color:red', $html);
+    }
+
+    public function test_the_pattern_scale_resizes_the_tile_and_its_travel_together(): void
+    {
+        ContentSection::factory()->create([
+            'anchor' => 'pola-besar',
+            'background_pattern' => 'dots',
+            'background_pattern_scale' => 200,
+            'background_pattern_animated' => true,
+            'background_pattern_motion' => 'drift',
+            'background_pattern_speed' => 12,
+            'is_published' => true,
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        // Ubin dots 24×24 pada skala 200% jadi 48×48
+        $this->assertStringContainsString('--section-pattern-size:48px 48px', $html);
+        // Jarak tempuh wajib ikut membesar, kalau tidak polanya melompat tiap putaran
+        $this->assertStringContainsString('--section-pattern-travel-x:48px', $html);
+        $this->assertStringContainsString('--section-pattern-travel-y:48px', $html);
+        // Laju tetap 12 px/detik, jadi putarannya dua kali lebih lama
+        $this->assertStringContainsString('--section-pattern-duration:4s', $html);
+    }
+
+    public function test_an_unknown_pattern_scale_falls_back_to_the_original_size(): void
+    {
+        ContentSection::factory()->create([
+            'anchor' => 'skala-ngawur',
+            'background_pattern' => 'dots',
+            'background_pattern_scale' => 999,
+            'is_published' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('--section-pattern-size:24px 24px', false);
+    }
+
     public function test_an_animated_pattern_drifts_by_exactly_one_tile(): void
     {
         ContentSection::factory()->create([

@@ -42,6 +42,13 @@ class StaticPageBlocksTest extends TestCase
                         'type' => 'cards',
                         'items_columns' => 2,
                         'items_ratio' => '16-9',
+                        'background' => 'alt',
+                        'background_pattern' => 'khatam',
+                        'background_pattern_scale' => 150,
+                        'background_pattern_color' => 'custom',
+                        'background_pattern_custom_color' => '#ff8800',
+                        'background_pattern_animated' => true,
+                        'background_pattern_motion' => 'drift_x',
                         'items' => [
                             [
                                 'title' => 'Tahfidz',
@@ -69,5 +76,10 @@ class StaticPageBlocksTest extends TestCase
         $this->assertArrayNotHasKey('image_library', $blocks[2]['items'][0]);
         $this->assertSame('Tahfidz', $blocks[2]['items'][0]['title']);
         $this->assertSame('16-9', $blocks[2]['items_ratio']);
+        $this->assertSame('khatam', $blocks[2]['background_pattern']);
+        $this->assertSame(150, (int) $blocks[2]['background_pattern_scale']);
+        $this->assertSame('#ff8800', $blocks[2]['background_pattern_custom_color']);
+        $this->assertTrue((bool) $blocks[2]['background_pattern_animated']);
+        $this->assertSame('drift_x', $blocks[2]['background_pattern_motion']);
     }
 }

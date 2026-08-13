@@ -9,8 +9,10 @@ use App\Models\Setting;
 use App\Support\AlumniMarquee;
 use App\Support\HeroSlider;
 use App\Support\SectionBackground;
+use App\Support\SectionPatterns;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
+use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -441,6 +443,9 @@ class LandingPageSettings extends Page
             'background_parallax_speed' => (int) Setting::get("{$key}_background_parallax_speed", 30),
             'background_pattern' => Setting::get("{$key}_background_pattern") ?: 'none',
             'background_pattern_opacity' => (int) Setting::get("{$key}_background_pattern_opacity", ContentSection::DEFAULT_PATTERN_OPACITY),
+            'background_pattern_scale' => (int) Setting::get("{$key}_background_pattern_scale", ContentSection::DEFAULT_PATTERN_SCALE),
+            'background_pattern_color' => Setting::get("{$key}_background_pattern_color") ?: ContentSection::DEFAULT_PATTERN_COLOR,
+            'background_pattern_custom_color' => Setting::get("{$key}_background_pattern_custom_color"),
             'background_pattern_animated' => setting_bool("{$key}_background_pattern_animated", false),
             'background_pattern_motion' => Setting::get("{$key}_background_pattern_motion") ?: ContentSection::DEFAULT_PATTERN_MOTION,
             'background_pattern_speed' => (int) Setting::get("{$key}_background_pattern_speed", ContentSection::DEFAULT_PATTERN_SPEED),
@@ -812,7 +817,8 @@ class LandingPageSettings extends Page
                         ->schema([
                             Select::make('background_pattern')
                                 ->label('Pola Latar')
-                                ->options(ContentSection::BACKGROUND_PATTERNS)
+                                ->options(SectionPatterns::selectOptions())
+                                ->allowHtml()
                                 ->default('none')
                                 ->required()
                                 ->native(false)
@@ -829,6 +835,34 @@ class LandingPageSettings extends Page
                                 ->selectablePlaceholder(false)
                                 ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none')
                                 ->helperText('Makin pekat makin terlihat. Pola yang terlalu kuat membuat teks susah dibaca.'),
+
+                            Select::make('background_pattern_scale')
+                                ->label('Ukuran Pola')
+                                ->options(ContentSection::PATTERN_SCALES)
+                                ->default(ContentSection::DEFAULT_PATTERN_SCALE)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none')
+                                ->helperText('Ukuran ubin polanya. Makin rapat, makin ramai; seksi lebar biasanya lebih enak dengan pola besar.'),
+
+                            Select::make('background_pattern_color')
+                                ->label('Warna Pola')
+                                ->options(ContentSection::PATTERN_COLORS)
+                                ->default(ContentSection::DEFAULT_PATTERN_COLOR)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->live()
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none')
+                                ->helperText('Pilihan bertoken ikut berubah sendiri saat warna tema diganti. Putih berguna di atas latar seksi yang gelap.'),
+
+                            ColorPicker::make('background_pattern_custom_color')
+                                ->label('Hex Warna Pola')
+                                ->default('#08484A')
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none'
+                                    && $get('background_pattern_color') === 'custom')
+                                ->helperText('Kosong atau tidak berbentuk hex akan kembali ke warna utama tema.'),
 
                             Toggle::make('background_pattern_animated')
                                 ->label('Animasikan Pola')
@@ -1157,6 +1191,9 @@ class LandingPageSettings extends Page
             "{$key}_background_parallax_speed" => (int) ($section['background_parallax_speed'] ?? 30),
             "{$key}_background_pattern" => $section['background_pattern'] ?? 'none',
             "{$key}_background_pattern_opacity" => (int) ($section['background_pattern_opacity'] ?? ContentSection::DEFAULT_PATTERN_OPACITY),
+            "{$key}_background_pattern_scale" => (int) ($section['background_pattern_scale'] ?? ContentSection::DEFAULT_PATTERN_SCALE),
+            "{$key}_background_pattern_color" => $section['background_pattern_color'] ?? ContentSection::DEFAULT_PATTERN_COLOR,
+            "{$key}_background_pattern_custom_color" => $section['background_pattern_custom_color'] ?? '',
             "{$key}_background_pattern_animated" => (bool) ($section['background_pattern_animated'] ?? false),
             "{$key}_background_pattern_motion" => $section['background_pattern_motion'] ?? ContentSection::DEFAULT_PATTERN_MOTION,
             "{$key}_background_pattern_speed" => (int) ($section['background_pattern_speed'] ?? ContentSection::DEFAULT_PATTERN_SPEED),

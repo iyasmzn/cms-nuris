@@ -44,6 +44,7 @@ class SectionBackgroundTest extends TestCase
             'section_stats_background' => 'alt',
             'section_stats_background_pattern' => 'dots',
             'section_stats_background_pattern_opacity' => 14,
+            'section_stats_background_pattern_scale' => 75,
         ]);
 
         $html = $this->get(route('home'))->assertOk()->getContent();
@@ -52,6 +53,8 @@ class SectionBackgroundTest extends TestCase
         $this->assertStringContainsString('class="section-bg-layer section-bg-layer-pattern"', $html);
         $this->assertStringContainsString('background-color:var(--bg-alt, var(--bg))', $html);
         $this->assertStringContainsString('opacity:0.14', $html);
+        // Ubin dots 24×24 pada skala 75% jadi 18×18
+        $this->assertStringContainsString('--section-pattern-size:18px 18px', $html);
     }
 
     public function test_a_built_in_section_pattern_can_be_animated(): void

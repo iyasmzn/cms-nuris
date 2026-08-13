@@ -127,10 +127,18 @@ class ContentSection extends Model
     public const BACKGROUND_PATTERNS = [
         'none' => 'Tanpa Pola',
         'dots' => 'Titik-Titik',
+        'crosses' => 'Palang Kecil',
+        'circles' => 'Lingkaran',
         'grid' => 'Garis Kotak',
         'diagonal' => 'Garis Miring',
+        'weave' => 'Anyaman',
+        'diamonds' => 'Belah Ketupat',
+        'triangles' => 'Segitiga',
+        'zigzag' => 'Zigzag',
         'waves' => 'Gelombang',
+        'scales' => 'Sisik',
         'arabesque' => 'Ornamen Islami',
+        'khatam' => 'Bintang Khatam',
     ];
 
     /**
@@ -148,6 +156,38 @@ class ContentSection extends Model
     ];
 
     public const DEFAULT_PATTERN_OPACITY = 8;
+
+    /**
+     * Ukuran ubin pola sebagai persentase ukuran aslinya → label. Makin kecil
+     * persennya, makin rapat polanya berulang.
+     *
+     * @var array<int, string>
+     */
+    public const PATTERN_SCALES = [
+        50 => 'Sangat Rapat',
+        75 => 'Rapat',
+        100 => 'Sedang',
+        150 => 'Besar',
+        200 => 'Sangat Besar',
+    ];
+
+    public const DEFAULT_PATTERN_SCALE = 100;
+
+    /**
+     * Warna pola. `primary` dan `text` mengikuti token tema, jadi ikut berubah
+     * saat admin mengganti warna utama situs; `custom` memakai hex sendiri.
+     *
+     * @var array<string, string>
+     */
+    public const PATTERN_COLORS = [
+        'primary' => 'Warna Utama Tema',
+        'text' => 'Warna Teks (gelap)',
+        'muted' => 'Abu Lembut',
+        'white' => 'Putih',
+        'custom' => 'Warna Sendiri',
+    ];
+
+    public const DEFAULT_PATTERN_COLOR = 'primary';
 
     /**
      * Cara pola bergerak saat animasinya dinyalakan. `scroll` tidak berjalan
@@ -222,6 +262,9 @@ class ContentSection extends Model
         'background_image',
         'background_pattern',
         'background_pattern_opacity',
+        'background_pattern_scale',
+        'background_pattern_color',
+        'background_pattern_custom_color',
         'background_pattern_animated',
         'background_pattern_motion',
         'background_pattern_speed',
@@ -251,6 +294,7 @@ class ContentSection extends Model
             'carousel_arrows' => 'boolean',
             'carousel_dots' => 'boolean',
             'background_pattern_opacity' => 'integer',
+            'background_pattern_scale' => 'integer',
             'background_pattern_animated' => 'boolean',
             'background_pattern_speed' => 'integer',
             'background_blur' => 'integer',

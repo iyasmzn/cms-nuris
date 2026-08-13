@@ -126,6 +126,49 @@ class ContentBlocksTest extends TestCase
             ->assertDontSee('class="cs-dots"', false);
     }
 
+    public function test_a_block_section_can_carry_an_animated_svg_pattern(): void
+    {
+        $page = StaticPage::factory()->create([
+            'blocks' => [
+                [
+                    'type' => 'rich_text',
+                    'content' => '<p>Paragraf.</p>',
+                    'background' => 'alt',
+                    'background_pattern' => 'khatam',
+                    'background_pattern_opacity' => 14,
+                    'background_pattern_scale' => 150,
+                    'background_pattern_color' => 'custom',
+                    'background_pattern_custom_color' => '#ff8800',
+                    'background_pattern_animated' => true,
+                    'background_pattern_motion' => 'drift_x',
+                    'background_pattern_speed' => 12,
+                ],
+            ],
+        ]);
+
+        $html = $this->get(route('page.show', $page->slug))->assertOk()->getContent();
+
+        $this->assertStringContainsString('class="section-bg-layer section-bg-layer-pattern"', $html);
+        // Ubin khatam 44×44 pada skala 150% jadi 66×66
+        $this->assertStringContainsString('--section-pattern-size:66px 66px', $html);
+        $this->assertStringContainsString('--section-pattern-color:#ff8800', $html);
+        $this->assertStringContainsString('opacity:0.14', $html);
+        $this->assertStringContainsString('section-bg-pattern-drift-x', $html);
+    }
+
+    public function test_a_block_section_without_pattern_settings_stays_plain(): void
+    {
+        $page = StaticPage::factory()->create([
+            'blocks' => [
+                ['type' => 'rich_text', 'content' => '<p>Paragraf.</p>', 'background' => 'alt'],
+            ],
+        ]);
+
+        $this->get(route('page.show', $page->slug))
+            ->assertOk()
+            ->assertDontSee('class="section-bg-layer section-bg-layer-pattern"', false);
+    }
+
     public function test_card_blocks_carry_their_media_ratio(): void
     {
         $page = StaticPage::factory()->create([

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ContentSections\Schemas;
 
 use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Models\ContentSection;
+use App\Support\SectionPatterns;
 use App\Support\SectionTypography;
 use Closure;
 use Filament\Forms\Components\ColorPicker;
@@ -282,7 +283,8 @@ class ContentSectionForm
                         ->schema([
                             Select::make('background_pattern')
                                 ->label('Pola Latar')
-                                ->options(ContentSection::BACKGROUND_PATTERNS)
+                                ->options(SectionPatterns::selectOptions())
+                                ->allowHtml()
                                 ->default('none')
                                 ->required()
                                 ->native(false)
@@ -299,6 +301,34 @@ class ContentSectionForm
                                 ->selectablePlaceholder(false)
                                 ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none')
                                 ->helperText('Makin pekat makin terlihat. Pola yang terlalu kuat membuat teks susah dibaca.'),
+
+                            Select::make('background_pattern_scale')
+                                ->label('Ukuran Pola')
+                                ->options(ContentSection::PATTERN_SCALES)
+                                ->default(ContentSection::DEFAULT_PATTERN_SCALE)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none')
+                                ->helperText('Ukuran ubin polanya. Makin rapat, makin ramai; seksi lebar biasanya lebih enak dengan pola besar.'),
+
+                            Select::make('background_pattern_color')
+                                ->label('Warna Pola')
+                                ->options(ContentSection::PATTERN_COLORS)
+                                ->default(ContentSection::DEFAULT_PATTERN_COLOR)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->live()
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none')
+                                ->helperText('Pilihan bertoken ikut berubah sendiri saat warna tema diganti. Putih berguna di atas latar seksi yang gelap.'),
+
+                            ColorPicker::make('background_pattern_custom_color')
+                                ->label('Hex Warna Pola')
+                                ->default('#08484A')
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none'
+                                    && $get('background_pattern_color') === 'custom')
+                                ->helperText('Kosong atau tidak berbentuk hex akan kembali ke warna utama tema.'),
 
                             Toggle::make('background_pattern_animated')
                                 ->label('Animasikan Pola')

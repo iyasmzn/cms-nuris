@@ -37,6 +37,9 @@ class SectionBackground
         public readonly bool $lightText = false,
         public readonly string $pattern = 'none',
         public readonly int $patternOpacity = ContentSection::DEFAULT_PATTERN_OPACITY,
+        public readonly int $patternScale = ContentSection::DEFAULT_PATTERN_SCALE,
+        public readonly string $patternColor = ContentSection::DEFAULT_PATTERN_COLOR,
+        public readonly ?string $patternCustomColor = null,
         public readonly bool $patternAnimated = false,
         public readonly string $patternMotion = ContentSection::DEFAULT_PATTERN_MOTION,
         public readonly int $patternSpeed = ContentSection::DEFAULT_PATTERN_SPEED,
@@ -59,6 +62,9 @@ class SectionBackground
             lightText: setting_bool("{$sectionKey}_background_light_text", true),
             pattern: (string) (setting("{$sectionKey}_background_pattern") ?: 'none'),
             patternOpacity: (int) setting("{$sectionKey}_background_pattern_opacity", ContentSection::DEFAULT_PATTERN_OPACITY),
+            patternScale: (int) setting("{$sectionKey}_background_pattern_scale", ContentSection::DEFAULT_PATTERN_SCALE),
+            patternColor: (string) (setting("{$sectionKey}_background_pattern_color") ?: ContentSection::DEFAULT_PATTERN_COLOR),
+            patternCustomColor: setting("{$sectionKey}_background_pattern_custom_color") ?: null,
             patternAnimated: setting_bool("{$sectionKey}_background_pattern_animated", false),
             patternMotion: (string) (setting("{$sectionKey}_background_pattern_motion") ?: ContentSection::DEFAULT_PATTERN_MOTION),
             patternSpeed: (int) setting("{$sectionKey}_background_pattern_speed", ContentSection::DEFAULT_PATTERN_SPEED),
@@ -84,6 +90,9 @@ class SectionBackground
             lightText: (bool) $section->background_light_text,
             pattern: (string) ($section->background_pattern ?: 'none'),
             patternOpacity: (int) ($section->background_pattern_opacity ?? ContentSection::DEFAULT_PATTERN_OPACITY),
+            patternScale: (int) ($section->background_pattern_scale ?? ContentSection::DEFAULT_PATTERN_SCALE),
+            patternColor: (string) ($section->background_pattern_color ?: ContentSection::DEFAULT_PATTERN_COLOR),
+            patternCustomColor: $section->background_pattern_custom_color ?: null,
             patternAnimated: (bool) $section->background_pattern_animated,
             patternMotion: (string) ($section->background_pattern_motion ?: ContentSection::DEFAULT_PATTERN_MOTION),
             patternSpeed: (int) ($section->background_pattern_speed ?? ContentSection::DEFAULT_PATTERN_SPEED),
@@ -112,6 +121,14 @@ class SectionBackground
             parallaxMode: (string) (($block['background_parallax_mode'] ?? null) ?: 'none'),
             parallaxSpeed: (int) ($block['background_parallax_speed'] ?? 30),
             lightText: (bool) ($block['background_light_text'] ?? true),
+            pattern: (string) (($block['background_pattern'] ?? null) ?: 'none'),
+            patternOpacity: (int) ($block['background_pattern_opacity'] ?? ContentSection::DEFAULT_PATTERN_OPACITY),
+            patternScale: (int) ($block['background_pattern_scale'] ?? ContentSection::DEFAULT_PATTERN_SCALE),
+            patternColor: (string) (($block['background_pattern_color'] ?? null) ?: ContentSection::DEFAULT_PATTERN_COLOR),
+            patternCustomColor: $block['background_pattern_custom_color'] ?? null,
+            patternAnimated: (bool) ($block['background_pattern_animated'] ?? false),
+            patternMotion: (string) (($block['background_pattern_motion'] ?? null) ?: ContentSection::DEFAULT_PATTERN_MOTION),
+            patternSpeed: (int) ($block['background_pattern_speed'] ?? ContentSection::DEFAULT_PATTERN_SPEED),
         );
     }
 
@@ -143,7 +160,60 @@ class SectionBackground
 
     public function patternSize(): ?string
     {
-        return $this->hasPattern() ? SectionPatterns::size($this->pattern) : null;
+        return $this->hasPattern() ? $this->patternTileWidth().'px '.$this->patternTileHeight().'px' : null;
+    }
+
+    /**
+     * Ukuran ubin setelah diskalakan pilihan admin. Ukuran mask dan jarak
+     * tempuh animasi sama-sama dihitung dari sini — kalau keduanya berbeda
+     * walau sepiksel, pola akan tampak melompat tiap kali animasinya mengulang.
+     */
+    public function patternTileWidth(): int
+    {
+        return $this->scaled(SectionPatterns::width($this->pattern));
+    }
+
+    public function patternTileHeight(): int
+    {
+        return $this->scaled(SectionPatterns::height($this->pattern));
+    }
+
+    private function scaled(int $size): int
+    {
+        $scale = array_key_exists($this->patternScale, ContentSection::PATTERN_SCALES)
+            ? $this->patternScale
+            : ContentSection::DEFAULT_PATTERN_SCALE;
+
+        return max(1, (int) round($size * $scale / 100));
+    }
+
+    /**
+     * Warna pola sebagai nilai CSS. Pilihan bertoken (`primary`, `text`, `muted`)
+     * sengaja diteruskan sebagai `var(...)` supaya ikut berubah begitu admin
+     * mengganti warna tema, tanpa perlu menyunting ulang tiap seksi.
+     *
+     * Hex kiriman admin disaring ketat sebelum masuk atribut `style`: nilai yang
+     * tidak berbentuk hex ditolak dan jatuh ke warna utama, sebab apa pun yang
+     * lolos dari sini akan ditanam mentah-mentah ke dalam CSS.
+     */
+    public function patternColorCss(): string
+    {
+        return match ($this->patternColor) {
+            'text' => 'var(--text)',
+            'muted' => 'var(--muted)',
+            'white' => '#ffffff',
+            'custom' => $this->safeCustomColor() ?? 'var(--primary)',
+            default => 'var(--primary)',
+        };
+    }
+
+    private function safeCustomColor(): ?string
+    {
+        $color = trim((string) $this->patternCustomColor);
+
+        return preg_match('/^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $color) === 1
+            ? $color
+            : null;
     }
 
     /**
@@ -228,12 +298,12 @@ class SectionBackground
      */
     public function patternTravelX(): int
     {
-        return $this->hasPattern() ? SectionPatterns::width($this->pattern) * $this->patternTravelSteps() : 0;
+        return $this->hasPattern() ? $this->patternTileWidth() * $this->patternTravelSteps() : 0;
     }
 
     public function patternTravelY(): int
     {
-        return $this->hasPattern() ? SectionPatterns::height($this->pattern) * $this->patternTravelSteps() : 0;
+        return $this->hasPattern() ? $this->patternTileHeight() * $this->patternTravelSteps() : 0;
     }
 
     private function patternTravelSteps(): int

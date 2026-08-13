@@ -226,6 +226,9 @@ class ContentSectionResourceTest extends TestCase
                 'background' => 'alt',
                 'background_pattern' => 'arabesque',
                 'background_pattern_opacity' => 14,
+                'background_pattern_scale' => 150,
+                'background_pattern_color' => 'custom',
+                'background_pattern_custom_color' => '#ff8800',
             ])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -234,6 +237,9 @@ class ContentSectionResourceTest extends TestCase
             'title' => 'Seksi Berpola',
             'background_pattern' => 'arabesque',
             'background_pattern_opacity' => 14,
+            'background_pattern_scale' => 150,
+            'background_pattern_color' => 'custom',
+            'background_pattern_custom_color' => '#ff8800',
         ]);
     }
 
@@ -243,9 +249,15 @@ class ContentSectionResourceTest extends TestCase
             ->fillForm(['background' => 'alt', 'background_pattern' => 'none'])
             ->assertFormFieldVisible('background_pattern')
             ->assertFormFieldHidden('background_pattern_opacity')
+            ->assertFormFieldHidden('background_pattern_scale')
             ->assertFormFieldHidden('background_pattern_animated')
             ->fillForm(['background_pattern' => 'dots'])
             ->assertFormFieldVisible('background_pattern_opacity')
+            ->assertFormFieldVisible('background_pattern_scale')
+            ->assertFormFieldVisible('background_pattern_color')
+            ->assertFormFieldHidden('background_pattern_custom_color')
+            ->fillForm(['background_pattern_color' => 'custom'])
+            ->assertFormFieldVisible('background_pattern_custom_color')
             ->assertFormFieldVisible('background_pattern_animated')
             ->fillForm(['background' => 'image'])
             ->assertFormFieldHidden('background_pattern')

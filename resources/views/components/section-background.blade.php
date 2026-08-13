@@ -61,7 +61,7 @@
         .section-bg-pattern {
             position: absolute;
             inset: 0;
-            background-color: var(--primary);
+            background-color: var(--section-pattern-color, var(--primary));
             -webkit-mask-image: var(--section-pattern);
             mask-image: var(--section-pattern);
             -webkit-mask-size: var(--section-pattern-size);
@@ -196,6 +196,7 @@
                     'section-bg-pattern-pulse' => $patternMotion === 'pulse',
                  ])
                  style="--section-pattern:{{ $config->patternMaskUrl() }};
+                        --section-pattern-color:{{ $config->patternColorCss() }};
                         --section-pattern-size:{{ $config->patternSize() }};
                         --section-pattern-opacity:{{ $config->patternOpacityValue() }};
                         --section-pattern-travel-x:{{ $config->patternTravelX() }}px;
