@@ -128,6 +128,33 @@ class LandingPageSettingsTest extends TestCase
         $this->assertTrue(setting_bool('section_stats_background_light_text'));
     }
 
+    public function test_it_persists_an_animated_background_pattern_of_a_built_in_section(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
+
+        $component
+            ->fillForm([
+                'sections' => $this->withSectionState($component, 'section_stats', [
+                    'background' => 'base',
+                    'background_pattern' => 'arabesque',
+                    'background_pattern_opacity' => 14,
+                    'background_pattern_animated' => true,
+                    'background_pattern_motion' => 'drift',
+                    'background_pattern_speed' => 12,
+                ]),
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('arabesque', Setting::get('section_stats_background_pattern'));
+        $this->assertSame('14', (string) Setting::get('section_stats_background_pattern_opacity'));
+        $this->assertTrue(setting_bool('section_stats_background_pattern_animated'));
+        $this->assertSame('drift', Setting::get('section_stats_background_pattern_motion'));
+        $this->assertSame('12', (string) Setting::get('section_stats_background_pattern_speed'));
+    }
+
     public function test_the_saved_background_is_shown_again_when_the_page_is_reopened(): void
     {
         $admin = User::factory()->create()->assignRole('super_admin');

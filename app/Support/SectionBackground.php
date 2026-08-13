@@ -57,6 +57,11 @@ class SectionBackground
             parallaxMode: (string) (setting("{$sectionKey}_background_parallax_mode") ?: 'none'),
             parallaxSpeed: (int) setting("{$sectionKey}_background_parallax_speed", 30),
             lightText: setting_bool("{$sectionKey}_background_light_text", true),
+            pattern: (string) (setting("{$sectionKey}_background_pattern") ?: 'none'),
+            patternOpacity: (int) setting("{$sectionKey}_background_pattern_opacity", ContentSection::DEFAULT_PATTERN_OPACITY),
+            patternAnimated: setting_bool("{$sectionKey}_background_pattern_animated", false),
+            patternMotion: (string) (setting("{$sectionKey}_background_pattern_motion") ?: ContentSection::DEFAULT_PATTERN_MOTION),
+            patternSpeed: (int) setting("{$sectionKey}_background_pattern_speed", ContentSection::DEFAULT_PATTERN_SPEED),
         );
     }
 

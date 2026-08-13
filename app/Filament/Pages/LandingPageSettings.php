@@ -439,6 +439,11 @@ class LandingPageSettings extends Page
             'background_light_text' => setting_bool("{$key}_background_light_text", true),
             'background_parallax_mode' => Setting::get("{$key}_background_parallax_mode") ?: 'none',
             'background_parallax_speed' => (int) Setting::get("{$key}_background_parallax_speed", 30),
+            'background_pattern' => Setting::get("{$key}_background_pattern") ?: 'none',
+            'background_pattern_opacity' => (int) Setting::get("{$key}_background_pattern_opacity", ContentSection::DEFAULT_PATTERN_OPACITY),
+            'background_pattern_animated' => setting_bool("{$key}_background_pattern_animated", false),
+            'background_pattern_motion' => Setting::get("{$key}_background_pattern_motion") ?: ContentSection::DEFAULT_PATTERN_MOTION,
+            'background_pattern_speed' => (int) Setting::get("{$key}_background_pattern_speed", ContentSection::DEFAULT_PATTERN_SPEED),
         ];
     }
 
@@ -779,7 +784,7 @@ class LandingPageSettings extends Page
 
         return [
             Section::make('Latar Belakang Seksi')
-                ->description('Biarkan "Bawaan Seksi" untuk memakai latar rancangan aslinya, atau ganti dengan warna polos maupun gambar penuh berikut efeknya.')
+                ->description('Biarkan "Bawaan Seksi" untuk memakai latar rancangan aslinya, atau ganti dengan warna polos maupun gambar penuh berikut efeknya. Latar non-gambar bisa dihias pola SVG, dengan atau tanpa animasi.')
                 ->icon(Heroicon::OutlinedSwatch)
                 ->visible(fn (Get $get): bool => self::supportsBackground($get('key')))
                 ->collapsible()
@@ -801,6 +806,62 @@ class LandingPageSettings extends Page
                         ->live()
                         ->helperText('Selang-seling abu lembut dan putih bersih agar antar seksi tidak menyatu.')
                         ->columnSpanFull(),
+
+                    Grid::make(2)
+                        ->visible(fn (Get $get): bool => $get('background') !== 'image')
+                        ->schema([
+                            Select::make('background_pattern')
+                                ->label('Pola Latar')
+                                ->options(ContentSection::BACKGROUND_PATTERNS)
+                                ->default('none')
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->live()
+                                ->helperText('Hiasan SVG halus di atas latar seksi, diwarnai mengikuti warna utama tema.'),
+
+                            Select::make('background_pattern_opacity')
+                                ->label('Kepekatan Pola')
+                                ->options(ContentSection::PATTERN_OPACITY_LEVELS)
+                                ->default(ContentSection::DEFAULT_PATTERN_OPACITY)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none')
+                                ->helperText('Makin pekat makin terlihat. Pola yang terlalu kuat membuat teks susah dibaca.'),
+
+                            Toggle::make('background_pattern_animated')
+                                ->label('Animasikan Pola')
+                                ->default(false)
+                                ->onColor('success')
+                                ->live()
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none')
+                                ->helperText('Pola bergerak pelan. Otomatis padam bagi pengunjung yang menyetel perangkatnya untuk mengurangi gerak. Pakai seperlunya — beberapa seksi bergerak sekaligus membuat halaman terasa gelisah.')
+                                ->columnSpanFull(),
+
+                            Select::make('background_pattern_motion')
+                                ->label('Jenis Gerak')
+                                ->options(ContentSection::PATTERN_MOTIONS)
+                                ->default(ContentSection::DEFAULT_PATTERN_MOTION)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->live()
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none' && (bool) $get('background_pattern_animated'))
+                                ->helperText('Hanyut = mengalir terus. Denyut = kepekatannya naik-turun. Ikut Guliran = bergeser hanya saat halaman digulir.'),
+
+                            Select::make('background_pattern_speed')
+                                ->label('Kecepatan Gerak')
+                                ->options(ContentSection::PATTERN_SPEEDS)
+                                ->default(ContentSection::DEFAULT_PATTERN_SPEED)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->visible(fn (Get $get): bool => $get('background_pattern') !== 'none'
+                                    && (bool) $get('background_pattern_animated')
+                                    && $get('background_pattern_motion') !== 'scroll')
+                                ->helperText('Laju alir pola dalam piksel per detik. "Ikut Guliran" tidak memakainya karena kecepatannya mengikuti guliran pengunjung.'),
+                        ]),
 
                     self::imagePicker(
                         key: 'background_image',
@@ -1094,6 +1155,11 @@ class LandingPageSettings extends Page
             "{$key}_background_light_text" => (bool) ($section['background_light_text'] ?? true),
             "{$key}_background_parallax_mode" => $section['background_parallax_mode'] ?? 'none',
             "{$key}_background_parallax_speed" => (int) ($section['background_parallax_speed'] ?? 30),
+            "{$key}_background_pattern" => $section['background_pattern'] ?? 'none',
+            "{$key}_background_pattern_opacity" => (int) ($section['background_pattern_opacity'] ?? ContentSection::DEFAULT_PATTERN_OPACITY),
+            "{$key}_background_pattern_animated" => (bool) ($section['background_pattern_animated'] ?? false),
+            "{$key}_background_pattern_motion" => $section['background_pattern_motion'] ?? ContentSection::DEFAULT_PATTERN_MOTION,
+            "{$key}_background_pattern_speed" => (int) ($section['background_pattern_speed'] ?? ContentSection::DEFAULT_PATTERN_SPEED),
         ];
     }
 

@@ -38,6 +38,56 @@ class SectionBackgroundTest extends TestCase
         $this->assertStringContainsString('background:var(--bg-alt, var(--bg))', $this->sectionTag('profil'));
     }
 
+    public function test_a_built_in_section_can_be_decorated_with_an_svg_pattern(): void
+    {
+        Setting::setMany([
+            'section_stats_background' => 'alt',
+            'section_stats_background_pattern' => 'dots',
+            'section_stats_background_pattern_opacity' => 14,
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('background:transparent', $this->sectionTag('profil'));
+        $this->assertStringContainsString('class="section-bg-layer section-bg-layer-pattern"', $html);
+        $this->assertStringContainsString('background-color:var(--bg-alt, var(--bg))', $html);
+        $this->assertStringContainsString('opacity:0.14', $html);
+    }
+
+    public function test_a_built_in_section_pattern_can_be_animated(): void
+    {
+        Setting::setMany([
+            'section_stats_background' => 'base',
+            'section_stats_background_pattern' => 'dots',
+            'section_stats_background_pattern_animated' => true,
+            'section_stats_background_pattern_motion' => 'drift',
+            'section_stats_background_pattern_speed' => 12,
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('class="section-bg-pattern section-bg-pattern-moving section-bg-pattern-drift"', $html);
+        // Ubin 24px pada laju 12 px/detik = 2 detik per putaran
+        $this->assertStringContainsString('--section-pattern-duration:2s', $html);
+    }
+
+    /**
+     * Seksi yang dibiarkan "Bawaan Seksi" tetap memakai latar rancangannya
+     * sendiri; pola dilukis di atasnya, bukan menggantikannya.
+     */
+    public function test_a_pattern_keeps_the_sections_own_designed_background(): void
+    {
+        Setting::setMany([
+            'section_stats_background' => 'default',
+            'section_stats_background_pattern' => 'grid',
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('class="section-bg-layer section-bg-layer-pattern"', $html);
+        $this->assertStringContainsString('background:transparent', $this->sectionTag('profil'));
+    }
+
     public function test_it_renders_a_background_image_with_blur_overlay_and_parallax(): void
     {
         $this->configureStatsBackground([
