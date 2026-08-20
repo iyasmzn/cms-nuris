@@ -75,4 +75,22 @@ class HeroSliderTest extends TestCase
             // Jeda di luar rentang panel dikembalikan ke batas maksimum
             ->assertSee('}, 20000)', false);
     }
+
+    /**
+     * The counter pill only makes sense while there is something to count
+     * through; a lone slide would forever read "1 / 1".
+     */
+    public function test_the_slide_counter_is_hidden_when_there_is_only_one_slide(): void
+    {
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('1 / 2');
+
+        Slide::query()->delete();
+        Slide::factory()->create();
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertDontSee('1 / 1');
+    }
 }

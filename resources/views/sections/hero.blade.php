@@ -121,11 +121,13 @@
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                     <div class="max-w-2xl text-white pointer-events-auto">
 
-                        {{-- Slide counter pill --}}
-                        <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm mb-6">
-                            <span class="w-2 h-2 rounded-full animate-pulse" style="background:var(--primary-400)"></span>
-                            <span class="text-white/80 text-xs font-semibold tracking-wider">{{ $index + 1 }} / {{ $slides->count() }}</span>
-                        </div>
+                        {{-- Slide counter pill: tak ada yang perlu dihitung kalau slide-nya tunggal --}}
+                        @if($slides->count() > 1)
+                            <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm mb-6">
+                                <span class="w-2 h-2 rounded-full animate-pulse" style="background:var(--primary-400)"></span>
+                                <span class="text-white/80 text-xs font-semibold tracking-wider">{{ $index + 1 }} / {{ $slides->count() }}</span>
+                            </div>
+                        @endif
 
                         <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight mb-5">
                             {{ $s->title }}
