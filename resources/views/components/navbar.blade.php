@@ -46,10 +46,35 @@
                 ? request()->is('/')
                 : request()->is(ltrim($path, '/'), ltrim($path, '/') . '/*'));
 
+        // A bare `#` names no destination — it is a placeholder for an entry that
+        // only exists to open its dropdown. Left alone it resolves to "the current
+        // page, no section", so on the landing page every such entry would claim
+        // the you-are-here highlight at the same time as Beranda.
+        $isPlaceholder = in_array(trim($url), ['', '#', '/#'], true);
+
         return [
             'url' => $normalized,
-            'spy' => $onCurrentPage ? ($fragment ?? '') : null,
+            'spy' => ($onCurrentPage && ! $isPlaceholder) ? ($fragment ?? '') : null,
         ];
+    };
+
+    /**
+     * The spy keys a dropdown highlights on: its children, plus its own link when
+     * that link actually names somewhere. A parent pointing at the home page as a
+     * whole is just a menu opener — Beranda already owns that highlight.
+     *
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $children
+     * @return array<int, ?string>
+     */
+    $branchSpies = function (array $item, $children) use ($resolveNav): array {
+        $parent = $resolveNav($item['url'] ?? '/');
+        $isMenuOpener = $parent['spy'] === '' && (parse_url($parent['url'], PHP_URL_PATH) ?: '/') === '/';
+
+        return $children
+            ->pluck('url')
+            ->map(fn (string $url): ?string => $resolveNav($url)['spy'])
+            ->when(! $isMenuOpener, fn ($spies) => $spies->prepend($parent['spy']))
+            ->all();
     };
 
     /** Section ids on the current page that the menu links to — the scroll-spy targets. */
@@ -238,13 +263,13 @@
                             @if($children->isNotEmpty())
                                 {{-- A dropdown highlights when its own link, or any of its children, targets what is in view. --}}
                                 @php
-                                    $branchSpies = $children->pluck('url')->prepend($item['url'])->map(fn (string $url) => $resolveNav($url)['spy'])->all();
+                                    $spies = $branchSpies($item, $children);
                                     /** Icons or descriptions need a roomier panel than a bare list of labels. */
                                     $isRichPanel = $children->contains(fn (array $child): bool => filled($child['icon'] ?? null) || filled($child['description'] ?? null));
                                 @endphp
                                 <div x-data="{
                                         dropOpen: false,
-                                        spies: @js($branchSpies),
+                                        spies: @js($spies),
                                         closeTimer: null,
                                         /* Touch devices open on tap: hover fires there too, and would fight the click. */
                                         canHover: window.matchMedia('(hover: hover) and (pointer: fine)').matches,
@@ -459,8 +484,8 @@
             @foreach($navItems as $i => $item)
                 @php $children = collect($item['children'] ?? [])->where('is_active', true)->values(); @endphp
                 @if($children->isNotEmpty())
-                    @php $branchSpies = $children->pluck('url')->prepend($item['url'])->map(fn (string $url) => $resolveNav($url)['spy'])->all(); @endphp
-                    <div x-data="{ mobileSubOpen: false, spies: @js($branchSpies) }">
+                    @php $spies = $branchSpies($item, $children); @endphp
+                    <div x-data="{ mobileSubOpen: false, spies: @js($spies) }">
                         <button @click="mobileSubOpen = ! mobileSubOpen"
                                 :aria-expanded="mobileSubOpen"
                                 class="mobile-nav-item w-full flex items-center gap-4 py-3.5 border-b border-white/8 transition-all duration-200"
