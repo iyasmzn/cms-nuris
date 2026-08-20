@@ -7,6 +7,7 @@ use App\Filament\Resources\SpmbRegistrations\Pages\EditSpmbRegistration;
 use App\Filament\Resources\SpmbRegistrations\Pages\ListSpmbRegistrations;
 use App\Filament\Resources\SpmbRegistrations\Pages\ViewSpmbRegistration;
 use App\Models\Institution;
+use App\Models\PpdbField;
 use App\Models\RegistrationPayment;
 use App\Models\SpmbRegistration;
 use App\Models\User;
@@ -139,5 +140,113 @@ class SpmbRegistrationResourceTest extends TestCase
             'full_name' => 'Budi Santoso',
             'nik' => '2975378084746545',
         ]);
+    }
+
+    /**
+     * A jenjang's own option fields (dropdown/radio) become filters on the
+     * pendaftar list, matching values kept in the `data` bucket.
+     */
+    public function test_filtering_by_a_dynamic_option_field_narrows_the_list(): void
+    {
+        $institution = Institution::factory()->create();
+        $field = PpdbField::factory()
+            ->select(['Laki-laki', 'Perempuan'])
+            ->create([
+                'institution_id' => $institution->id,
+                'key' => 'jenis_kelamin',
+                'label' => 'Jenis Kelamin',
+            ]);
+
+        $perempuan = SpmbRegistration::factory()->create([
+            'institution_id' => $institution->id,
+            'data' => ['jenis_kelamin' => 'Perempuan'],
+        ]);
+        $lakiLaki = SpmbRegistration::factory()->create([
+            'institution_id' => $institution->id,
+            'data' => ['jenis_kelamin' => 'Laki-laki'],
+        ]);
+
+        Livewire::test(ListSpmbRegistrations::class)
+            ->filterTable('jenjang', [
+                'institution_id' => $institution->id,
+                "field_{$field->id}" => 'Perempuan',
+            ])
+            ->assertCanSeeTableRecords([$perempuan])
+            ->assertCanNotSeeTableRecords([$lakiLaki]);
+    }
+
+    /**
+     * An option field whose key matches a pendaftar column is filtered on that
+     * column, not on the `data` bucket the value never reaches.
+     */
+    public function test_filtering_by_an_option_field_backed_by_a_column(): void
+    {
+        $institution = Institution::factory()->create();
+        $field = PpdbField::factory()
+            ->select(['SDN 1', 'SDN 2'])
+            ->create([
+                'institution_id' => $institution->id,
+                'key' => 'previous_school',
+                'label' => 'Asal Sekolah',
+            ]);
+
+        $wanted = SpmbRegistration::factory()->create([
+            'institution_id' => $institution->id,
+            'previous_school' => 'SDN 1',
+        ]);
+        $other = SpmbRegistration::factory()->create([
+            'institution_id' => $institution->id,
+            'previous_school' => 'SDN 2',
+        ]);
+
+        Livewire::test(ListSpmbRegistrations::class)
+            ->filterTable('jenjang', [
+                'institution_id' => $institution->id,
+                "field_{$field->id}" => 'SDN 1',
+            ])
+            ->assertCanSeeTableRecords([$wanted])
+            ->assertCanNotSeeTableRecords([$other]);
+    }
+
+    /**
+     * The dynamic filters belong to the jenjang that defines them: a value left
+     * over from another jenjang — or one picked before any jenjang was chosen —
+     * must not silently scope the list.
+     */
+    public function test_a_dynamic_filter_of_another_jenjang_is_ignored(): void
+    {
+        $sd = Institution::factory()->create(['name' => 'SD']);
+        $smp = Institution::factory()->create(['name' => 'SMP']);
+
+        $sdField = PpdbField::factory()
+            ->select(['Ya', 'Tidak'])
+            ->create([
+                'institution_id' => $sd->id,
+                'key' => 'pernah_tk',
+                'label' => 'Pernah TK',
+            ]);
+
+        $smpRegistration = SpmbRegistration::factory()->create(['institution_id' => $smp->id]);
+        $sdRegistration = SpmbRegistration::factory()->create([
+            'institution_id' => $sd->id,
+            'data' => ['pernah_tk' => 'Tidak'],
+        ]);
+
+        // Scoped to SMP, so the SD field is not part of the form at all.
+        Livewire::test(ListSpmbRegistrations::class)
+            ->filterTable('jenjang', [
+                'institution_id' => $smp->id,
+                "field_{$sdField->id}" => 'Ya',
+            ])
+            ->assertCanSeeTableRecords([$smpRegistration])
+            ->assertCanNotSeeTableRecords([$sdRegistration]);
+
+        // No jenjang picked: nothing is filtered.
+        Livewire::test(ListSpmbRegistrations::class)
+            ->filterTable('jenjang', [
+                'institution_id' => null,
+                "field_{$sdField->id}" => 'Ya',
+            ])
+            ->assertCanSeeTableRecords([$smpRegistration, $sdRegistration]);
     }
 }

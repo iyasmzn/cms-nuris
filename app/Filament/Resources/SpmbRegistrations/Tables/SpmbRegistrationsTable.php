@@ -5,6 +5,8 @@ namespace App\Filament\Resources\SpmbRegistrations\Tables;
 use App\Filament\Actions\UpdateRegistrationStatusAction;
 use App\Filament\Resources\SpmbRegistrations\SpmbRegistrationResource;
 use App\Models\AcademicYear;
+use App\Models\Institution;
+use App\Models\PpdbField;
 use App\Models\RegistrationPayment;
 use App\Models\RegistrationWave;
 use App\Models\SpmbRegistration;
@@ -14,6 +16,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
@@ -116,10 +119,85 @@ class SpmbRegistrationsTable
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                SelectFilter::make('institution_id')
-                    ->label('Jenjang')
-                    ->relationship('institution', 'name')
-                    ->native(false),
+                Filter::make('jenjang')
+                    ->label('Jenjang & Data Formulir')
+                    ->schema([
+                        Select::make('institution_id')
+                            ->label('Jenjang')
+                            ->options(fn (): array => Institution::query()
+                                ->orderBy('sort_order')
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
+                            ->native(false)
+                            ->live()
+                            ->afterStateUpdated(function (Set $set): void {
+                                // Pilihan field milik jenjang sebelumnya, jadi
+                                // tidak boleh ikut terbawa ke jenjang baru.
+                                foreach (self::choiceFields() as $field) {
+                                    $set(self::choiceFieldKey($field), null);
+                                }
+                            }),
+
+                        Grid::make(1)
+                            ->schema(fn (Get $get): array => blank($get('institution_id'))
+                                ? []
+                                : self::choiceFields($get('institution_id'))
+                                    ->map(fn (PpdbField $field): Select => Select::make(self::choiceFieldKey($field))
+                                        ->label($field->label)
+                                        ->options(array_combine($field->optionValues(), $field->optionValues()))
+                                        ->native(false)
+                                        ->placeholder('Semua'))
+                                    ->all()),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $institutionId = $data['institution_id'] ?? null;
+
+                        if (blank($institutionId)) {
+                            return $query;
+                        }
+
+                        $query->where('institution_id', $institutionId);
+
+                        foreach (self::choiceFields($institutionId) as $field) {
+                            $value = $data[self::choiceFieldKey($field)] ?? null;
+
+                            if (blank($value)) {
+                                continue;
+                            }
+
+                            in_array($field->key, SpmbRegistration::dynamicColumnKeys(), true)
+                                ? $query->where($field->key, $value)
+                                : $query->where("data->{$field->key}", $value);
+                        }
+
+                        return $query;
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $institution = Institution::find($data['institution_id'] ?? null);
+
+                        if ($institution === null) {
+                            return [];
+                        }
+
+                        $indicators = [
+                            Indicator::make('Jenjang: '.($institution->short_name ?: $institution->name))
+                                ->removeField('institution_id'),
+                        ];
+
+                        foreach (self::choiceFields($institution->id) as $field) {
+                            $value = $data[self::choiceFieldKey($field)] ?? null;
+
+                            if (blank($value)) {
+                                continue;
+                            }
+
+                            $indicators[] = Indicator::make("{$field->label}: {$value}")
+                                ->removeField(self::choiceFieldKey($field));
+                        }
+
+                        return $indicators;
+                    }),
 
                 Filter::make('periode')
                     ->label('Tahun Ajaran & Gelombang')
@@ -225,5 +303,34 @@ class SpmbRegistrationsTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * The active option-style (dropdown/radio) fields of a jenjang's dynamic
+     * formulir — the ones whose answers come from a fixed list and are
+     * therefore worth filtering on. Pass no jenjang to get every one of them,
+     * which is how the filter clears selections that belonged to the jenjang
+     * the admin just switched away from.
+     *
+     * @return Collection<int, PpdbField>
+     */
+    private static function choiceFields(int|string|null $institutionId = null): Collection
+    {
+        return PpdbField::query()
+            ->active()
+            ->whereIn('type', ['select', 'radio'])
+            ->when($institutionId, fn (Builder $query, $id): Builder => $query->where('institution_id', $id))
+            ->ordered()
+            ->get();
+    }
+
+    /**
+     * The filter form field name carrying a dynamic field's selected value.
+     * Keyed by id, not by key: two jenjang may use the same key for different
+     * option lists.
+     */
+    private static function choiceFieldKey(PpdbField $field): string
+    {
+        return "field_{$field->id}";
     }
 }
