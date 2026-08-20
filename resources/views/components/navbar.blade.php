@@ -102,6 +102,14 @@
 
         .nav-dropdown-item:hover { background: color-mix(in oklab, var(--primary) 8%, white); color: var(--primary); }
         .nav-dropdown-item.is-active { background: color-mix(in oklab, var(--primary) 6%, white); color: var(--primary); font-weight: 600; }
+        .nav-dropdown-icon { width: 1.25rem; text-align: center; font-size: 1rem; line-height: 1.25rem; }
+        .nav-dropdown-desc { color: #9ca3af; font-weight: 400; }
+        .nav-dropdown-item:hover .nav-dropdown-desc,
+        .nav-dropdown-item.is-active .nav-dropdown-desc { color: color-mix(in oklab, var(--primary) 45%, #6b7280); }
+
+        /* Keyboard users need to see where they are; a mouse hover shows it by itself. */
+        .nav-link:focus-visible,
+        .nav-dropdown-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
         .nav-icon-scrolled:hover { background: color-mix(in oklab, var(--primary) 8%, white); }
         .nav-auth-scrolled:hover { border-color: var(--primary); color: var(--primary); }
 
@@ -229,36 +237,91 @@
                             @php $children = collect($item['children'] ?? [])->where('is_active', true)->values(); @endphp
                             @if($children->isNotEmpty())
                                 {{-- A dropdown highlights when its own link, or any of its children, targets what is in view. --}}
-                                @php $branchSpies = $children->pluck('url')->prepend($item['url'])->map(fn (string $url) => $resolveNav($url)['spy'])->all(); @endphp
-                                <div x-data="{ dropOpen: false, spies: @js($branchSpies) }" class="relative">
-                                    <button @mouseenter="dropOpen = true" @mouseleave="dropOpen = false"
+                                @php
+                                    $branchSpies = $children->pluck('url')->prepend($item['url'])->map(fn (string $url) => $resolveNav($url)['spy'])->all();
+                                    /** Icons or descriptions need a roomier panel than a bare list of labels. */
+                                    $isRichPanel = $children->contains(fn (array $child): bool => filled($child['icon'] ?? null) || filled($child['description'] ?? null));
+                                @endphp
+                                <div x-data="{
+                                        dropOpen: false,
+                                        spies: @js($branchSpies),
+                                        closeTimer: null,
+                                        /* Touch devices open on tap: hover fires there too, and would fight the click. */
+                                        canHover: window.matchMedia('(hover: hover) and (pointer: fine)').matches,
+                                        open() { clearTimeout(this.closeTimer); this.dropOpen = true },
+                                        close() { clearTimeout(this.closeTimer); this.dropOpen = false },
+                                        /* A grace period so the cursor can cross into the panel without it closing. */
+                                        closeSoon() { clearTimeout(this.closeTimer); this.closeTimer = setTimeout(() => this.dropOpen = false, 150) },
+                                        toggle() { (this.canHover || ! this.dropOpen) ? this.open() : this.close() },
+                                        links() { return [...this.$refs.panel.querySelectorAll('a')] },
+                                        focusItem(index) {
+                                            this.$nextTick(() => {
+                                                const links = this.links();
+                                                if (links.length) { links[(index + links.length) % links.length].focus() }
+                                            });
+                                        },
+                                        moveFocus(step) { this.focusItem(this.links().indexOf(document.activeElement) + step) },
+                                        dismiss() { this.close(); this.$refs.trigger.focus() },
+                                     }"
+                                     @mouseenter="canHover && open()"
+                                     @mouseleave="canHover && closeSoon()"
+                                     @focusout="$el.contains($event.relatedTarget) || close()"
+                                     @keydown.escape.prevent="dismiss()"
+                                     class="relative">
+                                    <button type="button"
+                                            x-ref="trigger"
+                                            @click="toggle()"
+                                            @keydown.down.prevent="open(); focusItem(0)"
+                                            @keydown.up.prevent="open(); focusItem(-1)"
+                                            aria-haspopup="true"
+                                            aria-controls="nav-drop-{{ $loop->index }}"
+                                            :aria-expanded="dropOpen"
                                             class="nav-link"
                                             :class="navLinkClass(navActiveAny(spies))">
                                         {{ $item['label'] }}
-                                        <svg class="w-3 h-3 transition-transform duration-200" :class="dropOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="w-3 h-3 transition-transform duration-200" :class="dropOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                                         </svg>
                                     </button>
+                                    {{-- The panel sits under a padded wrapper rather than a margin: a real gap
+                                         between button and panel drops the hover on the way down. --}}
                                     <div x-show="dropOpen"
+                                         x-cloak
+                                         id="nav-drop-{{ $loop->index }}"
+                                         x-ref="panel"
                                          x-transition:enter="transition ease-out duration-150"
                                          x-transition:enter-start="opacity-0 -translate-y-1"
                                          x-transition:enter-end="opacity-100 translate-y-0"
                                          x-transition:leave="transition ease-in duration-100"
                                          x-transition:leave-start="opacity-100 translate-y-0"
                                          x-transition:leave-end="opacity-0 -translate-y-1"
-                                         @mouseenter="dropOpen = true" @mouseleave="dropOpen = false"
-                                         class="absolute top-full left-0 mt-1 min-w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 py-1">
-                                        @foreach($children as $child)
-                                            @php $childNav = $resolveNav($child['url']); @endphp
-                                            <a href="{{ $childNav['url'] }}" target="{{ $child['target'] ?? '_self' }}"
-                                               x-data="{ spy: @js($childNav['spy']) }"
-                                               class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 nav-dropdown-item transition-colors"
-                                               :class="navActive(spy) ? 'is-active' : ''"
-                                               :aria-current="navActive(spy) ? 'page' : null">
-                                                <span class="w-1 h-1 rounded-full shrink-0" style="background:var(--primary)"></span>
-                                                {{ $child['label'] }}
-                                            </a>
-                                        @endforeach
+                                         @keydown.down.prevent="moveFocus(1)"
+                                         @keydown.up.prevent="moveFocus(-1)"
+                                         @keydown.home.prevent="focusItem(0)"
+                                         @keydown.end.prevent="focusItem(-1)"
+                                         class="absolute top-full left-0 pt-1.5 z-50">
+                                        <div class="{{ $isRichPanel ? 'min-w-64' : 'min-w-48' }} bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden py-1">
+                                            @foreach($children as $child)
+                                                @php $childNav = $resolveNav($child['url']); @endphp
+                                                <a href="{{ $childNav['url'] }}" target="{{ $child['target'] ?? '_self' }}"
+                                                   x-data="{ spy: @js($childNav['spy']) }"
+                                                   class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 nav-dropdown-item transition-colors"
+                                                   :class="navActive(spy) ? 'is-active' : ''"
+                                                   :aria-current="navActive(spy) ? 'page' : null">
+                                                    @if(filled($child['icon'] ?? null))
+                                                        <span class="nav-dropdown-icon shrink-0" aria-hidden="true">{{ $child['icon'] }}</span>
+                                                    @else
+                                                        <span class="w-1 h-1 rounded-full shrink-0" style="background:var(--primary)"></span>
+                                                    @endif
+                                                    <span class="min-w-0">
+                                                        <span class="block leading-snug">{{ $child['label'] }}</span>
+                                                        @if(filled($child['description'] ?? null))
+                                                            <span class="nav-dropdown-desc block text-xs leading-snug mt-0.5">{{ $child['description'] }}</span>
+                                                        @endif
+                                                    </span>
+                                                </a>
+                                            @endforeach
+                                        </div>
                                     </div>
                                 </div>
                             @else
@@ -399,6 +462,7 @@
                     @php $branchSpies = $children->pluck('url')->prepend($item['url'])->map(fn (string $url) => $resolveNav($url)['spy'])->all(); @endphp
                     <div x-data="{ mobileSubOpen: false, spies: @js($branchSpies) }">
                         <button @click="mobileSubOpen = ! mobileSubOpen"
+                                :aria-expanded="mobileSubOpen"
                                 class="mobile-nav-item w-full flex items-center gap-4 py-3.5 border-b border-white/8 transition-all duration-200"
                                 :class="navActiveAny(spies) ? 'is-active' : ''">
                             <span class="mobile-nav-num text-xs font-bold text-white/25 transition-colors w-6 shrink-0">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</span>
@@ -422,10 +486,19 @@
                                    class="mobile-subnav-hover flex items-center gap-2 py-2 text-lg font-medium text-white/55 transition-colors"
                                    :class="navActive(spy) ? 'is-active' : ''"
                                    :aria-current="navActive(spy) ? 'page' : null">
-                                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
-                                    </svg>
-                                    {{ $child['label'] }}
+                                    @if(filled($child['icon'] ?? null))
+                                        <span class="w-5 text-center text-base shrink-0" aria-hidden="true">{{ $child['icon'] }}</span>
+                                    @else
+                                        <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    @endif
+                                    <span class="min-w-0">
+                                        <span class="block leading-snug">{{ $child['label'] }}</span>
+                                        @if(filled($child['description'] ?? null))
+                                            <span class="block text-xs font-normal text-white/35 leading-snug mt-0.5">{{ $child['description'] }}</span>
+                                        @endif
+                                    </span>
                                 </a>
                             @endforeach
                         </div>

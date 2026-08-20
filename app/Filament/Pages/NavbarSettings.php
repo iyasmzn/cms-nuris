@@ -52,7 +52,7 @@ class NavbarSettings extends Page
     {
         return $schema->components([
             Section::make('Item Menu')
-                ->description('Seret untuk mengubah urutan. Setiap item dapat memiliki sub-menu (maks 1 level).')
+                ->description('Seret untuk mengubah urutan. Setiap item dapat memiliki sub-menu (maks 1 level), lengkap dengan ikon dan keterangan singkat.')
                 ->icon(Heroicon::OutlinedBars3)
                 ->schema([
                     Repeater::make('items')
@@ -89,7 +89,14 @@ class NavbarSettings extends Page
                             Repeater::make('children')
                                 ->label('Sub Menu')
                                 ->schema([
-                                    Grid::make(4)->schema([
+                                    Grid::make(6)->schema([
+                                        TextInput::make('icon')
+                                            ->label('Ikon')
+                                            ->maxLength(10)
+                                            ->placeholder('📘')
+                                            ->hint('Emoji')
+                                            ->columnSpan(1),
+
                                         TextInput::make('label')
                                             ->label('Teks')
                                             ->required()
@@ -102,7 +109,7 @@ class NavbarSettings extends Page
                                             ->required()
                                             ->maxLength(300)
                                             ->placeholder('#kurikulum')
-                                            ->columnSpan(1),
+                                            ->columnSpan(2),
 
                                         Select::make('target')
                                             ->label('Buka di')
@@ -110,6 +117,13 @@ class NavbarSettings extends Page
                                             ->default('_self')
                                             ->columnSpan(1),
                                     ]),
+
+                                    TextInput::make('description')
+                                        ->label('Keterangan')
+                                        ->maxLength(80)
+                                        ->placeholder('Struktur kurikulum & jadwal pelajaran')
+                                        ->helperText('Teks kecil di bawah teks menu pada dropdown. Kosongkan bila tidak perlu.')
+                                        ->columnSpanFull(),
 
                                     Toggle::make('is_active')
                                         ->label('Tampilkan')
