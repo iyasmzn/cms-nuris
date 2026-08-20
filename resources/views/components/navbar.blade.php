@@ -22,21 +22,44 @@
     ])->where('is_active', true)->values();
 
     /**
-     * Normalise a menu URL and resolve its active state against the current request.
+     * Normalise a menu URL and resolve the scroll-spy key used to highlight it.
      * Hash-only links (e.g. `#spmb`) are prefixed with `/` so they jump to the home
      * page section from any page.
      *
-     * @return array{url: string, active: bool}
+     * The `spy` key drives highlighting in Alpine:
+     * - `null`  the link points at another page, so it is never highlighted here;
+     * - `''`    the link points at the current page itself (highlight while no
+     *           tracked section is in view);
+     * - `'id'`  the link points at a section of the current page (highlight while
+     *           that section is the one in view).
+     *
+     * @return array{url: string, spy: ?string}
      */
     $resolveNav = function (string $url): array {
         $normalized = str_starts_with($url, '#') ? '/' . $url : $url;
-        $path = parse_url($normalized, PHP_URL_PATH) ?? '/';
-        $active = $path === '/'
-            ? (request()->is('/') && ! str_contains($normalized, '#'))
-            : request()->is(ltrim($path, '/'), ltrim($path, '/') . '/*');
+        $path = parse_url($normalized, PHP_URL_PATH) ?: '/';
+        $fragment = parse_url($normalized, PHP_URL_FRAGMENT);
+        $host = parse_url($normalized, PHP_URL_HOST);
 
-        return ['url' => $normalized, 'active' => $active];
+        $onCurrentPage = ($host === null || $host === request()->getHost())
+            && ($path === '/'
+                ? request()->is('/')
+                : request()->is(ltrim($path, '/'), ltrim($path, '/') . '/*'));
+
+        return [
+            'url' => $normalized,
+            'spy' => $onCurrentPage ? ($fragment ?? '') : null,
+        ];
     };
+
+    /** Section ids on the current page that the menu links to — the scroll-spy targets. */
+    $navSpyIds = $navItems
+        ->flatMap(fn (array $item) => array_merge([$item], collect($item['children'] ?? [])->where('is_active', true)->all()))
+        ->map(fn (array $entry) => $resolveNav($entry['url'] ?? '/')['spy'])
+        ->filter(fn (?string $spy) => filled($spy))
+        ->unique()
+        ->values()
+        ->all();
 @endphp
 
 @once
@@ -45,16 +68,55 @@
         /* Center menu items when they fit, but fall back to top-aligned + scrollable
            when taller than the viewport so the first item is never clipped/unreachable. */
         .mobile-nav-scroll { justify-content: safe center; }
-        .nav-link-scrolled { transition: background .2s, color .2s; }
-        .nav-link-scrolled:hover { background: color-mix(in oklab, var(--primary) 8%, white); color: var(--primary); }
-        .nav-link-active-solid { color: var(--primary); background: color-mix(in oklab, var(--primary) 8%, white); }
+
+        /* ── Desktop menu links ─────────────────────────────────
+           `.is-active` is toggled from Alpine: it marks the link for the page the
+           visitor is on, or — for hash links — the section currently in view. Hover
+           and active share the same treatment so the highlight reads as one idea. */
+        .nav-link {
+            position: relative;
+            display: inline-flex; align-items: center; gap: .25rem;
+            padding: .5rem .75rem;
+            border-radius: .5rem;
+            font-size: .875rem; font-weight: 500;
+            transition: color .2s, background .2s, font-weight .2s;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute; left: 50%; right: 50%; bottom: .25rem;
+            height: 2px; border-radius: 2px;
+            background: currentColor; opacity: 0;
+            transition: left .25s ease, right .25s ease, opacity .2s ease;
+        }
+        .nav-link:hover::after,
+        .nav-link.is-active::after { left: .75rem; right: .75rem; opacity: 1; }
+        .nav-link.is-active { font-weight: 600; }
+
+        .nav-link-solid { color: #6b7280; }
+        .nav-link-solid:hover,
+        .nav-link-solid.is-active { background: color-mix(in oklab, var(--primary) 8%, white); color: var(--primary); }
+
+        .nav-link-over { color: rgba(255,255,255,.8); }
+        .nav-link-over:hover,
+        .nav-link-over.is-active { background: rgba(255,255,255,.14); color: #fff; }
+
         .nav-dropdown-item:hover { background: color-mix(in oklab, var(--primary) 8%, white); color: var(--primary); }
+        .nav-dropdown-item.is-active { background: color-mix(in oklab, var(--primary) 6%, white); color: var(--primary); font-weight: 600; }
         .nav-icon-scrolled:hover { background: color-mix(in oklab, var(--primary) 8%, white); }
         .nav-auth-scrolled:hover { border-color: var(--primary); color: var(--primary); }
-        .mobile-nav-hover:hover .mobile-nav-num { color: var(--primary); }
-        .mobile-nav-hover:hover { border-color: color-mix(in oklab, var(--primary) 40%, transparent); }
+
+        /* ── Mobile menu links ──────────────────────────────────── */
+        .mobile-nav-item:hover .mobile-nav-num,
+        .mobile-nav-item.is-active .mobile-nav-num { color: var(--primary); }
+        .mobile-nav-item:hover .mobile-nav-label,
+        .mobile-nav-item.is-active .mobile-nav-label { color: #fff; }
+        .mobile-nav-item:hover,
+        .mobile-nav-item.is-active { border-color: color-mix(in oklab, var(--primary) 45%, transparent); }
+        .mobile-nav-item.is-active { padding-left: .5rem; }
         .mobile-nav-arrow:hover { color: var(--primary); }
-        .mobile-subnav-hover:hover { color: color-mix(in oklab, var(--primary) 60%, white); }
+        .mobile-subnav-hover:hover,
+        .mobile-subnav-hover.is-active { color: color-mix(in oklab, var(--primary) 60%, white); }
+        .mobile-subnav-hover.is-active { font-weight: 600; }
     </style>
 @endonce
 
@@ -65,9 +127,62 @@
         scrolled: false,
         mobileOpen: false,
         over: {{ $overHero ? 'true' : 'false' }},
+        activeHash: '',
+        spyIds: @js($navSpyIds),
+        spyTargets: [],
         get solid() { return ! this.over || this.scrolled; },
-     }"
-     x-init="window.addEventListener('scroll', () => scrolled = window.scrollY > 60, { passive: true })">
+
+        /** True when a menu entry points at the page — or section — currently in view. */
+        navActive(spy) {
+            if (spy === null) { return false; }
+            if (spy === '') { return this.activeHash === ''; }
+            return this.activeHash === spy;
+        },
+        navActiveAny(spies) { return spies.some(spy => this.navActive(spy)); },
+        navLinkClass(active) {
+            return (this.solid ? 'nav-link-solid' : 'nav-link-over') + (active ? ' is-active' : '');
+        },
+
+        /** Collect the linked sections that actually exist, in document order. */
+        refreshSpyTargets() {
+            this.spyTargets = this.spyIds
+                .map(id => document.getElementById(id))
+                .filter(Boolean)
+                .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+        },
+        /** Highlight the last section whose top has passed under the navbar. */
+        syncSpy() {
+            if (! this.spyTargets.length) { return; }
+            let current = '';
+            for (const target of this.spyTargets) {
+                if (target.getBoundingClientRect().top <= 96) { current = target.id; }
+            }
+            if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+                current = this.spyTargets[this.spyTargets.length - 1].id;
+            }
+            this.activeHash = current;
+        },
+
+        init() {
+            let ticking = false;
+            const onScroll = () => {
+                if (ticking) { return; }
+                ticking = true;
+                requestAnimationFrame(() => {
+                    this.scrolled = window.scrollY > 60;
+                    this.syncSpy();
+                    ticking = false;
+                });
+            };
+            const onResize = () => { this.refreshSpyTargets(); this.syncSpy(); };
+
+            this.scrolled = window.scrollY > 60;
+            this.$nextTick(onResize);
+            window.addEventListener('load', onResize);
+            window.addEventListener('scroll', onScroll, { passive: true });
+            window.addEventListener('resize', onResize, { passive: true });
+        },
+     }">
 
     {{-- ── Navbar ─────────────────────────────────────────────── --}}
     <header class="sticky top-0 z-50 transition-all duration-300"
@@ -113,10 +228,12 @@
                         @foreach($navItems as $item)
                             @php $children = collect($item['children'] ?? [])->where('is_active', true)->values(); @endphp
                             @if($children->isNotEmpty())
-                                <div x-data="{ dropOpen: false }" class="relative">
+                                {{-- A dropdown highlights when its own link, or any of its children, targets what is in view. --}}
+                                @php $branchSpies = $children->pluck('url')->prepend($item['url'])->map(fn (string $url) => $resolveNav($url)['spy'])->all(); @endphp
+                                <div x-data="{ dropOpen: false, spies: @js($branchSpies) }" class="relative">
                                     <button @mouseenter="dropOpen = true" @mouseleave="dropOpen = false"
-                                            class="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1"
-                                            :class="solid ? 'text-gray-500 nav-link-scrolled' : 'text-white/80 hover:text-white hover:bg-white/10'">
+                                            class="nav-link"
+                                            :class="navLinkClass(navActiveAny(spies))">
                                         {{ $item['label'] }}
                                         <svg class="w-3 h-3 transition-transform duration-200" :class="dropOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
@@ -134,7 +251,10 @@
                                         @foreach($children as $child)
                                             @php $childNav = $resolveNav($child['url']); @endphp
                                             <a href="{{ $childNav['url'] }}" target="{{ $child['target'] ?? '_self' }}"
-                                               class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 nav-dropdown-item transition-colors">
+                                               x-data="{ spy: @js($childNav['spy']) }"
+                                               class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 nav-dropdown-item transition-colors"
+                                               :class="navActive(spy) ? 'is-active' : ''"
+                                               :aria-current="navActive(spy) ? 'page' : null">
                                                 <span class="w-1 h-1 rounded-full shrink-0" style="background:var(--primary)"></span>
                                                 {{ $child['label'] }}
                                             </a>
@@ -144,13 +264,10 @@
                             @else
                                 @php $nav = $resolveNav($item['url']); @endphp
                                 <a href="{{ $nav['url'] }}" target="{{ $item['target'] ?? '_self' }}"
-                                   class="px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ $nav['active'] ? 'font-semibold' : 'font-medium' }}"
-                                   @if($nav['active'])
-                                       :class="solid ? 'nav-link-active-solid' : 'text-white bg-white/10'"
-                                       aria-current="page"
-                                   @else
-                                       :class="solid ? 'text-gray-500 nav-link-scrolled' : 'text-white/80 hover:text-white hover:bg-white/10'"
-                                   @endif>
+                                   x-data="{ spy: @js($nav['spy']) }"
+                                   class="nav-link"
+                                   :class="navLinkClass(navActive(spy))"
+                                   :aria-current="navActive(spy) ? 'page' : null">
                                     {{ $item['label'] }}
                                 </a>
                             @endif
@@ -279,11 +396,13 @@
             @foreach($navItems as $i => $item)
                 @php $children = collect($item['children'] ?? [])->where('is_active', true)->values(); @endphp
                 @if($children->isNotEmpty())
-                    <div x-data="{ mobileSubOpen: false }">
+                    @php $branchSpies = $children->pluck('url')->prepend($item['url'])->map(fn (string $url) => $resolveNav($url)['spy'])->all(); @endphp
+                    <div x-data="{ mobileSubOpen: false, spies: @js($branchSpies) }">
                         <button @click="mobileSubOpen = ! mobileSubOpen"
-                                class="mobile-nav-hover group w-full flex items-center gap-4 py-3.5 border-b border-white/8 transition-all duration-200">
+                                class="mobile-nav-item w-full flex items-center gap-4 py-3.5 border-b border-white/8 transition-all duration-200"
+                                :class="navActiveAny(spies) ? 'is-active' : ''">
                             <span class="mobile-nav-num text-xs font-bold text-white/25 transition-colors w-6 shrink-0">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</span>
-                            <span class="text-2xl font-bold text-white/70 group-hover:text-white transition-colors tracking-tight flex-1 text-left">{{ $item['label'] }}</span>
+                            <span class="mobile-nav-label text-2xl font-bold text-white/70 transition-colors tracking-tight flex-1 text-left">{{ $item['label'] }}</span>
                             <svg class="mobile-nav-arrow w-4 h-4 text-white/20 shrink-0 transition-all duration-200"
                                  :class="mobileSubOpen ? 'rotate-90' : ''"
                                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,7 +418,10 @@
                                 @php $childNav = $resolveNav($child['url']); @endphp
                                 <a href="{{ $childNav['url'] }}" target="{{ $child['target'] ?? '_self' }}"
                                    @click="mobileOpen = false"
-                                   class="mobile-subnav-hover flex items-center gap-2 py-2 text-lg font-medium text-white/55 transition-colors">
+                                   x-data="{ spy: @js($childNav['spy']) }"
+                                   class="mobile-subnav-hover flex items-center gap-2 py-2 text-lg font-medium text-white/55 transition-colors"
+                                   :class="navActive(spy) ? 'is-active' : ''"
+                                   :aria-current="navActive(spy) ? 'page' : null">
                                     <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
                                     </svg>
@@ -312,9 +434,12 @@
                     @php $nav = $resolveNav($item['url']); @endphp
                     <a href="{{ $nav['url'] }}" target="{{ $item['target'] ?? '_self' }}"
                        @click="mobileOpen = false"
-                       class="mobile-nav-hover group flex items-center gap-4 py-3.5 border-b border-white/8 transition-all duration-200">
+                       x-data="{ spy: @js($nav['spy']) }"
+                       class="mobile-nav-item group flex items-center gap-4 py-3.5 border-b border-white/8 transition-all duration-200"
+                       :class="navActive(spy) ? 'is-active' : ''"
+                       :aria-current="navActive(spy) ? 'page' : null">
                         <span class="mobile-nav-num text-xs font-bold text-white/25 transition-colors w-6 shrink-0">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</span>
-                        <span class="text-2xl font-bold {{ $nav['active'] ? 'text-white' : 'text-white/70' }} group-hover:text-white transition-colors tracking-tight">{{ $item['label'] }}</span>
+                        <span class="mobile-nav-label text-2xl font-bold text-white/70 transition-colors tracking-tight">{{ $item['label'] }}</span>
                         <svg class="mobile-nav-arrow w-4 h-4 text-white/20 ml-auto shrink-0 transition-all group-hover:translate-x-1 duration-200"
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
