@@ -156,6 +156,64 @@ class NavbarMenuTest extends TestCase
         }
     }
 
+    public function test_an_item_can_wear_its_own_colours_and_button_style(): void
+    {
+        Setting::set('nav_items', json_encode([
+            [
+                'label' => 'Daftar Sekarang',
+                'url' => '/spmb',
+                'target' => '_self',
+                'is_active' => true,
+                'style' => 'button',
+                'text_color' => '#ffffff',
+                'bg_color' => '#e11d48',
+                'children' => [],
+            ],
+        ]));
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('nav-link nav-item-button', false)
+            ->assertSee('mobile-nav-item nav-item-button', false)
+            ->assertSee('style="--item-text:#ffffff;--item-bg:#e11d48;--item-bg-hover:color-mix(in oklab, #e11d48 88%, black)"', false);
+    }
+
+    /**
+     * The hover shade is written out beside the background because CSS cannot ask
+     * whether a custom property is set — without it, an item with a background of
+     * its own would look dead under the cursor.
+     */
+    public function test_an_item_without_its_own_colours_carries_no_style_attribute(): void
+    {
+        Setting::set('nav_items', json_encode([
+            ['label' => 'Beranda', 'url' => '/', 'target' => '_self', 'is_active' => true, 'children' => []],
+        ]));
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('--item-text:', $html);
+        $this->assertStringNotContainsString('--item-bg:', $html);
+    }
+
+    public function test_a_submenu_entry_can_wear_its_own_colours(): void
+    {
+        $this->setNavWithSubmenu([
+            [
+                'label' => 'Kurikulum',
+                'url' => '#kurikulum',
+                'target' => '_self',
+                'is_active' => true,
+                'text_color' => '#7c2d12',
+                'bg_color' => '#fef3c7',
+            ],
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        // The dropdown panel and the mobile overlay both render the entry.
+        $this->assertSame(2, substr_count($html, 'style="--item-text:#7c2d12;--item-bg:#fef3c7'));
+    }
+
     public function test_the_chosen_highlight_colour_reaches_the_stylesheet(): void
     {
         Setting::set(NavHighlight::SETTING_KEY, '#e11d48');

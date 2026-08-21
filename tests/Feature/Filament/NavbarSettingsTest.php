@@ -69,6 +69,69 @@ class NavbarSettingsTest extends TestCase
         $this->assertSame('Struktur & jadwal pelajaran', $child['description']);
     }
 
+    public function test_it_saves_the_appearance_chosen_for_an_item_and_its_submenu(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(NavbarSettings::class)
+            ->fillForm([
+                'items' => [
+                    [
+                        'label' => 'Daftar Sekarang',
+                        'url' => '/spmb',
+                        'target' => '_self',
+                        'is_active' => true,
+                        'style' => 'button',
+                        'text_color' => '#FFFFFF',
+                        'bg_color' => '#E11D48',
+                        'children' => [
+                            [
+                                'label' => 'Jalur Prestasi',
+                                'url' => '/spmb/prestasi',
+                                'target' => '_self',
+                                'is_active' => true,
+                                'text_color' => '#7c2d12',
+                                'bg_color' => '#fef3c7',
+                            ],
+                        ],
+                    ],
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors()
+            ->assertNotified();
+
+        $item = json_decode(Setting::get('nav_items'), true)[0];
+
+        $this->assertSame('button', $item['style']);
+        $this->assertSame('#ffffff', $item['text_color']);
+        $this->assertSame('#e11d48', $item['bg_color']);
+        $this->assertSame('#7c2d12', $item['children'][0]['text_color']);
+        $this->assertSame('#fef3c7', $item['children'][0]['bg_color']);
+    }
+
+    /**
+     * The style becomes a CSS class name when the navbar renders, so a value that
+     * is not one of the offered styles has to be refused outright.
+     */
+    public function test_it_refuses_a_style_that_is_not_one_of_the_offered_ones(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(NavbarSettings::class)
+            ->fillForm([
+                'items' => [
+                    ['label' => 'Beranda', 'url' => '/', 'target' => '_self', 'is_active' => true, 'style' => 'nav-item-button" onclick="alert(1)', 'children' => []],
+                ],
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['items.0.style']);
+
+        $this->assertNull(Setting::get('nav_items'));
+    }
+
     public function test_it_saves_the_menu_highlight_colour(): void
     {
         $admin = User::factory()->create()->assignRole('super_admin');

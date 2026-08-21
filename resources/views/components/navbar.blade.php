@@ -3,6 +3,8 @@
 ])
 
 @php
+    use App\Support\NavItemStyle;
+
     /**
      * Shared public navbar.
      *
@@ -119,20 +121,51 @@
         .nav-link.is-active::after { left: .75rem; right: .75rem; opacity: 1; }
         .nav-link.is-active { font-weight: 600; }
 
-        .nav-link-solid { color: #6b7280; }
+        /* An item may carry its own `--item-*` colours, chosen per menu entry in the
+           panel. Every rule reads them through a var() fallback, so an item without
+           colours of its own simply lands on the shared palette. */
+        .nav-link-solid { color: var(--item-text, #6b7280); background: var(--item-bg, transparent); }
         .nav-link-solid:hover,
-        .nav-link-solid.is-active { background: var(--nav-highlight-soft); color: var(--nav-highlight); }
+        .nav-link-solid.is-active { background: var(--item-bg-hover, var(--nav-highlight-soft)); color: var(--item-text, var(--nav-highlight)); }
 
-        .nav-link-over { color: rgba(255,255,255,.8); }
+        .nav-link-over { color: var(--item-text, rgba(255,255,255,.8)); background: var(--item-bg, transparent); }
         .nav-link-over:hover,
-        .nav-link-over.is-active { background: var(--nav-highlight-veil); color: var(--nav-highlight-bright); }
+        .nav-link-over.is-active { background: var(--item-bg-hover, var(--nav-highlight-veil)); color: var(--item-text, var(--nav-highlight-bright)); }
 
-        .nav-dropdown-item:hover { background: var(--nav-highlight-soft); color: var(--nav-highlight); }
-        .nav-dropdown-item.is-active { background: var(--nav-highlight-soft); color: var(--nav-highlight); font-weight: 600; }
+        /* ── Menu items promoted to buttons ──────────────────────
+           Declared after the plain-link rules so they win at equal specificity;
+           their hover pairs need the extra `:hover` to stay on top in turn. */
+        .nav-item-button,
+        .nav-item-outline { padding-inline: 1rem; font-weight: 600; }
+        .nav-item-button::after,
+        .nav-item-outline::after { display: none; }
+
+        .nav-link-solid.nav-item-button,
+        .nav-link-over.nav-item-button {
+            color: var(--item-text, #fff);
+            background: var(--item-bg, var(--nav-highlight));
+            box-shadow: 0 2px 10px color-mix(in oklab, var(--item-bg, var(--nav-highlight)) 35%, transparent);
+        }
+        .nav-link-solid.nav-item-button:hover, .nav-link-solid.nav-item-button.is-active,
+        .nav-link-over.nav-item-button:hover, .nav-link-over.nav-item-button.is-active {
+            color: var(--item-text, #fff);
+            background: var(--item-bg-hover, color-mix(in oklab, var(--nav-highlight) 88%, black));
+        }
+
+        .nav-link-solid.nav-item-outline { border: 1.5px solid var(--item-bg, var(--nav-highlight)); background: transparent; }
+        .nav-link-over.nav-item-outline { border: 1.5px solid var(--item-bg, rgba(255,255,255,.45)); background: transparent; }
+        .nav-link-solid.nav-item-outline:hover, .nav-link-solid.nav-item-outline.is-active,
+        .nav-link-over.nav-item-outline:hover, .nav-link-over.nav-item-outline.is-active {
+            background: color-mix(in oklab, var(--item-bg, var(--nav-highlight)) 14%, transparent);
+        }
+
+        .nav-dropdown-item { color: var(--item-text, #4b5563); background: var(--item-bg, transparent); }
+        .nav-dropdown-item:hover { background: var(--item-bg-hover, var(--nav-highlight-soft)); color: var(--item-text, var(--nav-highlight)); }
+        .nav-dropdown-item.is-active { background: var(--item-bg-hover, var(--nav-highlight-soft)); color: var(--item-text, var(--nav-highlight)); font-weight: 600; }
         .nav-dropdown-icon { width: 1.25rem; text-align: center; font-size: 1rem; line-height: 1.25rem; }
         .nav-dropdown-desc { color: #9ca3af; font-weight: 400; }
         .nav-dropdown-item:hover .nav-dropdown-desc,
-        .nav-dropdown-item.is-active .nav-dropdown-desc { color: color-mix(in oklab, var(--nav-highlight) 45%, #6b7280); }
+        .nav-dropdown-item.is-active .nav-dropdown-desc { color: color-mix(in oklab, var(--item-text, var(--nav-highlight)) 45%, #6b7280); }
 
         /* Keyboard users need to see where they are; a mouse hover shows it by itself. */
         .nav-link:focus-visible,
@@ -140,17 +173,34 @@
         .nav-icon-scrolled:hover { background: var(--nav-highlight-soft); }
         .nav-auth-scrolled:hover { border-color: var(--nav-highlight); color: var(--nav-highlight); }
 
-        /* ── Mobile menu links ──────────────────────────────────── */
+        /* ── Mobile menu links ────────────────────────────────────
+           The overlay is a full-screen list, not a bar, so a button-styled item
+           keeps its row shape and wears its colour as a filled pill. */
+        .mobile-nav-item { background: var(--item-bg, transparent); }
+        .mobile-nav-label { color: var(--item-text, rgba(255,255,255,.7)); }
         .mobile-nav-item:hover .mobile-nav-num,
         .mobile-nav-item.is-active .mobile-nav-num { color: var(--nav-highlight-accent); }
         .mobile-nav-item:hover .mobile-nav-label,
-        .mobile-nav-item.is-active .mobile-nav-label { color: #fff; }
+        .mobile-nav-item.is-active .mobile-nav-label { color: var(--item-text, #fff); }
         .mobile-nav-item:hover,
-        .mobile-nav-item.is-active { border-color: color-mix(in oklab, var(--nav-highlight-accent) 45%, transparent); }
+        .mobile-nav-item.is-active { border-color: color-mix(in oklab, var(--nav-highlight-accent) 45%, transparent); background: var(--item-bg-hover, transparent); }
         .mobile-nav-item.is-active { padding-left: .5rem; }
+
+        .mobile-nav-item.nav-item-button,
+        .mobile-nav-item.nav-item-outline { border-radius: .875rem; padding-inline: .75rem; border-bottom-color: transparent; }
+        .mobile-nav-item.nav-item-button { background: var(--item-bg, var(--nav-highlight)); }
+        .mobile-nav-item.nav-item-button:hover,
+        .mobile-nav-item.nav-item-button.is-active { background: var(--item-bg-hover, color-mix(in oklab, var(--nav-highlight) 88%, black)); }
+        .mobile-nav-item.nav-item-button .mobile-nav-label { color: var(--item-text, #fff); }
+        .mobile-nav-item.nav-item-button .mobile-nav-num { color: color-mix(in oklab, var(--item-text, #fff) 65%, transparent); }
+        .mobile-nav-item.nav-item-outline { border: 1.5px solid var(--item-bg, rgba(255,255,255,.35)); }
+
         .mobile-nav-arrow:hover { color: var(--nav-highlight-accent); }
+        /* Padding and a radius are unconditional so a row that is given a background
+           reads as a deliberate block rather than a stripe of colour behind text. */
+        .mobile-subnav-hover { color: var(--item-text, rgba(255,255,255,.55)); background: var(--item-bg, transparent); padding-inline: .5rem; border-radius: .5rem; }
         .mobile-subnav-hover:hover,
-        .mobile-subnav-hover.is-active { color: var(--nav-highlight-accent); }
+        .mobile-subnav-hover.is-active { color: var(--item-text, var(--nav-highlight-accent)); background: var(--item-bg-hover, transparent); }
         .mobile-subnav-hover.is-active { font-weight: 600; }
     </style>
 @endonce
@@ -261,7 +311,12 @@
                     {{-- Desktop nav --}}
                     <nav class="hidden lg:flex items-center gap-0.5">
                         @foreach($navItems as $item)
-                            @php $children = collect($item['children'] ?? [])->where('is_active', true)->values(); @endphp
+                            @php
+                                $children = collect($item['children'] ?? [])->where('is_active', true)->values();
+                                /** Appearance chosen for this entry in the panel — empty when it uses the shared palette. */
+                                $itemClass = NavItemStyle::cssClass($item['style'] ?? null);
+                                $itemVars = NavItemStyle::cssVars($item);
+                            @endphp
                             @if($children->isNotEmpty())
                                 {{-- A dropdown highlights when its own link, or any of its children, targets what is in view. --}}
                                 @php
@@ -303,7 +358,8 @@
                                             aria-haspopup="true"
                                             aria-controls="nav-drop-{{ $loop->index }}"
                                             :aria-expanded="dropOpen"
-                                            class="nav-link"
+                                            class="nav-link {{ $itemClass }}"
+                                            @if($itemVars) style="{{ $itemVars }}" @endif
                                             :class="navLinkClass(navActiveAny(spies))">
                                         {{ $item['label'] }}
                                         <svg class="w-3 h-3 transition-transform duration-200" :class="dropOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -329,10 +385,14 @@
                                          class="absolute top-full left-0 pt-1.5 z-50">
                                         <div class="{{ $isRichPanel ? 'min-w-64' : 'min-w-48' }} bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden py-1">
                                             @foreach($children as $child)
-                                                @php $childNav = $resolveNav($child['url']); @endphp
+                                                @php
+                                                    $childNav = $resolveNav($child['url']);
+                                                    $childVars = NavItemStyle::cssVars($child);
+                                                @endphp
                                                 <a href="{{ $childNav['url'] }}" target="{{ $child['target'] ?? '_self' }}"
                                                    x-data="{ spy: @js($childNav['spy']) }"
-                                                   class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 nav-dropdown-item transition-colors"
+                                                   class="flex items-center gap-2.5 px-4 py-2.5 text-sm nav-dropdown-item transition-colors"
+                                                   @if($childVars) style="{{ $childVars }}" @endif
                                                    :class="navActive(spy) ? 'is-active' : ''"
                                                    :aria-current="navActive(spy) ? 'page' : null">
                                                     @if(filled($child['icon'] ?? null))
@@ -355,7 +415,8 @@
                                 @php $nav = $resolveNav($item['url']); @endphp
                                 <a href="{{ $nav['url'] }}" target="{{ $item['target'] ?? '_self' }}"
                                    x-data="{ spy: @js($nav['spy']) }"
-                                   class="nav-link"
+                                   class="nav-link {{ $itemClass }}"
+                                   @if($itemVars) style="{{ $itemVars }}" @endif
                                    :class="navLinkClass(navActive(spy))"
                                    :aria-current="navActive(spy) ? 'page' : null">
                                     {{ $item['label'] }}
@@ -484,16 +545,21 @@
         {{-- Nav items --}}
         <nav class="mobile-nav-scroll flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-1">
             @foreach($navItems as $i => $item)
-                @php $children = collect($item['children'] ?? [])->where('is_active', true)->values(); @endphp
+                @php
+                    $children = collect($item['children'] ?? [])->where('is_active', true)->values();
+                    $itemClass = NavItemStyle::cssClass($item['style'] ?? null);
+                    $itemVars = NavItemStyle::cssVars($item);
+                @endphp
                 @if($children->isNotEmpty())
                     @php $spies = $branchSpies($item, $children); @endphp
                     <div x-data="{ mobileSubOpen: false, spies: @js($spies) }">
                         <button @click="mobileSubOpen = ! mobileSubOpen"
                                 :aria-expanded="mobileSubOpen"
-                                class="mobile-nav-item w-full flex items-center gap-4 py-3.5 border-b border-white/8 transition-all duration-200"
+                                class="mobile-nav-item {{ $itemClass }} w-full flex items-center gap-4 py-3.5 border-b border-white/8 transition-all duration-200"
+                                @if($itemVars) style="{{ $itemVars }}" @endif
                                 :class="navActiveAny(spies) ? 'is-active' : ''">
                             <span class="mobile-nav-num text-xs font-bold text-white/25 transition-colors w-6 shrink-0">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</span>
-                            <span class="mobile-nav-label text-2xl font-bold text-white/70 transition-colors tracking-tight flex-1 text-left">{{ $item['label'] }}</span>
+                            <span class="mobile-nav-label text-2xl font-bold transition-colors tracking-tight flex-1 text-left">{{ $item['label'] }}</span>
                             <svg class="mobile-nav-arrow w-4 h-4 text-white/20 shrink-0 transition-all duration-200"
                                  :class="mobileSubOpen ? 'rotate-90' : ''"
                                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -506,11 +572,15 @@
                              x-transition:enter-end="opacity-100 translate-y-0"
                              class="pl-10 pb-2 space-y-1">
                             @foreach($children as $child)
-                                @php $childNav = $resolveNav($child['url']); @endphp
+                                @php
+                                    $childNav = $resolveNav($child['url']);
+                                    $childVars = NavItemStyle::cssVars($child);
+                                @endphp
                                 <a href="{{ $childNav['url'] }}" target="{{ $child['target'] ?? '_self' }}"
                                    @click="mobileOpen = false"
                                    x-data="{ spy: @js($childNav['spy']) }"
-                                   class="mobile-subnav-hover flex items-center gap-2 py-2 text-lg font-medium text-white/55 transition-colors"
+                                   class="mobile-subnav-hover flex items-center gap-2 py-2 text-lg font-medium transition-colors"
+                                   @if($childVars) style="{{ $childVars }}" @endif
                                    :class="navActive(spy) ? 'is-active' : ''"
                                    :aria-current="navActive(spy) ? 'page' : null">
                                     @if(filled($child['icon'] ?? null))
@@ -535,11 +605,12 @@
                     <a href="{{ $nav['url'] }}" target="{{ $item['target'] ?? '_self' }}"
                        @click="mobileOpen = false"
                        x-data="{ spy: @js($nav['spy']) }"
-                       class="mobile-nav-item group flex items-center gap-4 py-3.5 border-b border-white/8 transition-all duration-200"
+                       class="mobile-nav-item {{ $itemClass }} group flex items-center gap-4 py-3.5 border-b border-white/8 transition-all duration-200"
+                       @if($itemVars) style="{{ $itemVars }}" @endif
                        :class="navActive(spy) ? 'is-active' : ''"
                        :aria-current="navActive(spy) ? 'page' : null">
                         <span class="mobile-nav-num text-xs font-bold text-white/25 transition-colors w-6 shrink-0">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</span>
-                        <span class="mobile-nav-label text-2xl font-bold text-white/70 transition-colors tracking-tight">{{ $item['label'] }}</span>
+                        <span class="mobile-nav-label text-2xl font-bold transition-colors tracking-tight">{{ $item['label'] }}</span>
                         <svg class="mobile-nav-arrow w-4 h-4 text-white/20 ml-auto shrink-0 transition-all group-hover:translate-x-1 duration-200"
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>

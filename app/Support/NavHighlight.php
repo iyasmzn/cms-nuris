@@ -30,23 +30,9 @@ class NavHighlight
      */
     public static function color(): ?string
     {
-        $color = self::sanitize(setting(self::SETTING_KEY, self::DEFAULT_COLOR));
+        $color = HexColor::sanitize(setting(self::SETTING_KEY, self::DEFAULT_COLOR));
 
         return $color === '' ? null : $color;
-    }
-
-    /**
-     * Saring nilai mentah menjadi HEX kecil yang sah, atau string kosong. Nilai
-     * ini masuk ke stylesheet, jadi apa pun di luar HEX ditolak — bukan sekadar
-     * dirapikan.
-     */
-    public static function sanitize(mixed $color): string
-    {
-        $color = is_string($color) ? strtolower(trim($color)) : '';
-
-        return preg_match('/^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/', $color) === 1
-            ? $color
-            : '';
     }
 
     /**
