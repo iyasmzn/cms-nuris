@@ -4,6 +4,7 @@ use App\Models\AcademicYear;
 use App\Models\RegistrationWave;
 use App\Models\Setting;
 use App\Support\ContentTypography;
+use App\Support\NavHighlight;
 use App\Support\PageGutter;
 use App\Support\PageWidth;
 use App\Support\SectionBackground;
@@ -274,6 +275,17 @@ if (! function_exists('page_max_width_css')) {
     function page_max_width_css(): string
     {
         return PageWidth::css();
+    }
+}
+
+if (! function_exists('nav_highlight_css')) {
+    /**
+     * CSS warna sorotan menu navigasi pilihan admin — nilai `--nav-highlight`
+     * beserta turunannya untuk bar terang, hero gelap, dan menu mobile.
+     */
+    function nav_highlight_css(): string
+    {
+        return NavHighlight::css();
     }
 }
 

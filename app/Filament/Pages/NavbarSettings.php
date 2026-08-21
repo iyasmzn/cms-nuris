@@ -3,8 +3,11 @@
 namespace App\Filament\Pages;
 
 use App\Models\Setting;
+use App\Support\NavHighlight;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -13,8 +16,10 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\HtmlString;
 use UnitEnum;
 
 class NavbarSettings extends Page
@@ -40,6 +45,7 @@ class NavbarSettings extends Page
 
         $this->form->fill([
             'items' => is_array($saved) ? $saved : $this->defaultNavItems(),
+            NavHighlight::SETTING_KEY => NavHighlight::color() ?? '',
         ]);
     }
 
@@ -146,6 +152,24 @@ class NavbarSettings extends Page
                         ->addActionLabel('+ Tambah Item Menu')
                         ->columnSpanFull(),
                 ]),
+
+            Section::make('Warna Sorotan Menu')
+                ->description('Warna yang dipakai menu saat disentuh kursor dan saat halaman — atau seksi — yang ditunjuknya sedang dibuka. Kosongkan agar ikut warna utama website di Tema & Tampilan.')
+                ->icon(Heroicon::OutlinedSwatch)
+                ->schema([
+                    ColorPicker::make(NavHighlight::SETTING_KEY)
+                        ->label('Warna Sorotan (HEX)')
+                        ->live(onBlur: true)
+                        ->rule('regex:/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/')
+                        ->validationMessages(['regex' => 'Isi dengan kode warna HEX, misalnya #08484a.'])
+                        ->helperText('Kosongkan untuk mengikuti warna utama website. Di atas hero gelap dan di menu mobile, warna ini otomatis dicerahkan agar tetap terbaca.'),
+
+                    Placeholder::make('nav_highlight_preview')
+                        ->label('Pratinjau')
+                        ->content(fn (Get $get): HtmlString => self::highlightPreview(
+                            NavHighlight::sanitize($get(NavHighlight::SETTING_KEY))
+                        )),
+                ]),
         ]);
     }
 
@@ -154,6 +178,7 @@ class NavbarSettings extends Page
         $data = $this->form->getState();
 
         Setting::set('nav_items', json_encode($data['items'] ?? []));
+        Setting::set(NavHighlight::SETTING_KEY, NavHighlight::sanitize($data[NavHighlight::SETTING_KEY] ?? null));
 
         Notification::make()
             ->success()
@@ -175,11 +200,15 @@ class NavbarSettings extends Page
                 ->icon(Heroicon::OutlinedArrowPath)
                 ->requiresConfirmation()
                 ->modalHeading('Reset Menu Navigasi?')
-                ->modalDescription('Ini akan mengembalikan menu ke pengaturan awal bawaan. Perubahan yang ada akan hilang.')
+                ->modalDescription('Ini akan mengembalikan menu ke pengaturan awal bawaan dan warna sorotan ke warna utama website. Perubahan yang ada akan hilang.')
                 ->action(function () {
                     Setting::set('nav_items', json_encode($this->defaultNavItems()));
+                    Setting::set(NavHighlight::SETTING_KEY, NavHighlight::DEFAULT_COLOR);
 
-                    $this->form->fill(['items' => $this->defaultNavItems()]);
+                    $this->form->fill([
+                        'items' => $this->defaultNavItems(),
+                        NavHighlight::SETTING_KEY => NavHighlight::DEFAULT_COLOR,
+                    ]);
 
                     Notification::make()
                         ->success()
@@ -187,6 +216,62 @@ class NavbarSettings extends Page
                         ->send();
                 }),
         ];
+    }
+
+    /**
+     * Pratinjau sorotan di kedua keadaan yang ditemui pengunjung: bar putih di
+     * halaman biasa, dan bar transparan di atas hero gelap beranda. Warna kosong
+     * dipratinjaukan memakai warna utama website, persis seperti yang nanti
+     * tampil.
+     */
+    protected static function highlightPreview(string $color): HtmlString
+    {
+        $base = e($color !== '' ? $color : Setting::get('theme_primary_color', '#d97706'));
+
+        $soft = "color-mix(in oklab, {$base} 8%, white)";
+        $bright = "color-mix(in oklab, {$base} 28%, white)";
+        $veil = "color-mix(in oklab, {$bright} 16%, transparent)";
+
+        $solid = self::previewBar(
+            'background: #fff; border: 1px solid rgba(0,0,0,.08);',
+            'color: #6b7280;',
+            "color: {$base}; background: {$soft};",
+            'Halaman biasa — bar putih'
+        );
+
+        $over = self::previewBar(
+            'background: linear-gradient(145deg,#0f172a 0%,#1a2744 50%,#0f2236 100%);',
+            'color: rgba(255,255,255,.8);',
+            "color: {$bright}; background: {$veil};",
+            'Beranda — bar transparan di atas hero gelap'
+        );
+
+        return new HtmlString(<<<HTML
+            <div style="display: grid; gap: .75rem;">
+                {$solid}
+                {$over}
+                <p style="font-size: .75rem; color: #6e6e73;">Menu yang disorot adalah menu yang sedang dibuka — tampilan yang sama juga muncul saat kursor melewati menu lain.</p>
+            </div>
+        HTML);
+    }
+
+    /**
+     * Satu baris pratinjau: tiga menu contoh dengan yang tengah tersorot.
+     */
+    protected static function previewBar(string $bar, string $idle, string $active, string $caption): string
+    {
+        $chip = 'padding: .5rem .75rem; border-radius: .5rem; font-size: .875rem; font-weight: 500;';
+
+        return <<<HTML
+            <div>
+                <div style="{$bar} border-radius: .75rem; padding: .5rem .75rem; display: flex; align-items: center; gap: .25rem;">
+                    <span style="{$chip} {$idle}">Beranda</span>
+                    <span style="{$chip} {$active} font-weight: 600; box-shadow: inset 0 -2px 0 currentColor;">Profil</span>
+                    <span style="{$chip} {$idle}">Kontak</span>
+                </div>
+                <p style="font-size: .6875rem; color: #9ca3af; margin-top: .25rem;">{$caption}</p>
+            </div>
+        HTML;
     }
 
     /** @return array<int, array<string, mixed>> */

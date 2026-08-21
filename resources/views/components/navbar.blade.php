@@ -89,6 +89,8 @@
 
 @once
     <style>
+        {!! nav_highlight_css() !!}
+
         [x-cloak] { display: none !important; }
         /* Center menu items when they fit, but fall back to top-aligned + scrollable
            when taller than the viewport so the first item is never clipped/unreachable. */
@@ -119,36 +121,36 @@
 
         .nav-link-solid { color: #6b7280; }
         .nav-link-solid:hover,
-        .nav-link-solid.is-active { background: color-mix(in oklab, var(--primary) 8%, white); color: var(--primary); }
+        .nav-link-solid.is-active { background: var(--nav-highlight-soft); color: var(--nav-highlight); }
 
         .nav-link-over { color: rgba(255,255,255,.8); }
         .nav-link-over:hover,
-        .nav-link-over.is-active { background: rgba(255,255,255,.14); color: #fff; }
+        .nav-link-over.is-active { background: var(--nav-highlight-veil); color: var(--nav-highlight-bright); }
 
-        .nav-dropdown-item:hover { background: color-mix(in oklab, var(--primary) 8%, white); color: var(--primary); }
-        .nav-dropdown-item.is-active { background: color-mix(in oklab, var(--primary) 6%, white); color: var(--primary); font-weight: 600; }
+        .nav-dropdown-item:hover { background: var(--nav-highlight-soft); color: var(--nav-highlight); }
+        .nav-dropdown-item.is-active { background: var(--nav-highlight-soft); color: var(--nav-highlight); font-weight: 600; }
         .nav-dropdown-icon { width: 1.25rem; text-align: center; font-size: 1rem; line-height: 1.25rem; }
         .nav-dropdown-desc { color: #9ca3af; font-weight: 400; }
         .nav-dropdown-item:hover .nav-dropdown-desc,
-        .nav-dropdown-item.is-active .nav-dropdown-desc { color: color-mix(in oklab, var(--primary) 45%, #6b7280); }
+        .nav-dropdown-item.is-active .nav-dropdown-desc { color: color-mix(in oklab, var(--nav-highlight) 45%, #6b7280); }
 
         /* Keyboard users need to see where they are; a mouse hover shows it by itself. */
         .nav-link:focus-visible,
-        .nav-dropdown-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
-        .nav-icon-scrolled:hover { background: color-mix(in oklab, var(--primary) 8%, white); }
-        .nav-auth-scrolled:hover { border-color: var(--primary); color: var(--primary); }
+        .nav-dropdown-item:focus-visible { outline: 2px solid var(--nav-highlight); outline-offset: -2px; }
+        .nav-icon-scrolled:hover { background: var(--nav-highlight-soft); }
+        .nav-auth-scrolled:hover { border-color: var(--nav-highlight); color: var(--nav-highlight); }
 
         /* ── Mobile menu links ──────────────────────────────────── */
         .mobile-nav-item:hover .mobile-nav-num,
-        .mobile-nav-item.is-active .mobile-nav-num { color: var(--primary); }
+        .mobile-nav-item.is-active .mobile-nav-num { color: var(--nav-highlight-accent); }
         .mobile-nav-item:hover .mobile-nav-label,
         .mobile-nav-item.is-active .mobile-nav-label { color: #fff; }
         .mobile-nav-item:hover,
-        .mobile-nav-item.is-active { border-color: color-mix(in oklab, var(--primary) 45%, transparent); }
+        .mobile-nav-item.is-active { border-color: color-mix(in oklab, var(--nav-highlight-accent) 45%, transparent); }
         .mobile-nav-item.is-active { padding-left: .5rem; }
-        .mobile-nav-arrow:hover { color: var(--primary); }
+        .mobile-nav-arrow:hover { color: var(--nav-highlight-accent); }
         .mobile-subnav-hover:hover,
-        .mobile-subnav-hover.is-active { color: color-mix(in oklab, var(--primary) 60%, white); }
+        .mobile-subnav-hover.is-active { color: var(--nav-highlight-accent); }
         .mobile-subnav-hover.is-active { font-weight: 600; }
     </style>
 @endonce
@@ -336,7 +338,7 @@
                                                     @if(filled($child['icon'] ?? null))
                                                         <span class="nav-dropdown-icon shrink-0" aria-hidden="true">{{ $child['icon'] }}</span>
                                                     @else
-                                                        <span class="w-1 h-1 rounded-full shrink-0" style="background:var(--primary)"></span>
+                                                        <span class="w-1 h-1 rounded-full shrink-0" style="background:var(--nav-highlight)"></span>
                                                     @endif
                                                     <span class="min-w-0">
                                                         <span class="block leading-snug">{{ $child['label'] }}</span>

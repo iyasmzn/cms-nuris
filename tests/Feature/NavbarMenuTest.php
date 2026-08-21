@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Setting;
+use App\Support\NavHighlight;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -153,6 +154,26 @@ class NavbarMenuTest extends TestCase
             $this->assertContains('akademik', $spies);
             $this->assertContains('sambutan', $spies);
         }
+    }
+
+    public function test_the_chosen_highlight_colour_reaches_the_stylesheet(): void
+    {
+        Setting::set(NavHighlight::SETTING_KEY, '#e11d48');
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('--nav-highlight: #e11d48;', false);
+    }
+
+    /**
+     * Left unset, the highlight keeps following the site's primary colour — which
+     * is how the navbar looked before the setting existed.
+     */
+    public function test_an_unset_highlight_colour_follows_the_primary_colour(): void
+    {
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('--nav-highlight: var(--primary);', false);
     }
 
     /**
