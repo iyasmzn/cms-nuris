@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\EmbedVideo;
+use App\Support\HeroTitleEffect;
 use Database\Factories\SlideFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -36,7 +37,7 @@ class Slide extends Model
     protected $fillable = [
         'media_type', 'image', 'video_path', 'video_url',
         'video_preview_enabled', 'show_video_button', 'video_button_label', 'preview_video_url',
-        'title', 'subtitle',
+        'title', 'subtitle', 'title_effect',
         'button_label', 'button_url',
         'sort_order', 'is_active',
     ];
@@ -47,7 +48,17 @@ class Slide extends Model
             'is_active' => 'boolean',
             'video_preview_enabled' => 'boolean',
             'show_video_button' => 'boolean',
+            'title_effect' => 'array',
         ];
+    }
+
+    /**
+     * Warna & animasi judul milik slide ini. Slide yang belum pernah diatur
+     * mengembalikan efek bawaan — judul biasa, tanpa gerak.
+     */
+    public function titleEffect(): HeroTitleEffect
+    {
+        return HeroTitleEffect::fromArray($this->title_effect ?? []);
     }
 
     /**

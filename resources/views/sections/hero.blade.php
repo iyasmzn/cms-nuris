@@ -1,6 +1,14 @@
 @php
     $heroSlider ??= \App\Support\HeroSlider::fromSettings();
+
+    // Efek judul milik tiap slide, jadi stylesheet-nya baru perlu dicetak bila
+    // setidaknya satu slide benar-benar merias judulnya.
+    $heroTitleEffects = $slides->mapWithKeys(fn ($slide) => [$slide->id => $slide->titleEffect()]);
 @endphp
+
+@if($heroTitleEffects->contains(fn ($effect) => $effect->needsStylesheet()))
+    @include('partials.hero-title-effects')
+@endif
 
 {{-- Ukuran latar video mengikuti tinggi hero per breakpoint (h-130/145/160)
      sehingga iframe 16:9 selalu menutup penuh tanpa gepeng. --}}
@@ -129,8 +137,10 @@
                             </div>
                         @endif
 
-                        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight mb-5">
-                            {{ $s->title }}
+                        @php($slideTitle = $heroTitleEffects[$s->id])
+                        <h1 class="{{ $slideTitle->cssClass() }} text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight mb-5"
+                            style="{{ $slideTitle->cssVars() }}">
+                            @include('partials.hero-title', ['heroTitle' => $slideTitle, 'title' => $s->title, 'index' => $index])
                         </h1>
 
                         @if($s->subtitle)

@@ -191,4 +191,101 @@ class SlideResourceTest extends TestCase
             'embed_url' => 'https://youtu.be/dQw4w9WgXcQ',
         ]);
     }
+
+    /**
+     * Slide yang dibuat sebelum efek judul ada bernilai null. Kolom animasinya
+     * wajib diisi, jadi tanpa dinormalkan saat form dimuat slide-slide lama
+     * akan tertahan validasi dan tak bisa disimpan sama sekali.
+     */
+    public function test_a_slide_without_a_stored_title_effect_can_still_be_saved(): void
+    {
+        $this->actingAs($this->admin());
+
+        $slide = Slide::factory()->create(['title' => 'Slide Lama', 'title_effect' => null]);
+
+        Livewire::test(EditSlide::class, ['record' => $slide->id])
+            ->fillForm(['title' => 'Slide Diperbarui'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('slides', ['id' => $slide->id, 'title' => 'Slide Diperbarui']);
+        $this->assertSame('none', $slide->refresh()->titleEffect()->effect);
+    }
+
+    public function test_the_title_effect_is_saved_with_the_slide(): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(CreateSlide::class)
+            ->fillForm([
+                'media_type' => Slide::MEDIA_IMAGE,
+                'title' => 'Selamat Datang',
+                'sort_order' => 0,
+                'title_effect' => [
+                    'color' => '#ffffff',
+                    'effect' => 'typing',
+                    'accent_color' => '#08484a',
+                    'duration' => 2400,
+                    'delay' => 300,
+                    'loop' => false,
+                    'caret' => false,
+                ],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $effect = Slide::query()->where('title', 'Selamat Datang')->sole()->titleEffect();
+
+        $this->assertSame('typing', $effect->effect);
+        $this->assertSame('#ffffff', $effect->color);
+        $this->assertSame('#08484a', $effect->accentColor);
+        $this->assertSame(2400, $effect->duration);
+        $this->assertSame(300, $effect->delay);
+        $this->assertFalse($effect->loop);
+        $this->assertFalse($effect->caret);
+    }
+
+    /**
+     * Warna judul berakhir di dalam atribut `style` halaman depan, jadi panel
+     * menolaknya di depan alih-alih membiarkannya lolos lalu hilang diam-diam.
+     */
+    public function test_a_title_colour_that_is_not_hex_is_rejected(): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(CreateSlide::class)
+            ->fillForm([
+                'media_type' => Slide::MEDIA_IMAGE,
+                'title' => 'Selamat Datang',
+                'sort_order' => 0,
+                'title_effect' => [
+                    'effect' => 'underline',
+                    'color' => 'merah menyala',
+                ],
+            ])
+            ->call('create')
+            ->assertHasFormErrors();
+
+        $this->assertDatabaseMissing('slides', ['title' => 'Selamat Datang']);
+    }
+
+    /**
+     * Pratinjau judul menumpang stylesheet halaman depan dan merangkai HTML-nya
+     * sendiri, jadi ia perlu dibuktikan benar-benar tercetak — bukan sekadar
+     * tidak meledak saat kolomnya tersembunyi.
+     */
+    public function test_the_title_effect_preview_is_rendered_once_an_effect_is_chosen(): void
+    {
+        $this->actingAs($this->admin());
+
+        $slide = Slide::factory()->create([
+            'title' => 'Selamat Datang',
+            'title_effect' => ['effect' => 'typing', 'accent_color' => '#08484a'],
+        ]);
+
+        Livewire::test(EditSlide::class, ['record' => $slide->id])
+            ->assertSee('hero-title-preview', false)
+            ->assertSee('hero-fx-typing', false)
+            ->assertSee('--hero-title-accent:#08484a', false);
+    }
 }
