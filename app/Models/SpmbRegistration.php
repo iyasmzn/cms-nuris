@@ -59,6 +59,59 @@ class SpmbRegistration extends Model
         ];
     }
 
+    /**
+     * Digits-only form of a nomor HP with the Indonesian country code folded
+     * back to a leading zero, so `0812…`, `62812…` and `+62 812-3456-…` all
+     * compare equal when looking for a double submission.
+     */
+    public static function normalizePhone(?string $phone): string
+    {
+        $digits = preg_replace('/\D/', '', (string) $phone) ?? '';
+
+        if (str_starts_with($digits, '62')) {
+            $digits = '0'.substr($digits, 2);
+        }
+
+        return $digits;
+    }
+
+    /**
+     * Comparable form of a nama lengkap: lowercased with every space removed,
+     * so casing and stray spacing never let the same person through twice.
+     */
+    public static function normalizeName(?string $name): string
+    {
+        return Str::lower(preg_replace('/\s+/', '', trim((string) $name)) ?? '');
+    }
+
+    /**
+     * An existing registration in the same intake made by the same pendaftar,
+     * matched on nama lengkap + nomor HP. Not every jenjang collects a NIK, so
+     * this is the guard that catches a double submission (a double-clicked
+     * form, or a pendaftar filling the form twice) on those forms too.
+     */
+    public static function duplicateIn(int $institutionId, ?int $academicYearId, ?string $fullName, ?string $phone): ?self
+    {
+        $name = self::normalizeName($fullName);
+        $number = self::normalizePhone($phone);
+
+        if ($name === '' || $number === '') {
+            return null;
+        }
+
+        return self::query()
+            ->where('institution_id', $institutionId)
+            ->when(
+                $academicYearId === null,
+                fn (Builder $query): Builder => $query->whereNull('academic_year_id'),
+                fn (Builder $query): Builder => $query->where('academic_year_id', $academicYearId),
+            )
+            ->whereRaw("LOWER(REPLACE(full_name, ' ', '')) = ?", [$name])
+            ->limit(20)
+            ->get()
+            ->first(fn (self $candidate): bool => self::normalizePhone($candidate->phone) === $number);
+    }
+
     protected static function booted(): void
     {
         static::created(function (self $registration): void {

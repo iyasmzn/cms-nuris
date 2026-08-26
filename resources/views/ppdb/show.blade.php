@@ -458,7 +458,8 @@
             </div>
             @endif
 
-            <form action="{{ route('ppdb.store', $institution) }}" method="POST" enctype="multipart/form-data" class="space-y-6" data-aos="fade-up">
+            <form action="{{ route('ppdb.store', $institution) }}" method="POST" enctype="multipart/form-data" class="space-y-6" data-aos="fade-up"
+                  x-data="{ sending: false }" @submit="sending = true">
                 @csrf
 
                 @if($fields->isNotEmpty())
@@ -655,10 +656,11 @@
                     <p class="text-xs text-amber-800 max-w-sm">
                         Dengan mengirim formulir ini, Anda menyatakan bahwa data yang diisi adalah benar dan dapat dipertanggungjawabkan.
                     </p>
-                    <button type="submit"
-                            class="shrink-0 flex items-center gap-2 px-7 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-all">
-                        Kirim Pendaftaran
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                    {{-- Dikunci setelah klik pertama agar tidak terkirim dua kali. --}}
+                    <button type="submit" x-bind:disabled="sending"
+                            class="shrink-0 flex items-center gap-2 px-7 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                        <span x-text="sending ? 'Mengirim…' : 'Kirim Pendaftaran'">Kirim Pendaftaran</span>
+                        <svg class="w-4 h-4" x-show="! sending" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                     </button>
                 </div>
             </form>

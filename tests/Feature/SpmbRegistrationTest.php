@@ -362,6 +362,135 @@ class SpmbRegistrationTest extends TestCase
         $this->assertSame(4, SpmbRegistration::where('parent_phone', '081234567890')->count());
     }
 
+    // ── Pendaftaran ganda (nama + no. HP + tahun ajaran) ─────────────
+
+    public function test_registration_rejects_the_same_name_and_phone_within_the_same_intake(): void
+    {
+        SpmbRegistration::factory()->create([
+            'full_name' => 'Rania Taqwin Pradana',
+            'phone' => '083107948955',
+            'nik' => '3273010101080031',
+            'institution_id' => $this->institution->id,
+            'academic_year_id' => $this->year->id,
+            'registration_wave_id' => $this->openWave->id,
+        ]);
+
+        $response = $this->post(route('ppdb.store', $this->institution), [
+            'full_name' => 'rania  taqwin pradana',
+            'nik' => '3273010101080032',
+            'phone' => '+62 831-0794-8955',
+            'previous_school' => 'TK Nurul Islam',
+            'admission_path_id' => $this->path->id,
+        ]);
+
+        $response->assertSessionHasErrors(['full_name']);
+        $this->assertSame(1, SpmbRegistration::query()->count());
+    }
+
+    /**
+     * Kakak-beradik mendaftar dari nomor HP orang tua yang sama, jadi nomor HP
+     * saja tidak boleh memblokir pendaftaran.
+     */
+    public function test_a_sibling_with_another_name_may_use_the_same_phone(): void
+    {
+        SpmbRegistration::factory()->create([
+            'full_name' => 'Kakak Pertama',
+            'phone' => '083107948955',
+            'nik' => '3273010101080033',
+            'institution_id' => $this->institution->id,
+            'academic_year_id' => $this->year->id,
+            'registration_wave_id' => $this->openWave->id,
+        ]);
+
+        $response = $this->post(route('ppdb.store', $this->institution), [
+            'full_name' => 'Adik Kedua',
+            'nik' => '3273010101080034',
+            'phone' => '083107948955',
+            'previous_school' => 'TK Nurul Islam',
+            'admission_path_id' => $this->path->id,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('spmb_registrations', ['full_name' => 'Adik Kedua']);
+    }
+
+    public function test_the_same_name_may_register_from_another_phone(): void
+    {
+        SpmbRegistration::factory()->create([
+            'full_name' => 'Nama Kembar',
+            'phone' => '083107948955',
+            'nik' => '3273010101080035',
+            'institution_id' => $this->institution->id,
+            'academic_year_id' => $this->year->id,
+            'registration_wave_id' => $this->openWave->id,
+        ]);
+
+        $response = $this->post(route('ppdb.store', $this->institution), [
+            'full_name' => 'Nama Kembar',
+            'nik' => '3273010101080036',
+            'phone' => '081234567890',
+            'previous_school' => 'TK Nurul Islam',
+            'admission_path_id' => $this->path->id,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertSame(2, SpmbRegistration::query()->count());
+    }
+
+    public function test_the_same_name_and_phone_may_register_again_in_a_later_tahun_ajaran(): void
+    {
+        $previousYear = AcademicYear::factory()->create(['year_start' => $this->year->year_start - 1, 'is_active' => false]);
+
+        SpmbRegistration::factory()->create([
+            'full_name' => 'Mendaftar Ulang',
+            'phone' => '083107948955',
+            'nik' => '3273010101080037',
+            'institution_id' => $this->institution->id,
+            'academic_year_id' => $previousYear->id,
+        ]);
+
+        $response = $this->post(route('ppdb.store', $this->institution), [
+            'full_name' => 'Mendaftar Ulang',
+            'nik' => '3273010101080038',
+            'phone' => '083107948955',
+            'previous_school' => 'TK Nurul Islam',
+            'admission_path_id' => $this->path->id,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('spmb_registrations', [
+            'full_name' => 'Mendaftar Ulang',
+            'academic_year_id' => $this->year->id,
+        ]);
+    }
+
+    /**
+     * Formulir tanpa NIK adalah kasus yang memunculkan masalah ini: tanpa
+     * penjaga nama + nomor HP, klik ganda menghasilkan dua baris.
+     */
+    public function test_a_form_without_nik_still_blocks_a_double_submission(): void
+    {
+        $this->institution->ppdbFields()->createMany([
+            ['key' => 'full_name', 'label' => 'Nama Lengkap', 'type' => 'text', 'is_required' => true, 'sort_order' => 1],
+            ['key' => 'phone', 'label' => 'No. HP', 'type' => 'tel', 'is_required' => true, 'sort_order' => 2],
+            ['key' => 'previous_school', 'label' => 'Asal Sekolah', 'type' => 'text', 'is_required' => true, 'sort_order' => 3],
+        ]);
+
+        $submission = [
+            'full_name' => 'Rania Taqwin Pradana',
+            'phone' => '083107948955',
+            'previous_school' => 'Tkit Nurul Islam tengaran',
+            'admission_path_id' => $this->path->id,
+        ];
+
+        $this->post(route('ppdb.store', $this->institution), $submission)->assertSessionHasNoErrors();
+
+        $response = $this->post(route('ppdb.store', $this->institution), $submission);
+
+        $response->assertSessionHasErrors(['full_name']);
+        $this->assertSame(1, SpmbRegistration::query()->count());
+    }
+
     public function test_registration_rejects_invalid_nik_length(): void
     {
         $response = $this->post(route('ppdb.store', $this->institution), [

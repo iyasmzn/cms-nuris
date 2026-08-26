@@ -11,12 +11,15 @@ use App\Models\RegistrationPayment;
 use App\Models\RegistrationWave;
 use App\Models\Setting;
 use App\Models\SpmbRegistration;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -25,6 +28,10 @@ class SpmbController extends Controller
     use ProtectsAgainstSpam;
 
     private const DUPLICATE_NIK_MESSAGE = 'NIK ini sudah terdaftar pada jenjang dan tahun ajaran ini. Setiap calon peserta hanya dapat mendaftar satu kali per jenjang.';
+
+    private const DUPLICATE_IDENTITY_MESSAGE = 'Nama lengkap dan nomor HP ini sudah terdaftar pada jenjang dan tahun ajaran ini dengan nomor pendaftaran :number. Jika itu pendaftaran Anda, cek status melalui halaman Cek Status Pendaftaran — tidak perlu mendaftar ulang.';
+
+    private const BUSY_MESSAGE = 'Pendaftaran Anda sedang diproses. Mohon tunggu sebentar lalu cek status pendaftaran sebelum mengirim ulang formulir.';
 
     /**
      * Jenjang selector. Redirects straight to the single jenjang when only one
@@ -122,7 +129,19 @@ class SpmbController extends Controller
         $payload['academic_year_id'] = $wave->academic_year_id;
         $payload['registration_wave_id'] = $wave->id;
 
-        $registration = SpmbRegistration::create($payload);
+        // The lock closes the window a double-clicked form opens: two requests
+        // arriving together would otherwise both pass the duplicate check
+        // before either has written its row.
+        try {
+            $registration = Cache::lock($this->registrationLockKey($institution, $wave->academic_year_id, $payload), 10)
+                ->block(5, function () use ($institution, $wave, $payload): SpmbRegistration {
+                    $this->guardAgainstDuplicateRegistration($institution, $wave->academic_year_id, $payload);
+
+                    return SpmbRegistration::create($payload);
+                });
+        } catch (LockTimeoutException) {
+            return back()->withInput()->with('error', self::BUSY_MESSAGE);
+        }
 
         // A jenjang that charges a fee sends the pendaftar straight to their
         // tagihan; everyone else stays on the PPDB page with a confirmation.
@@ -133,6 +152,50 @@ class SpmbController extends Controller
 
         return redirect()->route('ppdb.show', $institution)
             ->with('success', "Pendaftaran berhasil dikirim dengan nomor {$registration->registration_number}! Kami akan segera menghubungi Anda untuk proses verifikasi.");
+    }
+
+    /**
+     * Reject a second submission from the same pendaftar — matched on nama
+     * lengkap + nomor HP within one jenjang and tahun ajaran. NIK already has
+     * its own guard, but it is optional on many forms, so this is what stops
+     * the same person appearing twice in the same intake.
+     *
+     * @param  array<string, mixed>  $payload
+     *
+     * @throws ValidationException
+     */
+    private function guardAgainstDuplicateRegistration(Institution $institution, ?int $academicYearId, array $payload): void
+    {
+        $duplicate = SpmbRegistration::duplicateIn(
+            $institution->id,
+            $academicYearId,
+            $payload['full_name'] ?? null,
+            $payload['phone'] ?? null,
+        );
+
+        if ($duplicate === null) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'full_name' => str_replace(':number', (string) $duplicate->registration_number, self::DUPLICATE_IDENTITY_MESSAGE),
+        ]);
+    }
+
+    /**
+     * Lock key for one pendaftar's slot in one intake, built from the same
+     * normalised identity the duplicate check compares on.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function registrationLockKey(Institution $institution, ?int $academicYearId, array $payload): string
+    {
+        return 'ppdb-daftar:'.md5(implode('|', [
+            $institution->id,
+            $academicYearId ?? 0,
+            SpmbRegistration::normalizeName($payload['full_name'] ?? null),
+            SpmbRegistration::normalizePhone($payload['phone'] ?? null),
+        ]));
     }
 
     /**
