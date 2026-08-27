@@ -249,7 +249,7 @@
         <div class="grid lg:grid-cols-4 gap-10">
 
             {{-- ── Main Content ──────────────────────────────── --}}
-            <div class="lg:col-span-3">
+            <div class="lg:col-span-3 min-w-0">
               <div class="fi-card overflow-hidden">
                 <div style="height:3px;background:linear-gradient(90deg,#d97706,#fbbf24 60%,transparent)"></div>
                 <div class="p-6 sm:p-8 lg:p-10">
@@ -324,7 +324,7 @@
             </div>
 
             {{-- ── Sidebar ────────────────────────────────────── --}}
-            <aside class="lg:col-span-1">
+            <aside class="lg:col-span-1 min-w-0">
                 <div class="sidebar-sticky space-y-4">
 
                     {{-- Category info --}}

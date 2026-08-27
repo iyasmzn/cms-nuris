@@ -68,7 +68,7 @@
     <div class="grid lg:grid-cols-4 gap-10">
 
         {{-- ── Main content ────────────────────────────────── --}}
-        <article class="lg:col-span-3" data-aos="fade-up" data-aos-duration="500">
+        <article class="lg:col-span-3 min-w-0" data-aos="fade-up" data-aos-duration="500">
 
             {{-- YouTube Video --}}
             @if($event->youtube_embed_url)
@@ -117,7 +117,7 @@
         </article>
 
         {{-- ── Sidebar ──────────────────────────────────────── --}}
-        <aside class="lg:col-span-1" data-aos="fade-up" data-aos-delay="100" data-aos-duration="500">
+        <aside class="lg:col-span-1 min-w-0" data-aos="fade-up" data-aos-delay="100" data-aos-duration="500">
             <div class="sidebar-sticky space-y-4">
 
                 {{-- Event detail card --}}

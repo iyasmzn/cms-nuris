@@ -283,7 +283,8 @@
             <div class="flex items-center justify-between h-16 gap-4">
 
                 {{-- Logo --}}
-                <a href="/" class="flex items-center gap-2.5 shrink-0 min-w-0">
+                {{-- Tanpa shrink-0: nama & tagline panjang dipangkas, bukan mendorong navbar melebihi lebar layar --}}
+                <a href="/" class="flex items-center gap-2.5 min-w-0">
                     @if(setting('site_logo'))
                         <img src="{{ asset('storage/' . setting('site_logo')) }}"
                              alt="{{ setting('site_name', config('app.name')) }}"
@@ -298,7 +299,7 @@
                              :class="solid ? 'text-gray-900' : 'text-white'">
                             {{ setting('site_name', config('app.name', "Qurrota A'yun")) }}
                         </div>
-                        <div class="text-[10px] font-medium uppercase tracking-widest transition-colors duration-300"
+                        <div class="text-[10px] font-medium uppercase tracking-widest truncate transition-colors duration-300"
                              :style="solid ? 'color:var(--primary)' : 'color:color-mix(in oklab,var(--primary) 65%,white)'">
                             {{ setting('site_tagline', 'Unggul · Berkarakter') }}
                         </div>

@@ -35,14 +35,14 @@
             <article class="fi-card overflow-hidden mb-6" data-aos="fade-up" data-aos-delay="60">
                 <div class="grid lg:grid-cols-5">
                     <a href="{{ route('blog.show', $featured->slug) }}"
-                       class="lg:col-span-2 h-56 lg:h-auto relative overflow-hidden block group">
+                       class="lg:col-span-2 h-56 lg:h-auto relative overflow-hidden block group min-w-0">
                         <img src="{{ $featured->thumbnail_url }}"
                              alt="{{ $featured->title }}"
                              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                         <div class="absolute inset-0"
                              style="background:linear-gradient(to top,rgba(0,0,0,.4),transparent)"></div>
                     </a>
-                    <div class="lg:col-span-3 p-8 lg:p-10 flex flex-col justify-center">
+                    <div class="lg:col-span-3 p-6 sm:p-8 lg:p-10 flex flex-col justify-center min-w-0">
                         <div class="flex items-center gap-2.5 mb-4">
                             <span class="text-xs font-bold px-3 py-1 rounded-full border"
                                   style="background:var(--primary-50);color:var(--primary-800);border-color:var(--primary-200)">

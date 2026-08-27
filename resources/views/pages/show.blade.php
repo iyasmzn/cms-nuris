@@ -191,7 +191,7 @@
     <div class="grid lg:grid-cols-4 gap-10">
 
         {{-- ── Main content ────────────────────────────────── --}}
-        <article class="lg:col-span-3" data-aos="fade-up" data-aos-duration="500">
+        <article class="lg:col-span-3 min-w-0" data-aos="fade-up" data-aos-duration="500">
             @if($hasBlocks)
                 @include('partials.content-blocks', ['blocks' => $page->blocks, 'title' => $page->title, 'mode' => 'boxed'])
             @else
@@ -211,7 +211,7 @@
         </article>
 
         {{-- ── Sidebar ──────────────────────────────────────── --}}
-        <aside class="lg:col-span-1" data-aos="fade-up" data-aos-delay="100" data-aos-duration="500">
+        <aside class="lg:col-span-1 min-w-0" data-aos="fade-up" data-aos-delay="100" data-aos-duration="500">
             <div class="sidebar-sticky space-y-4">
 
                 {{-- Table of contents — dipanen dari judul seksi & heading blok teks --}}
@@ -291,7 +291,7 @@
             <div class="grid gap-3 sm:grid-cols-2">
                 @foreach($otherPages as $other)
                     <a href="{{ route('page.show', $other->slug) }}"
-                       class="fi-card fi-card-hover flex items-center gap-4 p-4 group"
+                       class="fi-card fi-card-hover flex items-center gap-4 p-4 group min-w-0"
                        data-aos="fade-up" data-aos-delay="{{ $loop->index * 60 }}">
                         <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors" style="background:var(--primary-50);border:1px solid var(--primary-100)">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--primary-500)">

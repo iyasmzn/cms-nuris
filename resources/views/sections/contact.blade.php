@@ -77,12 +77,13 @@
                  style="border-color:rgba(255,255,255,.08)">
                 <div class="flex items-center gap-3 px-6 py-4 border-b"
                      style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)">
-                    <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0"
                          style="background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.2)">📍</div>
-                    <div>
+                    {{-- min-w-0 supaya alamat panjang dipangkas, bukan melebarkan barisnya di layar kecil --}}
+                    <div class="min-w-0">
                         <div class="text-white/90 text-sm font-semibold">Lokasi Sekolah</div>
                         @if(setting('contact_address'))
-                            <div class="text-white/40 text-xs truncate max-w-sm">{{ setting('contact_address') }}</div>
+                            <div class="text-white/40 text-xs truncate">{{ setting('contact_address') }}</div>
                         @endif
                     </div>
                     <a href="{{ str_replace('/embed?', '/search?', setting('contact_map_url')) }}"

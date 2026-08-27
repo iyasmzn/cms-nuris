@@ -1,5 +1,6 @@
 {{-- Tombol kembali dan tautan berbagi di bawah isi halaman statis. --}}
-<div class="flex items-center justify-between">
+{{-- flex-wrap: di layar sangat sempit tombol berbagi turun ke baris baru, tidak melebihi layar --}}
+<div class="flex flex-wrap items-center justify-between gap-3">
     <a href="{{ url()->previous() === url()->current() ? route('home') : url()->previous() }}"
        class="btn-outline group text-sm">
         <svg class="w-4 h-4 transition-transform group-hover:-translate-x-0.5"

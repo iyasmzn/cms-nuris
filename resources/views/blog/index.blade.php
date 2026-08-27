@@ -178,7 +178,7 @@
                 <meta itemprop="author" content="{{ $featured->author }}">
                 <meta itemprop="datePublished" content="{{ $featured->published_at?->toIso8601String() }}">
                 <div class="grid lg:grid-cols-5">
-                    <a href="{{ route('blog.show', $featured->slug) }}" class="lg:col-span-2 block h-60 lg:h-auto relative overflow-hidden">
+                    <a href="{{ route('blog.show', $featured->slug) }}" class="lg:col-span-2 block h-60 lg:h-auto relative overflow-hidden min-w-0">
                         <img src="{{ $featured->thumbnail_url }}"
                              alt="{{ $featured->title }}"
                              class="featured-img w-full h-full object-cover"
@@ -192,7 +192,7 @@
                             </span>
                         </div>
                     </a>
-                    <div class="lg:col-span-3 p-7 lg:p-10 flex flex-col justify-center">
+                    <div class="lg:col-span-3 p-6 sm:p-7 lg:p-10 flex flex-col justify-center min-w-0">
                         <div class="flex flex-wrap items-center gap-2 mb-4">
                             <span class="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                                 {{ $featured->category }}

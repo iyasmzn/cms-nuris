@@ -23,8 +23,9 @@
              data-aos="fade-up">
             <div class="grid lg:grid-cols-2">
 
-                {{-- Left: copy --}}
-                <div class="p-10 lg:p-14" data-aos="fade-right" data-aos-delay="80">
+                {{-- Left: copy — min-w-0 supaya kolomnya boleh menyempit di layar kecil,
+                     bukan melebar mengikuti isi terpanjangnya --}}
+                <div class="p-6 sm:p-10 lg:p-14 min-w-0" data-aos="fade-right" data-aos-delay="80">
                     <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5"
                          style="border:1px solid var(--primary-300);background:color-mix(in oklab,var(--primary-100) 60%,transparent);color:var(--primary-800)">
                         <span class="w-1.5 h-1.5 rounded-full animate-pulse inline-block" style="background:var(--primary)"></span>
@@ -64,7 +65,7 @@
                 </div>
 
                 {{-- Right: kartu pilihan jenjang --}}
-                <div class="p-8 lg:p-12 flex flex-col justify-center"
+                <div class="p-6 sm:p-8 lg:p-12 flex flex-col justify-center min-w-0"
                      style="background:color-mix(in oklab,var(--primary-400) 15%,transparent)"
                      data-aos="fade-left" data-aos-delay="160">
                     <div class="text-xs font-bold uppercase tracking-widest mb-4" style="color:var(--primary-800)">Pilih Jenjang</div>
