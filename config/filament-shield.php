@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 use App\Filament\Resources\Posts\PostResource;
+use App\Filament\Resources\RegistrationPayments\RegistrationPaymentResource;
+use App\Filament\Resources\SpmbRegistrations\SpmbRegistrationResource;
 use App\Filament\Widgets\GreetingWidget;
 use BezhanSalleh\FilamentShield\Resources\Roles\RoleResource;
 use Filament\Pages\Dashboard;
@@ -194,6 +196,40 @@ return [
                 // Custom permissions: gate publishing and cross-author visibility.
                 'publish',
                 'viewAll',
+            ],
+            // Both PPDB resources carry a custom permission that separates
+            // "boleh memutuskan status" from "boleh mengubah data". They must be
+            // listed here, otherwise `shield:generate` never creates them and the
+            // Roles UI silently strips them when a role is saved.
+            SpmbRegistrationResource::class => [
+                'viewAny',
+                'view',
+                'create',
+                'update',
+                'delete',
+                'deleteAny',
+                'restore',
+                'forceDelete',
+                'forceDeleteAny',
+                'restoreAny',
+                'replicate',
+                'reorder',
+                'updateStatus',
+            ],
+            RegistrationPaymentResource::class => [
+                'viewAny',
+                'view',
+                'create',
+                'update',
+                'delete',
+                'deleteAny',
+                'restore',
+                'forceDelete',
+                'forceDeleteAny',
+                'restoreAny',
+                'replicate',
+                'reorder',
+                'verify',
             ],
         ],
         'exclude' => [
