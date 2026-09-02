@@ -64,4 +64,37 @@ class IntegrationSettingsTest extends TestCase
         $this->assertSame('existing-secret', Setting::get('turnstile_secret_key'));
         $this->assertSame('new-site-key', Setting::get('turnstile_site_key'));
     }
+
+    public function test_admin_can_save_the_gtm_container_id_via_panel(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(IntegrationSettings::class)
+            ->fillForm([
+                'gtm_enabled' => true,
+                'gtm_container_id' => 'gtm-abc1234',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertTrue((bool) Setting::get('gtm_enabled'));
+        $this->assertSame('GTM-ABC1234', Setting::get('gtm_container_id'));
+    }
+
+    public function test_a_malformed_gtm_container_id_is_rejected(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(IntegrationSettings::class)
+            ->fillForm([
+                'gtm_enabled' => true,
+                'gtm_container_id' => 'UA-12345-6',
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['gtm_container_id']);
+
+        $this->assertNull(Setting::get('gtm_container_id'));
+    }
 }

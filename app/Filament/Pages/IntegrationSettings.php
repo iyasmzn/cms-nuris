@@ -45,6 +45,10 @@ class IntegrationSettings extends Page
             'turnstile_enabled' => (bool) Setting::get('turnstile_enabled', false),
             'turnstile_site_key' => Setting::get('turnstile_site_key'),
             'turnstile_secret_key' => Setting::get('turnstile_secret_key'),
+
+            // Google Tag Manager
+            'gtm_enabled' => (bool) Setting::get('gtm_enabled', false),
+            'gtm_container_id' => Setting::get('gtm_container_id'),
         ]);
     }
 
@@ -70,6 +74,8 @@ class IntegrationSettings extends Page
             // Contoh: $this->providerSection('github', 'GitHub', ...),
 
             $this->turnstileSection(),
+
+            $this->googleTagManagerSection(),
 
         ]);
     }
@@ -105,6 +111,33 @@ class IntegrationSettings extends Page
                         ->maxLength(255)
                         ->hint('Disimpan aman di server, tidak pernah tampil ke publik. Kosongkan jika tidak ingin mengubah secret yang sudah tersimpan.'),
                 ])->columnSpanFull(),
+            ]);
+    }
+
+    private function googleTagManagerSection(): Section
+    {
+        return Section::make('Google Tag Manager')
+            ->description('Wadah script pelacakan (Google Analytics 4, tag konversi Google Ads, Meta Pixel). Dipasang sekali di sini, alat pelacaknya diatur dari dashboard GTM tanpa mengubah kode. Dapatkan Container ID dari tagmanager.google.com → Workspace → Admin.')
+            ->icon(Heroicon::OutlinedChartBar)
+            ->schema([
+                Toggle::make('gtm_enabled')
+                    ->label('Aktifkan Google Tag Manager')
+                    ->helperText('Script hanya dimuat di halaman publik. Panel admin dan halaman status PPDB bertanda tangan sengaja tidak ikut dilacak.')
+                    ->onColor('success')
+                    ->offColor('danger')
+                    ->live()
+                    ->columnSpanFull(),
+
+                TextInput::make('gtm_container_id')
+                    ->label('Container ID')
+                    ->placeholder('GTM-XXXXXXX')
+                    ->visible(fn (Get $get): bool => (bool) $get('gtm_enabled'))
+                    ->required(fn (Get $get): bool => (bool) $get('gtm_enabled'))
+                    ->maxLength(30)
+                    ->rule('regex:/^GTM-[A-Za-z0-9]{4,}$/i')
+                    ->validationMessages(['regex' => 'Container ID harus berformat GTM-XXXXXXX.'])
+                    ->hint('Format GTM-XXXXXXX. Selama kosong atau tidak valid, script tidak dimuat sama sekali.')
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -193,6 +226,12 @@ class IntegrationSettings extends Page
         if (! blank($data['turnstile_secret_key'] ?? null)) {
             $toSave['turnstile_secret_key'] = $data['turnstile_secret_key'];
         }
+
+        // Google Tag Manager
+        $toSave['gtm_enabled'] = $data['gtm_enabled'] ?? false;
+        $toSave['gtm_container_id'] = blank($data['gtm_container_id'] ?? null)
+            ? null
+            : strtoupper(trim($data['gtm_container_id']));
 
         Setting::setMany($toSave);
 

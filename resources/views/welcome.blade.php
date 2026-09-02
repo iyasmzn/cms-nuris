@@ -3,6 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    @include('partials.gtm-head')
     @php
         // Homepage SEO — dedicated meta overrides fall back to global identity settings.
         $siteName  = setting('site_name', config('app.name', "Qurrota A'yun"));
@@ -292,6 +294,8 @@
       @if($heroSlider->autoplay)
           x-init="setInterval(() => { if (! videoModal && ! heroPaused) stepSlide(1) }, {{ $heroSlider->intervalMs() }})"
       @endif>
+
+    @include('partials.gtm-body')
 
     {{-- Navbar — transparent over hero, solid on scroll --}}
     <x-navbar :over-hero="true" />
