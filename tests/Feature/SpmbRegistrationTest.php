@@ -71,6 +71,32 @@ class SpmbRegistrationTest extends TestCase
         $response->assertSee('PPDB');
     }
 
+    public function test_registration_form_is_the_tab_opened_first(): void
+    {
+        $response = $this->get(route('ppdb.show', $this->institution));
+
+        $response->assertStatus(200);
+        $response->assertSee("x-data=\"{ tab: 'form' }\"", false);
+    }
+
+    public function test_procedures_open_first_when_registration_is_closed(): void
+    {
+        Setting::set('spmb_form_enabled', '0');
+
+        $response = $this->get(route('ppdb.show', $this->institution));
+
+        $response->assertStatus(200);
+        $response->assertSee("x-data=\"{ tab: 'prosedur' }\"", false);
+    }
+
+    public function test_a_tab_asked_for_in_the_url_still_wins_over_the_default(): void
+    {
+        $response = $this->get(route('ppdb.show', $this->institution).'?tab=biaya');
+
+        $response->assertStatus(200);
+        $response->assertSee("_x_dataStack[0].tab = 'biaya'", false);
+    }
+
     public function test_document_requirements_fall_back_to_the_global_setting(): void
     {
         Setting::set('spmb_requirements', json_encode(['Fotokopi Kartu Keluarga', 'Pas foto 3x4']));

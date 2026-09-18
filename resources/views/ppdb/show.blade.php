@@ -88,6 +88,11 @@
     $otherJenjang  = \App\Models\Institution::query()->active()->whereKeyNot($institution->id)->exists();
     $fmtDate       = fn ($d) => $d ? $d->locale('id')->translatedFormat('d M Y') : '—';
     $siteName      = setting('site_name', config('app.name'));
+
+    // Formulir dibuka lebih dulu agar pengunjung tidak perlu mengklik apa pun
+    // untuk mulai mendaftar. Saat pendaftaran ditutup tab itu hanya berisi
+    // pesan penutup, jadi prosedur yang lebih berguna untuk dilihat duluan.
+    $defaultTab    = $spmbOpen && $formEnabled ? 'form' : 'prosedur';
 @endphp
 
 {{-- ═══════════════════════ HERO ═══════════════════════════════ --}}
@@ -202,7 +207,7 @@
 </section>
 
 {{-- ═══════════════════════ MAIN CONTENT ════════════════════════ --}}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" x-data="{ tab: 'prosedur' }" @open-form.window="tab = 'form'">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" x-data="{ tab: '{{ $defaultTab }}' }" @open-form.window="tab = 'form'">
 
     {{-- Alerts --}}
     @if(session('success'))
@@ -220,6 +225,9 @@
 
     {{-- Tab nav --}}
     <div class="tab-nav mb-8" data-aos="fade-up">
+        <button @click="tab = 'form'" :class="tab === 'form' ? 'active' : ''" class="tab-pill" id="form-pendaftaran">
+            📝 Form Pendaftaran
+        </button>
         <button @click="tab = 'prosedur'" :class="tab === 'prosedur' ? 'active' : ''" class="tab-pill">
             📋 Prosedur Pendaftaran
         </button>
@@ -228,9 +236,6 @@
             💰 Biaya Pendaftaran
         </button>
         @endif
-        <button @click="tab = 'form'" :class="tab === 'form' ? 'active' : ''" class="tab-pill" id="form-pendaftaran">
-            📝 Form Pendaftaran
-        </button>
         @if($institution->showsStatusButton())
         <a href="{{ route('ppdb.status') }}" class="tab-pill">
             🔎 Cek Status &amp; Pembayaran
@@ -676,7 +681,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         const el = document.querySelector('[x-data]');
         if (el && el._x_dataStack) {
-            el._x_dataStack[0].tab = '{{ session('success') || $errors->any() ? 'form' : request('tab', 'prosedur') }}';
+            el._x_dataStack[0].tab = '{{ session('success') || $errors->any() ? 'form' : request('tab', $defaultTab) }}';
         }
     });
 </script>
