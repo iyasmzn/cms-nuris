@@ -39,9 +39,12 @@ class Institution extends Model
         'fees',
         'requirements',
         'registration_fee',
+        'bank_accounts',
+        'payment_instructions',
         'form_title',
         'form_description',
         'closed_message',
+        'success_message',
         'show_status_button',
         'show_requirements',
     ];
@@ -54,6 +57,7 @@ class Institution extends Model
         'procedures' => 'array',
         'fees' => 'array',
         'requirements' => 'array',
+        'bank_accounts' => 'array',
         'registration_fee' => 'integer',
     ];
 
@@ -210,6 +214,41 @@ class Institution extends Model
     public function showsRequirements(): bool
     {
         return (bool) ($this->show_requirements ?? true);
+    }
+
+    /**
+     * Rekening tujuan transfer for this jenjang, falling back to the global
+     * Setting when this jenjang has none of its own. Half-filled rows are
+     * dropped, so an empty list means "no rekening configured anywhere".
+     *
+     * @return array<int, array{bank: string, number: string, holder: string}>
+     */
+    public function resolvedBankAccounts(): array
+    {
+        $accounts = spmb_bank_accounts($this->bank_accounts ?: null);
+
+        return $accounts !== [] ? $accounts : spmb_bank_accounts();
+    }
+
+    /**
+     * Payment instructions shown above the bukti transfer form, falling back
+     * to the global Setting.
+     */
+    public function resolvedPaymentInstructions(): string
+    {
+        return $this->payment_instructions ?: (string) Setting::get('spmb_payment_instructions', '');
+    }
+
+    /**
+     * The keterangan shown to a pendaftar right after they submit the form,
+     * as a template still holding its placeholders. Falls back to the global
+     * Setting, then to a sensible default. See
+     * `SpmbRegistration::successMessage()` for the filled-in version.
+     */
+    public function resolvedSuccessMessage(): string
+    {
+        return $this->success_message
+            ?: (string) Setting::get('spmb_success_message', SpmbRegistration::DEFAULT_SUCCESS_MESSAGE);
     }
 
     /**

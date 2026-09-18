@@ -6,6 +6,7 @@ use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Support\IconUpload;
 use App\Models\Institution;
 use App\Models\Setting;
+use App\Models\SpmbRegistration;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
@@ -66,6 +67,7 @@ class SpmbSettings extends Page
             'spmb_form_title' => Setting::get('spmb_form_title', 'Formulir Pendaftaran SPMB'),
             'spmb_form_description' => Setting::get('spmb_form_description', 'Isi formulir di bawah ini dengan data yang benar dan lengkap. Panitia akan menghubungi Anda untuk proses verifikasi.'),
             'spmb_closed_message' => Setting::get('spmb_closed_message', 'Pendaftaran SPMB saat ini sedang ditutup. Pantau informasi terbaru melalui halaman ini.'),
+            'spmb_success_message' => Setting::get('spmb_success_message', SpmbRegistration::DEFAULT_SUCCESS_MESSAGE),
 
             // Prosedur
             'procedures' => is_array($procedures) ? $procedures : $this->defaultProcedures(),
@@ -183,6 +185,13 @@ class SpmbSettings extends Page
                     Textarea::make('spmb_closed_message')
                         ->label('Pesan saat Form Ditutup')
                         ->rows(2)
+                        ->columnSpanFull(),
+
+                    Textarea::make('spmb_success_message')
+                        ->label('Keterangan setelah Pendaftaran Terkirim')
+                        ->rows(3)
+                        ->maxLength(600)
+                        ->helperText('Dipakai jenjang yang belum punya keterangannya sendiri. Tersedia: {nomor_pendaftaran}, {nama}, {jenjang}, {tahun_ajaran}.')
                         ->columnSpanFull(),
                 ]),
 
@@ -394,6 +403,7 @@ class SpmbSettings extends Page
             'spmb_form_title' => $data['spmb_form_title'] ?? '',
             'spmb_form_description' => $data['spmb_form_description'] ?? '',
             'spmb_closed_message' => $data['spmb_closed_message'] ?? '',
+            'spmb_success_message' => $data['spmb_success_message'] ?? '',
 
             // Konten
             'spmb_procedures' => json_encode(array_values($data['procedures'] ?? [])),

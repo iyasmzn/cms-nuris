@@ -145,13 +145,16 @@ class SpmbController extends Controller
 
         // A jenjang that charges a fee sends the pendaftar straight to their
         // tagihan; everyone else stays on the PPDB page with a confirmation.
+        // The keterangan itself is whatever this jenjang has been given.
+        $message = $registration->successMessage();
+
         if (RegistrationPayment::issueFor($registration) !== null) {
             return redirect()->to(PpdbPaymentController::statusUrl($registration))
-                ->with('success', "Pendaftaran berhasil dikirim dengan nomor {$registration->registration_number}. Selesaikan pembayaran biaya pendaftaran di bawah ini.");
+                ->with('success', trim($message.' Selesaikan pembayaran biaya pendaftaran di bawah ini.'));
         }
 
         return redirect()->route('ppdb.show', $institution)
-            ->with('success', "Pendaftaran berhasil dikirim dengan nomor {$registration->registration_number}! Kami akan segera menghubungi Anda untuk proses verifikasi.");
+            ->with('success', $message);
     }
 
     /**

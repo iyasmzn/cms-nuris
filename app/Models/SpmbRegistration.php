@@ -15,6 +15,12 @@ class SpmbRegistration extends Model
     /** @use HasFactory<SpmbRegistrationFactory> */
     use HasFactory;
 
+    /**
+     * The keterangan a pendaftar sees right after submitting, used when
+     * neither the jenjang nor the global Setting defines one.
+     */
+    public const DEFAULT_SUCCESS_MESSAGE = 'Pendaftaran berhasil dikirim dengan nomor {nomor_pendaftaran}! Kami akan segera menghubungi Anda untuk proses verifikasi.';
+
     protected $fillable = [
         'institution_id',
         'academic_year_id',
@@ -160,6 +166,35 @@ class SpmbRegistration extends Model
     public function payment(): HasOne
     {
         return $this->hasOne(RegistrationPayment::class);
+    }
+
+    /**
+     * Values an admin may drop into a keterangan template, keyed by the
+     * placeholder that stands for them.
+     *
+     * @return array<string, string>
+     */
+    public function messagePlaceholders(): array
+    {
+        return [
+            '{nomor_pendaftaran}' => (string) $this->registration_number,
+            '{nama}' => (string) $this->full_name,
+            '{jenjang}' => (string) ($this->institution?->short_name ?: $this->institution?->name),
+            '{tahun_ajaran}' => (string) $this->academicYear?->label,
+        ];
+    }
+
+    /**
+     * The jenjang's keterangan setelah pendaftaran with its placeholders
+     * filled in. Each jenjang may word this differently; an empty one falls
+     * back to the global Setting and then to `DEFAULT_SUCCESS_MESSAGE`.
+     */
+    public function successMessage(): string
+    {
+        $template = $this->institution?->resolvedSuccessMessage() ?: self::DEFAULT_SUCCESS_MESSAGE;
+        $placeholders = $this->messagePlaceholders();
+
+        return trim(str_replace(array_keys($placeholders), array_values($placeholders), $template));
     }
 
     /** @return array<string, string> */

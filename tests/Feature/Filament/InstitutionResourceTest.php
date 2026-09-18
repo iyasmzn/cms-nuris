@@ -8,6 +8,7 @@ use App\Filament\Resources\Institutions\Pages\ListInstitutions;
 use App\Filament\Resources\Institutions\RelationManagers\PpdbFieldsRelationManager;
 use App\Models\Institution;
 use App\Models\PpdbField;
+use App\Models\Setting;
 use App\Models\User;
 use App\Policies\InstitutionPolicy;
 use Filament\Actions\DeleteAction;
@@ -42,6 +43,32 @@ class InstitutionResourceTest extends TestCase
         $user->givePermissionTo($permissions);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function test_it_saves_the_rekening_and_keterangan_of_one_jenjang(): void
+    {
+        Setting::set('spmb_payment_enabled', '1');
+
+        $institution = Institution::factory()->create();
+
+        Livewire::test(EditInstitution::class, ['record' => $institution->id])
+            ->fillForm([
+                'bank_accounts' => [
+                    ['bank' => 'BRI', 'number' => '0099887766', 'holder' => 'SD IT Nurul Islam'],
+                ],
+                'payment_instructions' => 'Transfer ke rekening SD, lalu unggah buktinya.',
+                'success_message' => 'Terima kasih {nama}, nomor Anda {nomor_pendaftaran}.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $institution->refresh();
+
+        $this->assertSame([
+            ['bank' => 'BRI', 'number' => '0099887766', 'holder' => 'SD IT Nurul Islam'],
+        ], $institution->resolvedBankAccounts());
+        $this->assertSame('Transfer ke rekening SD, lalu unggah buktinya.', $institution->payment_instructions);
+        $this->assertSame('Terima kasih {nama}, nomor Anda {nomor_pendaftaran}.', $institution->success_message);
     }
 
     public function test_it_lists_institutions(): void

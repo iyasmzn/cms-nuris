@@ -97,6 +97,66 @@ class SpmbRegistrationTest extends TestCase
         $response->assertSee("_x_dataStack[0].tab = 'biaya'", false);
     }
 
+    public function test_a_jenjang_keterangan_after_submitting_replaces_the_global_one(): void
+    {
+        Setting::set('spmb_success_message', 'Keterangan global {nomor_pendaftaran}.');
+        $this->institution->update([
+            'short_name' => 'SMP',
+            'success_message' => 'Terima kasih {nama}, nomor pendaftaran {jenjang} Anda {nomor_pendaftaran}.',
+        ]);
+
+        $this->post(route('ppdb.store', $this->institution), [
+            'full_name' => 'Budi Santoso',
+            'nik' => '3273010101080011',
+            'previous_school' => 'SMP Negeri 1',
+            'phone' => '081234567890',
+            'admission_path_id' => $this->path->id,
+        ]);
+
+        $registration = SpmbRegistration::firstWhere('full_name', 'Budi Santoso');
+        $this->assertNotNull($registration);
+
+        $this->assertSame(
+            "Terima kasih Budi Santoso, nomor pendaftaran SMP Anda {$registration->registration_number}.",
+            session('success'),
+        );
+    }
+
+    public function test_keterangan_after_submitting_falls_back_to_the_global_setting(): void
+    {
+        Setting::set('spmb_success_message', 'Pendaftaran {nomor_pendaftaran} diterima panitia.');
+
+        $this->post(route('ppdb.store', $this->institution), [
+            'full_name' => 'Ani Lestari',
+            'nik' => '3273010101080012',
+            'previous_school' => 'SMP Negeri 2',
+            'phone' => '081234567891',
+            'admission_path_id' => $this->path->id,
+        ]);
+
+        $registration = SpmbRegistration::firstWhere('full_name', 'Ani Lestari');
+        $this->assertNotNull($registration);
+
+        $this->assertSame("Pendaftaran {$registration->registration_number} diterima panitia.", session('success'));
+    }
+
+    public function test_keterangan_falls_back_to_the_built_in_default(): void
+    {
+        $this->post(route('ppdb.store', $this->institution), [
+            'full_name' => 'Citra Dewi',
+            'nik' => '3273010101080013',
+            'previous_school' => 'SMP Negeri 3',
+            'phone' => '081234567892',
+            'admission_path_id' => $this->path->id,
+        ]);
+
+        $registration = SpmbRegistration::firstWhere('full_name', 'Citra Dewi');
+        $this->assertNotNull($registration);
+
+        $this->assertStringContainsString((string) $registration->registration_number, (string) session('success'));
+        $this->assertStringNotContainsString('{nomor_pendaftaran}', (string) session('success'));
+    }
+
     public function test_document_requirements_fall_back_to_the_global_setting(): void
     {
         Setting::set('spmb_requirements', json_encode(['Fotokopi Kartu Keluarga', 'Pas foto 3x4']));

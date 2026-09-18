@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Institutions\Schemas;
 
 use App\Filament\Support\IconUpload;
 use App\Models\Institution;
+use App\Models\SpmbRegistration;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -150,7 +151,7 @@ class InstitutionForm
                 ]),
 
             Section::make('Biaya Pendaftaran')
-                ->description('Nominal yang ditagihkan ke calon pendaftar jenjang ini saat mengirim formulir.')
+                ->description('Nominal, rekening tujuan dan instruksi transfer khusus jenjang ini. Kosongkan rekening dan instruksi untuk memakai pengaturan global (Pengaturan PPDB).')
                 ->icon('heroicon-o-credit-card')
                 ->visible(fn (): bool => setting_bool('spmb_payment_enabled', false))
                 ->schema([
@@ -161,6 +162,50 @@ class InstitutionForm
                         ->prefix('Rp')
                         ->placeholder('150000')
                         ->helperText('Kosongkan atau isi 0 bila pendaftaran jenjang ini gratis — tidak ada tagihan yang terbit. Rincian biaya lain (SPP, seragam) diatur di bagian Konten Halaman PPDB dan sifatnya hanya informasi.')
+                        ->columnSpanFull(),
+
+                    Repeater::make('bank_accounts')
+                        ->label('Rekening Tujuan Jenjang Ini')
+                        ->helperText('Rekening yang dipilih pendaftar saat mengunggah bukti transfer. Kosongkan bila jenjang ini memakai rekening global.')
+                        ->schema([
+                            Grid::make(12)->schema([
+                                TextInput::make('bank')
+                                    ->label('Bank')
+                                    ->required()
+                                    ->maxLength(40)
+                                    ->placeholder('BSI')
+                                    ->columnSpan(3),
+
+                                TextInput::make('number')
+                                    ->label('Nomor Rekening')
+                                    ->required()
+                                    ->maxLength(40)
+                                    ->placeholder('7123456789')
+                                    ->columnSpan(4),
+
+                                TextInput::make('holder')
+                                    ->label('Atas Nama')
+                                    ->required()
+                                    ->maxLength(80)
+                                    ->placeholder('Yayasan Nurul Islam')
+                                    ->columnSpan(5),
+                            ]),
+                        ])
+                        ->addActionLabel('+ Tambah Rekening')
+                        ->reorderable()
+                        ->reorderableWithDragAndDrop()
+                        ->maxItems(5)
+                        ->defaultItems(0)
+                        ->itemLabel(fn (array $state): string => trim(($state['bank'] ?? 'Rekening baru').' — '.($state['number'] ?? '')))
+                        ->collapsible()
+                        ->columnSpanFull(),
+
+                    Textarea::make('payment_instructions')
+                        ->label('Instruksi Pembayaran')
+                        ->rows(3)
+                        ->maxLength(600)
+                        ->placeholder('Transfer sesuai nominal yang tertera (termasuk 3 digit terakhir), lalu unggah bukti transfer pada halaman ini.')
+                        ->helperText('Tampil di atas formulir unggah bukti transfer. Kosongkan untuk memakai instruksi global.')
                         ->columnSpanFull(),
                 ]),
 
@@ -184,6 +229,14 @@ class InstitutionForm
                     Textarea::make('closed_message')
                         ->label('Pesan saat Pendaftaran Ditutup')
                         ->rows(2)
+                        ->columnSpanFull(),
+
+                    Textarea::make('success_message')
+                        ->label('Keterangan setelah Pendaftaran Terkirim')
+                        ->rows(3)
+                        ->maxLength(600)
+                        ->placeholder(SpmbRegistration::DEFAULT_SUCCESS_MESSAGE)
+                        ->helperText('Tersedia: {nomor_pendaftaran}, {nama}, {jenjang}, {tahun_ajaran}. Bila jenjang ini menagih biaya pendaftaran, kalimat ajakan menyelesaikan pembayaran ditambahkan otomatis di belakangnya.')
                         ->columnSpanFull(),
 
                     Repeater::make('procedures')

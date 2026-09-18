@@ -423,6 +423,69 @@ class SpmbPaymentTest extends TestCase
         Storage::disk('local')->assertExists($payment->proof_path);
     }
 
+    public function test_a_jenjang_rekening_replaces_the_global_one_on_the_status_page(): void
+    {
+        $this->institution->update(['bank_accounts' => [
+            ['bank' => 'BRI', 'number' => '0099887766', 'holder' => 'SMP IT Nurul Islam'],
+        ]]);
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        RegistrationPayment::issueFor($registration);
+
+        $response = $this->get(URL::signedRoute('ppdb.payment', $registration));
+
+        $response->assertStatus(200);
+        $response->assertSee('0099887766');
+        $response->assertDontSee('7123456789');
+    }
+
+    public function test_a_jenjang_without_its_own_rekening_keeps_using_the_global_one(): void
+    {
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        RegistrationPayment::issueFor($registration);
+
+        $response = $this->get(URL::signedRoute('ppdb.payment', $registration));
+
+        $response->assertStatus(200);
+        $response->assertSee('7123456789');
+    }
+
+    public function test_a_bukti_is_recorded_against_the_jenjang_own_rekening(): void
+    {
+        Storage::fake('local');
+
+        $this->institution->update(['bank_accounts' => [
+            ['bank' => 'BRI', 'number' => '0099887766', 'holder' => 'SMP IT Nurul Islam'],
+        ]]);
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+
+        $this->post(URL::signedRoute('ppdb.payment.proof', $registration), [
+            'sender_name' => 'Ayah Budi',
+            'bank_account' => 0,
+            'transferred_on' => now()->toDateString(),
+            'proof' => UploadedFile::fake()->create('bukti.jpg', 100, 'image/jpeg'),
+        ])->assertRedirect();
+
+        $this->assertSame('BRI 0099887766 a.n. SMP IT Nurul Islam', $payment->refresh()->bank_account);
+    }
+
+    public function test_a_jenjang_payment_instructions_replace_the_global_ones(): void
+    {
+        Setting::set('spmb_payment_instructions', 'Instruksi global.');
+        $this->institution->update(['payment_instructions' => 'Transfer khusus jenjang SMP.']);
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        RegistrationPayment::issueFor($registration);
+
+        $response = $this->get(URL::signedRoute('ppdb.payment', $registration));
+
+        $response->assertStatus(200);
+        $response->assertSee('Transfer khusus jenjang SMP.');
+        $response->assertDontSee('Instruksi global.');
+    }
+
     public function test_uploading_a_bukti_validates_its_input(): void
     {
         Storage::fake('local');

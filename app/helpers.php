@@ -338,11 +338,15 @@ if (! function_exists('spmb_bank_accounts')) {
      * bank name or account number are dropped so the public page never renders
      * a half-filled rekening.
      *
+     * Pass a jenjang's own rekening to normalise those instead of the global
+     * ones — `Institution::resolvedBankAccounts()` is what callers should use.
+     *
+     * @param  array<int, mixed>|null  $accounts
      * @return array<int, array{bank: string, number: string, holder: string}>
      */
-    function spmb_bank_accounts(): array
+    function spmb_bank_accounts(?array $accounts = null): array
     {
-        $accounts = json_decode((string) setting('spmb_bank_accounts', ''), true);
+        $accounts ??= json_decode((string) setting('spmb_bank_accounts', ''), true);
 
         if (! is_array($accounts)) {
             return [];

@@ -98,8 +98,9 @@ class PpdbPaymentController extends Controller
         $registration->load(['institution', 'academicYear', 'registrationWave', 'admissionPath', 'payment']);
 
         $payment = $registration->payment;
-        $bankAccounts = spmb_bank_accounts();
-        $instructions = (string) setting('spmb_payment_instructions', '');
+        $bankAccounts = $registration->institution?->resolvedBankAccounts() ?? spmb_bank_accounts();
+        $instructions = $registration->institution?->resolvedPaymentInstructions()
+            ?? (string) setting('spmb_payment_instructions', '');
         $siteName = setting('site_name', config('app.name'));
 
         $seo = [
@@ -140,7 +141,7 @@ class PpdbPaymentController extends Controller
                 ->with('error', 'Bukti pembayaran tidak dapat dikirim untuk tagihan ini.');
         }
 
-        $accounts = spmb_bank_accounts();
+        $accounts = $registration->institution?->resolvedBankAccounts() ?? spmb_bank_accounts();
 
         $validated = $request->validate([
             'sender_name' => ['required', 'string', 'max:100'],
