@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\SpmbRegistration;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Foundation\Auth\User as AuthUser;
 
@@ -19,7 +20,8 @@ class SpmbRegistrationPolicy
 
     public function view(AuthUser $authUser, SpmbRegistration $spmbRegistration): bool
     {
-        return $authUser->can('View:SpmbRegistration');
+        return $authUser->can('View:SpmbRegistration')
+            && $this->handlesJenjangOf($authUser, $spmbRegistration);
     }
 
     public function create(AuthUser $authUser): bool
@@ -29,12 +31,14 @@ class SpmbRegistrationPolicy
 
     public function update(AuthUser $authUser, SpmbRegistration $spmbRegistration): bool
     {
-        return $authUser->can('Update:SpmbRegistration');
+        return $authUser->can('Update:SpmbRegistration')
+            && $this->handlesJenjangOf($authUser, $spmbRegistration);
     }
 
     public function delete(AuthUser $authUser, SpmbRegistration $spmbRegistration): bool
     {
-        return $authUser->can('Delete:SpmbRegistration');
+        return $authUser->can('Delete:SpmbRegistration')
+            && $this->handlesJenjangOf($authUser, $spmbRegistration);
     }
 
     public function deleteAny(AuthUser $authUser): bool
@@ -44,12 +48,14 @@ class SpmbRegistrationPolicy
 
     public function restore(AuthUser $authUser, SpmbRegistration $spmbRegistration): bool
     {
-        return $authUser->can('Restore:SpmbRegistration');
+        return $authUser->can('Restore:SpmbRegistration')
+            && $this->handlesJenjangOf($authUser, $spmbRegistration);
     }
 
     public function forceDelete(AuthUser $authUser, SpmbRegistration $spmbRegistration): bool
     {
-        return $authUser->can('ForceDelete:SpmbRegistration');
+        return $authUser->can('ForceDelete:SpmbRegistration')
+            && $this->handlesJenjangOf($authUser, $spmbRegistration);
     }
 
     public function forceDeleteAny(AuthUser $authUser): bool
@@ -64,7 +70,8 @@ class SpmbRegistrationPolicy
 
     public function replicate(AuthUser $authUser, SpmbRegistration $spmbRegistration): bool
     {
-        return $authUser->can('Replicate:SpmbRegistration');
+        return $authUser->can('Replicate:SpmbRegistration')
+            && $this->handlesJenjangOf($authUser, $spmbRegistration);
     }
 
     public function reorder(AuthUser $authUser): bool
@@ -79,6 +86,18 @@ class SpmbRegistrationPolicy
      */
     public function updateStatus(AuthUser $authUser, SpmbRegistration $spmbRegistration): bool
     {
-        return $authUser->can('UpdateStatus:SpmbRegistration');
+        return $authUser->can('UpdateStatus:SpmbRegistration')
+            && $this->handlesJenjangOf($authUser, $spmbRegistration);
+    }
+
+    /**
+     * Whether this registration belongs to a jenjang the user handles. The
+     * resource query already hides other jenjang from every list; this is what
+     * stops an action reaching a record fetched some other way.
+     */
+    private function handlesJenjangOf(AuthUser $authUser, SpmbRegistration $spmbRegistration): bool
+    {
+        return $authUser instanceof User
+            && $authUser->seesInstitution($spmbRegistration->institution_id);
     }
 }

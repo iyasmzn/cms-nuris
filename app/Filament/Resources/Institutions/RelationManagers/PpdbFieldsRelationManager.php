@@ -125,6 +125,13 @@ class PpdbFieldsRelationManager extends RelationManager
                     ->disabled(fn (?PpdbField $record): bool => (bool) $record?->isLocked())
                     ->helperText(fn (?PpdbField $record): ?string => $record?->isLocked() ? 'Selalu aktif.' : null),
             ]),
+
+            Toggle::make('show_in_dashboard')
+                ->label('Tampilkan Grafiknya di Dasbor')
+                ->onColor('success')
+                ->visible(fn (Get $get): bool => in_array($get('type'), ['select', 'radio'], true))
+                ->helperText('Jumlah pendaftar per pilihan field ini akan muncul sebagai grafik di dasbor — misalnya Pilihan Kelas.')
+                ->columnSpanFull(),
         ]);
     }
 

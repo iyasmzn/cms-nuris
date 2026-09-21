@@ -38,9 +38,13 @@ class RegistrationsPerPathChart extends ChartWidget
 
     protected function getData(): array
     {
+        $user = auth()->user();
+
         $paths = AdmissionPath::query()
             ->ordered()
-            ->withCount(['registrations' => function (Builder $query): void {
+            ->withCount(['registrations' => function (Builder $query) use ($user): void {
+                $query->visibleTo($user);
+
                 if ($this->filter !== null && $this->filter !== 'all') {
                     $query->where('academic_year_id', $this->filter);
                 }

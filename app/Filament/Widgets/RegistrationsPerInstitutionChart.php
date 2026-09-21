@@ -40,7 +40,11 @@ class RegistrationsPerInstitutionChart extends ChartWidget
     /** @return array<string, mixed> */
     protected function getData(): array
     {
+        $user = auth()->user();
+        $visible = $user === null ? [] : $user->visibleInstitutionIds();
+
         $institutions = Institution::query()
+            ->when($visible !== null, fn (Builder $query): Builder => $query->whereIn('id', $visible ?? []))
             ->ordered()
             ->withCount(['registrations' => function (Builder $query): void {
                 if ($this->filter !== null && $this->filter !== 'all') {

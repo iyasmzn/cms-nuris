@@ -21,23 +21,24 @@ class SpmbRegistrationsChartWidget extends ChartWidget
 
     protected function getData(): array
     {
+        $user = auth()->user();
         $months = collect(range(5, 0))->map(fn ($i) => Carbon::now()->subMonths($i));
 
         $labels = $months->map(fn ($m) => $m->translatedFormat('M Y'))->toArray();
 
-        $pending = $months->map(fn ($m) => SpmbRegistration::where('status', 'pending')
+        $pending = $months->map(fn ($m) => SpmbRegistration::query()->visibleTo($user)->where('status', 'pending')
             ->whereYear('created_at', $m->year)
             ->whereMonth('created_at', $m->month)
             ->count()
         )->toArray();
 
-        $verified = $months->map(fn ($m) => SpmbRegistration::where('status', 'verified')
+        $verified = $months->map(fn ($m) => SpmbRegistration::query()->visibleTo($user)->where('status', 'verified')
             ->whereYear('created_at', $m->year)
             ->whereMonth('created_at', $m->month)
             ->count()
         )->toArray();
 
-        $rejected = $months->map(fn ($m) => SpmbRegistration::where('status', 'rejected')
+        $rejected = $months->map(fn ($m) => SpmbRegistration::query()->visibleTo($user)->where('status', 'rejected')
             ->whereYear('created_at', $m->year)
             ->whereMonth('created_at', $m->month)
             ->count()

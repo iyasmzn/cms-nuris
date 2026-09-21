@@ -25,12 +25,14 @@ class PpdbField extends Model
         'width',
         'sort_order',
         'is_active',
+        'show_in_dashboard',
     ];
 
     protected $casts = [
         'options' => 'array',
         'is_required' => 'boolean',
         'is_active' => 'boolean',
+        'show_in_dashboard' => 'boolean',
         'sort_order' => 'integer',
     ];
 
@@ -171,6 +173,21 @@ class PpdbField extends Model
     public function institution(): BelongsTo
     {
         return $this->belongsTo(Institution::class);
+    }
+
+    /**
+     * Field pilihan yang ditandai untuk ditampilkan sebagai grafik di dasbor.
+     * Hanya dropdown/radio yang punya daftar jawaban tetap yang masuk akal
+     * dihitung, jadi tipe lain diabaikan walau penandanya menyala.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeChartedOnDashboard(Builder $query): Builder
+    {
+        return $query->active()
+            ->where('show_in_dashboard', true)
+            ->whereIn('type', ['select', 'radio']);
     }
 
     /**

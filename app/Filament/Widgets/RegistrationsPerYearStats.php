@@ -28,6 +28,7 @@ class RegistrationsPerYearStats extends Widget
      */
     protected function getViewData(): array
     {
+        $user = auth()->user();
         $active = AcademicYear::active();
 
         /** @var Collection<int, AcademicYear> $inactiveYears */
@@ -42,10 +43,12 @@ class RegistrationsPerYearStats extends Widget
 
         return [
             'activeLabel' => $active ? "T.A. {$active->label}" : 'Tahun Ajaran Aktif',
-            'activeCount' => $active ? $active->registrations()->count() : 0,
+            'activeCount' => $active ? $active->registrations()->visibleTo($user)->count() : 0,
             'hasActive' => $active !== null,
             'totalLabel' => $selected ? "T.A. {$selected->label}" : 'Total Semua Tahun',
-            'totalCount' => $selected ? $selected->registrations()->count() : SpmbRegistration::count(),
+            'totalCount' => $selected
+                ? $selected->registrations()->visibleTo($user)->count()
+                : SpmbRegistration::query()->visibleTo($user)->count(),
             'isFiltered' => $selected !== null,
             'inactiveYears' => $inactiveYears,
         ];

@@ -15,6 +15,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 class RegistrationPaymentsTable
@@ -97,7 +98,20 @@ class RegistrationPaymentsTable
 
                 SelectFilter::make('institution')
                     ->label('Jenjang')
-                    ->relationship('registration.institution', 'name')
+                    ->relationship(
+                        'registration.institution',
+                        'name',
+                        function (Builder $query): Builder {
+                            $user = auth()->user();
+                            $visible = $user === null
+                                ? []
+                                : $user->visibleInstitutionIds(RegistrationPayment::SEES_EVERY_INSTITUTION);
+
+                            return $visible === null
+                                ? $query
+                                : $query->whereIn('institutions.id', $visible);
+                        },
+                    )
                     ->native(false),
             ])
             ->recordUrl(fn (RegistrationPayment $record): string => RegistrationPaymentResource::getUrl('view', ['record' => $record]))

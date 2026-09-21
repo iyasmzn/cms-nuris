@@ -6,6 +6,7 @@ use App\Models\AcademicYear;
 use App\Models\RegistrationWave;
 use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Database\Eloquent\Builder;
 
 class RegistrationsPerWaveChart extends ChartWidget
 {
@@ -59,8 +60,12 @@ class RegistrationsPerWaveChart extends ChartWidget
 
     protected function getData(): array
     {
+        $user = auth()->user();
+        $visible = $user === null ? [] : $user->visibleInstitutionIds();
+
         $waves = RegistrationWave::query()
-            ->withCount('registrations')
+            ->when($visible !== null, fn (Builder $query): Builder => $query->whereIn('institution_id', $visible ?? []))
+            ->withCount(['registrations' => fn (Builder $query) => $query->visibleTo($user)])
             ->where('academic_year_id', $this->filter)
             ->orderBy('start_date')
             ->get();

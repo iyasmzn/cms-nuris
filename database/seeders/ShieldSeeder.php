@@ -94,11 +94,18 @@ class ShieldSeeder extends Seeder
         return [
             'UpdateStatus:SpmbRegistration',
             'Verify:RegistrationPayment',
+            // Membebaskan pemiliknya dari pembatasan per unit: tanpa ini, akun
+            // hanya melihat jenjang yang ditugaskan kepadanya lewat form User.
+            'ViewAll:SpmbRegistration',
+            'ViewAll:RegistrationPayment',
         ];
     }
 
     /**
      * Permission role `verifikator_ppdb`: baca + putuskan status, tanpa ubah data.
+     *
+     * Sengaja tanpa `ViewAll:*` — panitia unit hanya melihat jenjang yang
+     * ditugaskan kepadanya pada form User.
      *
      * @return list<string>
      */

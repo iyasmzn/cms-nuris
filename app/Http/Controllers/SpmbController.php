@@ -207,7 +207,9 @@ class SpmbController extends Controller
      */
     public function downloadBerkas(Request $request, SpmbRegistration $registration, string $field): StreamedResponse
     {
-        abort_unless($request->user()?->can('View:SpmbRegistration'), 403);
+        // Lewat policy, bukan permission mentah: panitia sebuah unit tidak
+        // boleh mengunduh berkas pendaftar unit lain lewat URL tebakan.
+        abort_unless($request->user()?->can('view', $registration), 403);
 
         $isFileField = $registration->institution?->ppdbFields()
             ->where('type', 'file')

@@ -234,7 +234,9 @@ class PpdbPaymentController extends Controller
      */
     private function authoriseProofAccess(Request $request, RegistrationPayment $payment): void
     {
-        abort_unless($request->user()?->can('View:RegistrationPayment'), 403);
+        // Policy-nya ikut memeriksa unit, jadi bukti transfer jenjang lain
+        // tidak bisa diambil hanya dengan menebak id tagihan.
+        abort_unless($request->user()?->can('view', $payment), 403);
 
         abort_if(
             blank($payment->proof_path) || ! Storage::disk('local')->exists($payment->proof_path),

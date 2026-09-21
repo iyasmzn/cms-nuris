@@ -47,13 +47,18 @@ class StatsOverviewWidget extends BaseStatsOverviewWidget
             ->count()
         )->toArray();
 
-        $spmbTotal = SpmbRegistration::count();
-        $spmbThisMonth = SpmbRegistration::whereYear('created_at', $thisYear)
+        // Angka pendaftar selalu dibatasi ke unit yang boleh dilihat user ini.
+        $user = auth()->user();
+
+        $spmbTotal = SpmbRegistration::query()->visibleTo($user)->count();
+        $spmbThisMonth = SpmbRegistration::query()->visibleTo($user)
+            ->whereYear('created_at', $thisYear)
             ->whereMonth('created_at', $thisMonth)
             ->count();
-        $spmbPending = SpmbRegistration::where('status', 'pending')->count();
+        $spmbPending = SpmbRegistration::query()->visibleTo($user)->where('status', 'pending')->count();
 
         $spmbTrend = collect(range(5, 0))->map(fn ($monthsAgo) => SpmbRegistration::query()
+            ->visibleTo($user)
             ->whereYear('created_at', $now->copy()->subMonths($monthsAgo)->year)
             ->whereMonth('created_at', $now->copy()->subMonths($monthsAgo)->month)
             ->count()

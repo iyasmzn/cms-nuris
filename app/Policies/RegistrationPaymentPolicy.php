@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\RegistrationPayment;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Foundation\Auth\User as AuthUser;
 
@@ -19,7 +20,8 @@ class RegistrationPaymentPolicy
 
     public function view(AuthUser $authUser, RegistrationPayment $registrationPayment): bool
     {
-        return $authUser->can('View:RegistrationPayment');
+        return $authUser->can('View:RegistrationPayment')
+            && $this->handlesJenjangOf($authUser, $registrationPayment);
     }
 
     public function create(AuthUser $authUser): bool
@@ -29,12 +31,14 @@ class RegistrationPaymentPolicy
 
     public function update(AuthUser $authUser, RegistrationPayment $registrationPayment): bool
     {
-        return $authUser->can('Update:RegistrationPayment');
+        return $authUser->can('Update:RegistrationPayment')
+            && $this->handlesJenjangOf($authUser, $registrationPayment);
     }
 
     public function delete(AuthUser $authUser, RegistrationPayment $registrationPayment): bool
     {
-        return $authUser->can('Delete:RegistrationPayment');
+        return $authUser->can('Delete:RegistrationPayment')
+            && $this->handlesJenjangOf($authUser, $registrationPayment);
     }
 
     public function deleteAny(AuthUser $authUser): bool
@@ -44,12 +48,14 @@ class RegistrationPaymentPolicy
 
     public function restore(AuthUser $authUser, RegistrationPayment $registrationPayment): bool
     {
-        return $authUser->can('Restore:RegistrationPayment');
+        return $authUser->can('Restore:RegistrationPayment')
+            && $this->handlesJenjangOf($authUser, $registrationPayment);
     }
 
     public function forceDelete(AuthUser $authUser, RegistrationPayment $registrationPayment): bool
     {
-        return $authUser->can('ForceDelete:RegistrationPayment');
+        return $authUser->can('ForceDelete:RegistrationPayment')
+            && $this->handlesJenjangOf($authUser, $registrationPayment);
     }
 
     public function forceDeleteAny(AuthUser $authUser): bool
@@ -64,7 +70,8 @@ class RegistrationPaymentPolicy
 
     public function replicate(AuthUser $authUser, RegistrationPayment $registrationPayment): bool
     {
-        return $authUser->can('Replicate:RegistrationPayment');
+        return $authUser->can('Replicate:RegistrationPayment')
+            && $this->handlesJenjangOf($authUser, $registrationPayment);
     }
 
     public function reorder(AuthUser $authUser): bool
@@ -79,6 +86,19 @@ class RegistrationPaymentPolicy
      */
     public function verify(AuthUser $authUser, RegistrationPayment $registrationPayment): bool
     {
-        return $authUser->can('Verify:RegistrationPayment');
+        return $authUser->can('Verify:RegistrationPayment')
+            && $this->handlesJenjangOf($authUser, $registrationPayment);
+    }
+
+    /**
+     * Whether this tagihan belongs to a jenjang the user handles.
+     */
+    private function handlesJenjangOf(AuthUser $authUser, RegistrationPayment $registrationPayment): bool
+    {
+        return $authUser instanceof User
+            && $authUser->seesInstitution(
+                $registrationPayment->registration?->institution_id,
+                RegistrationPayment::SEES_EVERY_INSTITUTION,
+            );
     }
 }

@@ -12,6 +12,7 @@ use App\Models\SpmbRegistration;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class SpmbRegistrationResource extends Resource
@@ -43,6 +44,18 @@ class SpmbRegistrationResource extends Resource
         return SpmbRegistrationsTable::configure($table);
     }
 
+    /**
+     * Pendaftar jenjang lain tidak pernah masuk ke daftar, pencarian global,
+     * maupun hasil export. Membuka URL recordnya langsung pun ditolak, karena
+     * policy-nya ikut memeriksa unit.
+     *
+     * @return Builder<SpmbRegistration>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->visibleTo(auth()->user());
+    }
+
     public static function getRelations(): array
     {
         return [];
@@ -59,7 +72,7 @@ class SpmbRegistrationResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getModel()::where('status', 'pending')->count() ?: null;
+        return (string) static::getEloquentQuery()->where('status', 'pending')->count() ?: null;
     }
 
     public static function getNavigationBadgeColor(): string

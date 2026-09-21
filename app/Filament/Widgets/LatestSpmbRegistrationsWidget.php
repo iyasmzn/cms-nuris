@@ -38,6 +38,7 @@ class LatestSpmbRegistrationsWidget extends TableWidget
     {
         return $table
             ->query(fn (): Builder => SpmbRegistration::query()
+                ->visibleTo(auth()->user())
                 ->with('admissionPath')
                 ->orderByDesc('created_at')
                 ->limit(8)

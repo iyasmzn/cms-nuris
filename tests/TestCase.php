@@ -40,8 +40,8 @@ abstract class TestCase extends BaseTestCase
      */
     private const CUSTOM_ABILITIES = [
         'Post' => ['Publish', 'ViewAll'],
-        'SpmbRegistration' => ['UpdateStatus'],
-        'RegistrationPayment' => ['Verify'],
+        'SpmbRegistration' => ['UpdateStatus', 'ViewAll'],
+        'RegistrationPayment' => ['Verify', 'ViewAll'],
     ];
 
     /**

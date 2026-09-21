@@ -29,6 +29,13 @@ class RegistrationPayment extends Model
 
     public const METHOD_GATEWAY = 'gateway';
 
+    /**
+     * Permission yang membebaskan pemiliknya dari pembatasan per unit pada
+     * data pembayaran. Dipisah dari milik pendaftar supaya sebuah role bisa
+     * diberi satu tanpa yang lain.
+     */
+    public const SEES_EVERY_INSTITUTION = 'ViewAll:RegistrationPayment';
+
     protected $fillable = [
         'spmb_registration_id',
         'invoice_number',
@@ -257,6 +264,31 @@ class RegistrationPayment extends Model
             'status' => self::STATUS_UNPAID,
             'expires_at' => $deadlineHours > 0 ? Carbon::now()->addHours($deadlineHours) : null,
         ]);
+    }
+
+    /**
+     * Narrow a query to the tagihan of jenjang a panel user is allowed to see,
+     * following the same rule as the pendaftar themselves.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if ($user === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $visible = $user->visibleInstitutionIds(self::SEES_EVERY_INSTITUTION);
+
+        if ($visible === null) {
+            return $query;
+        }
+
+        return $query->whereHas(
+            'registration',
+            fn (Builder $registrations): Builder => $registrations->whereIn('institution_id', $visible),
+        );
     }
 
     /**

@@ -124,11 +124,7 @@ class SpmbRegistrationsTable
                     ->schema([
                         Select::make('institution_id')
                             ->label('Jenjang')
-                            ->options(fn (): array => Institution::query()
-                                ->orderBy('sort_order')
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->all())
+                            ->options(fn (): array => self::visibleInstitutions())
                             ->native(false)
                             ->live()
                             ->afterStateUpdated(function (Set $set): void {
@@ -314,6 +310,25 @@ class SpmbRegistrationsTable
      *
      * @return Collection<int, PpdbField>
      */
+    /**
+     * Jenjang yang boleh dipilih di filter: hanya unit yang datanya memang
+     * bisa dilihat user ini, supaya tidak ada pilihan yang selalu kosong.
+     *
+     * @return array<int, string>
+     */
+    private static function visibleInstitutions(): array
+    {
+        $user = auth()->user();
+        $visible = $user === null ? [] : $user->visibleInstitutionIds();
+
+        return Institution::query()
+            ->when($visible !== null, fn (Builder $query): Builder => $query->whereIn('id', $visible ?? []))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
     private static function choiceFields(int|string|null $institutionId = null): Collection
     {
         return PpdbField::query()

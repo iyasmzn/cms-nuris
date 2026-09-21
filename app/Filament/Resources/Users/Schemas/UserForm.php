@@ -101,6 +101,16 @@ class UserForm
                                 ? null
                                 : Heroicon::ExclamationTriangle)
                             ->columnSpanFull(),
+
+                        Select::make('institutions')
+                            ->label('Unit / Jenjang yang Dapat Diakses')
+                            ->multiple()
+                            ->relationship('institutions', 'name')
+                            ->preload()
+                            ->searchable()
+                            ->native(false)
+                            ->helperText('Akun hanya melihat data pendaftar dan pembayaran dari unit yang dicentang di sini. Boleh lebih dari satu. Kosongkan bila akun ini memang tidak mengurus data pendaftar — super admin (dan role dengan permission "ViewAll") tetap melihat seluruh unit.')
+                            ->columnSpanFull(),
                     ]),
             ]);
     }

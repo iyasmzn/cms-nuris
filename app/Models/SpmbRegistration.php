@@ -223,6 +223,25 @@ class SpmbRegistration extends Model
         return RegistrationWave::currentOpen($institution) !== null;
     }
 
+    /**
+     * Narrow a query to the jenjang a panel user is allowed to see. Panitia
+     * unit SD hanya melihat pendaftar SD; akun tanpa unit sama sekali tidak
+     * melihat apa pun, dan pemegang `ViewAll:SpmbRegistration` melihat semua.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if ($user === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $visible = $user->visibleInstitutionIds();
+
+        return $visible === null ? $query : $query->whereIn('institution_id', $visible);
+    }
+
     public function scopePending(Builder $query): Builder
     {
         return $query->where('status', 'pending');

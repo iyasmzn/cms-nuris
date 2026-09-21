@@ -895,6 +895,7 @@ class SpmbRegistrationTest extends TestCase
         // Authorised panel users get the file streamed back.
         $admin = User::factory()->create();
         $admin->givePermissionTo(Permission::findOrCreate('View:SpmbRegistration', 'web'));
+        $admin->institutions()->attach($this->institution);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->actingAs($admin)

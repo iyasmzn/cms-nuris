@@ -43,6 +43,14 @@ class UsersTable
                     ->color('warning')
                     ->separator(', '),
 
+                TextColumn::make('institutions.short_name')
+                    ->label('Unit')
+                    ->badge()
+                    ->color('info')
+                    ->separator(', ')
+                    ->placeholder('Belum ditugaskan')
+                    ->toggleable(),
+
                 IconColumn::make('email_verified_at')
                     ->label('Terverifikasi')
                     ->boolean()

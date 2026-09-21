@@ -638,6 +638,7 @@ class SpmbPaymentTest extends TestCase
         // Authorised panel users get the file streamed back.
         $admin = User::factory()->create();
         $admin->givePermissionTo(Permission::findOrCreate('View:RegistrationPayment', 'web'));
+        $admin->institutions()->attach($this->institution);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->actingAs($admin)
@@ -663,6 +664,7 @@ class SpmbPaymentTest extends TestCase
 
         $admin = User::factory()->create();
         $admin->givePermissionTo(Permission::findOrCreate('View:RegistrationPayment', 'web'));
+        $admin->institutions()->attach($this->institution);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $response = $this->actingAs($admin)->get(route('ppdb.payment.preview', $payment));
@@ -706,6 +708,7 @@ class SpmbPaymentTest extends TestCase
 
         $admin = User::factory()->create();
         $admin->givePermissionTo(Permission::findOrCreate('View:RegistrationPayment', 'web'));
+        $admin->institutions()->attach($this->institution);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->actingAs($admin)

@@ -14,6 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class RegistrationPaymentResource extends Resource
@@ -55,6 +56,17 @@ class RegistrationPaymentResource extends Resource
         return false;
     }
 
+    /**
+     * Tagihan milik jenjang lain tidak pernah tampil, persis seperti
+     * pendaftarnya.
+     *
+     * @return Builder<RegistrationPayment>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->visibleTo(auth()->user());
+    }
+
     public static function getRelations(): array
     {
         return [];
@@ -71,7 +83,7 @@ class RegistrationPaymentResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getModel()::query()->waitingVerification()->count() ?: null;
+        return (string) static::getEloquentQuery()->waitingVerification()->count() ?: null;
     }
 
     public static function getNavigationBadgeColor(): string

@@ -45,6 +45,11 @@ class PpdbVerifierRoleTest extends TestCase
         $this->verifier = $this->verifierUser();
 
         $institution = Institution::factory()->create(['registration_fee' => 150_000]);
+
+        // Panitia hanya melihat unit yang ditugaskan kepadanya; tanpa baris
+        // pivot ini seorang verifikator tidak melihat pendaftar mana pun.
+        $this->verifier->institutions()->attach($institution);
+
         $this->registration = SpmbRegistration::factory()->pending()->create([
             'institution_id' => $institution->id,
         ]);
