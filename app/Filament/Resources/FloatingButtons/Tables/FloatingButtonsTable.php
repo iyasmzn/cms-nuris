@@ -48,6 +48,17 @@ class FloatingButtonsTable
                     ->badge()
                     ->color(fn (FloatingButton $record): string => 'gray'),
 
+                TextColumn::make('display_mode')
+                    ->label('Tampil di')
+                    ->state(fn (FloatingButton $record): string => $record->displaySummary())
+                    ->badge()
+                    ->color(fn (FloatingButton $record): string => match ($record->display_mode) {
+                        FloatingButton::DISPLAY_ONLY => 'success',
+                        FloatingButton::DISPLAY_EXCEPT => 'warning',
+                        default => 'gray',
+                    })
+                    ->wrap(),
+
                 IconColumn::make('open_in_new_tab')
                     ->label('Tab Baru')
                     ->boolean(),
