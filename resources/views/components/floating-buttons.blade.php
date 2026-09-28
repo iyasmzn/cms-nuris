@@ -1,5 +1,5 @@
 @php
-    $buttons = \App\Models\FloatingButton::active()->get();
+    $buttons = \App\Models\FloatingButton::forRequest(request());
 @endphp
 
 @if($buttons->isNotEmpty())
