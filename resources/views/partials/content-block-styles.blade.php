@@ -56,6 +56,9 @@
         line-height: 1.2; color: var(--text);
     }
     @media (min-width: 640px) { .block-section-title { font-size: 2.25rem; } }
+    .block-section-intro { margin-top: .75rem; max-width: 42rem; font-size: 1rem; line-height: 1.7; color: var(--muted); }
+    .block-text-center .block-section-intro { margin-left: auto; margin-right: auto; }
+    .block-text-right .block-section-intro { margin-left: auto; }
     .block-section-boxed .block-section-title { font-size: 1.5rem; }
     @media (min-width: 640px) { .block-section-boxed .block-section-title { font-size: 1.75rem; } }
 

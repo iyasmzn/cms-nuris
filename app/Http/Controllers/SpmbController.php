@@ -10,6 +10,8 @@ use App\Models\PpdbField;
 use App\Models\RegistrationPayment;
 use App\Models\RegistrationWave;
 use App\Models\SpmbRegistration;
+use App\Support\PageHero;
+use App\Support\PpdbLanding;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,27 +35,32 @@ class SpmbController extends Controller
     private const BUSY_MESSAGE = 'Pendaftaran Anda sedang diproses. Mohon tunggu sebentar lalu cek status pendaftaran sebelum mengirim ulang formulir.';
 
     /**
-     * Jenjang selector. Redirects straight to the single jenjang when only one
-     * is active, so single-unit schools keep a one-click PPDB flow.
+     * Halaman depan PPDB yang disusun admin (hero + seksi). A school with a
+     * single active jenjang is sent straight to it until the admin has
+     * designed this page, so single-unit schools keep a one-click PPDB flow.
      */
     public function index(): View|RedirectResponse
     {
-        $institutions = Institution::query()->active()->ordered()->get();
+        $institutions = Institution::query()->active()->ordered()->limit(2)->get();
 
-        if ($institutions->count() === 1) {
+        if ($institutions->count() === 1 && ! PpdbLanding::isCustomized()) {
             return redirect()->route('ppdb.show', $institutions->first());
         }
 
+        $hero = PpdbLanding::hero();
+        $sections = PpdbLanding::renderableSections();
         $siteName = setting('site_name', config('app.name'));
         $yearLabel = spmb_year_label();
 
         $seo = [
             'title' => "PPDB / SPMB {$yearLabel} | {$siteName}",
-            'description' => "Informasi Penerimaan Peserta Didik Baru (PPDB) {$siteName}. Pilih jenjang pendidikan untuk melihat prosedur, jadwal, dan formulir pendaftaran.",
+            'description' => PpdbLanding::metaDescription()
+                ?? "Informasi Penerimaan Peserta Didik Baru (PPDB) {$siteName}. Pilih jenjang pendidikan untuk melihat prosedur, jadwal, dan formulir pendaftaran.",
             'canonical' => route('ppdb.index'),
+            'og_image' => PageHero::fromArray($hero)->imageUrl(),
         ];
 
-        return view('ppdb.index', compact('institutions', 'seo'));
+        return view('ppdb.index', compact('hero', 'sections', 'seo'));
     }
 
     /**
@@ -62,7 +69,7 @@ class SpmbController extends Controller
      */
     public function show(Institution $institution): View
     {
-        $procedures = $institution->resolvedProcedures() ?: $this->defaultProcedures();
+        $procedures = $institution->resolvedProcedures() ?: Institution::defaultProcedures();
         $fees = $institution->resolvedFees();
         $requirements = $institution->resolvedRequirements();
         $formTitle = $institution->resolvedFormTitle();
@@ -81,11 +88,16 @@ class SpmbController extends Controller
                 ->get()
             : collect();
         $scheduleWave = RegistrationWave::relevant($institution);
+        $quotaFull = $institution->closedByQuota();
         $spmbOpen = match ($institution->form_mode) {
             Institution::FORM_MODE_EXTERNAL_LINK => filled($institution->external_url),
             Institution::FORM_MODE_EMBED => filled($institution->embed_url),
-            default => RegistrationWave::currentOpen($institution) !== null,
+            default => RegistrationWave::currentOpen($institution) !== null && ! $quotaFull,
         };
+
+        if ($quotaFull) {
+            $closedMessage = $institution->resolvedQuotaFullMessage();
+        }
         $siteName = setting('site_name', config('app.name'));
         $yearLabel = spmb_year_label();
 
@@ -95,7 +107,7 @@ class SpmbController extends Controller
             'canonical' => route('ppdb.show', $institution),
         ];
 
-        return view('ppdb.show', compact('institution', 'procedures', 'fees', 'requirements', 'formTitle', 'formDesc', 'closedMessage', 'paths', 'fields', 'waves', 'scheduleWave', 'spmbOpen', 'seo'));
+        return view('ppdb.show', compact('institution', 'procedures', 'fees', 'requirements', 'formTitle', 'formDesc', 'closedMessage', 'paths', 'fields', 'waves', 'scheduleWave', 'spmbOpen', 'quotaFull', 'seo'));
     }
 
     public function store(Request $request, Institution $institution): RedirectResponse
@@ -117,6 +129,10 @@ class SpmbController extends Controller
             return back()->with('error', "SPMB {$institution->name} saat ini tidak dalam masa penerimaan.");
         }
 
+        if ($institution->closedByQuota()) {
+            return back()->with('error', $institution->resolvedQuotaFullMessage());
+        }
+
         $fields = $institution->ppdbFields()->active()->ordered()->get();
         $hasPaths = AdmissionPath::query()->forInstitution($institution)->active()->exists();
 
@@ -131,15 +147,30 @@ class SpmbController extends Controller
         // The lock closes the window a double-clicked form opens: two requests
         // arriving together would otherwise both pass the duplicate check
         // before either has written its row.
+        //
+        // A jenjang that closes when full locks the whole intake instead, so
+        // two pendaftar racing for the last slot cannot both get in.
+        $lockKey = $institution->closesWhenFull()
+            ? $this->quotaLockKey($institution, $wave->academic_year_id)
+            : $this->registrationLockKey($institution, $wave->academic_year_id, $payload);
+
         try {
-            $registration = Cache::lock($this->registrationLockKey($institution, $wave->academic_year_id, $payload), 10)
-                ->block(5, function () use ($institution, $wave, $payload): SpmbRegistration {
+            $registration = Cache::lock($lockKey, 10)
+                ->block(5, function () use ($institution, $wave, $payload): ?SpmbRegistration {
+                    if ($institution->closedByQuota()) {
+                        return null;
+                    }
+
                     $this->guardAgainstDuplicateRegistration($institution, $wave->academic_year_id, $payload);
 
                     return SpmbRegistration::create($payload);
                 });
         } catch (LockTimeoutException) {
             return back()->withInput()->with('error', self::BUSY_MESSAGE);
+        }
+
+        if ($registration === null) {
+            return back()->withInput()->with('error', $institution->resolvedQuotaFullMessage());
         }
 
         // A jenjang that charges a fee sends the pendaftar straight to their
@@ -198,6 +229,15 @@ class SpmbController extends Controller
             SpmbRegistration::normalizeName($payload['full_name'] ?? null),
             SpmbRegistration::normalizePhone($payload['phone'] ?? null),
         ]));
+    }
+
+    /**
+     * Lock key for the whole intake of one jenjang, used while its quota
+     * decides whether the next pendaftar still fits.
+     */
+    private function quotaLockKey(Institution $institution, ?int $academicYearId): string
+    {
+        return "ppdb-kuota:{$institution->id}:".($academicYearId ?? 0);
     }
 
     /**
@@ -357,16 +397,5 @@ class SpmbController extends Controller
         return Rule::unique('spmb_registrations', 'nik')
             ->where('institution_id', $institution->id)
             ->where('academic_year_id', $academicYearId);
-    }
-
-    /** @return array<int, array<string, mixed>> */
-    private function defaultProcedures(): array
-    {
-        return [
-            ['icon' => '📝', 'title' => 'Isi Formulir Online', 'description' => 'Kunjungi halaman PPDB dan isi formulir pendaftaran secara lengkap dan benar.'],
-            ['icon' => '📁', 'title' => 'Siapkan Berkas', 'description' => 'Persiapkan dokumen yang diperlukan: ijazah/SHUN, rapor, dan pas foto terbaru.'],
-            ['icon' => '✅', 'title' => 'Verifikasi Berkas', 'description' => 'Datang ke sekolah untuk verifikasi berkas pada tanggal yang telah ditentukan.'],
-            ['icon' => '🎉', 'title' => 'Pengumuman Hasil', 'description' => 'Hasil seleksi diumumkan melalui halaman resmi sekolah dan via WhatsApp/email.'],
-        ];
     }
 }

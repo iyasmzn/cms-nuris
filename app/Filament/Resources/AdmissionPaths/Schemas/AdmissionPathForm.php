@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AdmissionPaths\Schemas;
 
+use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Filament\Support\IconUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -15,6 +16,8 @@ use Illuminate\Support\Str;
 
 class AdmissionPathForm
 {
+    use InteractsWithImagePicker;
+
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
@@ -64,6 +67,29 @@ class AdmissionPathForm
                         ->columnSpanFull(),
 
                     IconUpload::make()
+                        ->columnSpanFull(),
+
+                    self::imagePicker(
+                        key: 'image',
+                        label: 'Gambar Sampul',
+                        hint: 'Opsional. Rasio 4:3, di-resize ke 800×600. Tampil di kartu jalur halaman depan PPDB; tanpa gambar kartu memakai ikon.',
+                        accepted: ['image/jpeg', 'image/png', 'image/webp'],
+                        width: 800,
+                        height: 600,
+                        directory: 'admission-paths',
+                        aspectRatio: '4:3',
+                        withMeta: false,
+                    )->columnSpanFull(),
+
+                    TextInput::make('detail_url')
+                        ->label('Tautan "Lihat Selengkapnya"')
+                        ->maxLength(500)
+                        ->placeholder('/halaman/jalur-prestasi  atau  https://...')
+                        ->helperText('Opsional. Arahkan ke halaman yang menjelaskan jalur ini secara lengkap, misalnya Halaman Statis.')
+                        ->rule('regex:/^(https?:\/\/|\/|#)/')
+                        ->validationMessages([
+                            'regex' => 'Tautan harus diawali http://, https://, /, atau #.',
+                        ])
                         ->columnSpanFull(),
 
                     Grid::make(3)->schema([

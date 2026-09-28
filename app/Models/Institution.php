@@ -20,6 +20,14 @@ class Institution extends Model
 
     public const FORM_MODE_EMBED = 'embed';
 
+    public const DEFAULT_QUOTA_FULL_MESSAGE = 'Kuota pendaftaran jenjang ini sudah terpenuhi. Terima kasih atas minat Anda — hubungi panitia untuk informasi daftar tunggu atau tahun ajaran berikutnya.';
+
+    /**
+     * Status pendaftar yang TIDAK memakai slot kuota. Menolak seorang
+     * pendaftar otomatis membuka kembali slotnya.
+     */
+    public const QUOTA_FREEING_STATUS = 'rejected';
+
     protected $fillable = [
         'name',
         'slug',
@@ -34,6 +42,9 @@ class Institution extends Model
         'is_active',
         'form_mode',
         'form_enabled',
+        'quota',
+        'close_when_full',
+        'quota_full_message',
         'external_url',
         'embed_url',
         'procedures',
@@ -65,6 +76,8 @@ class Institution extends Model
         'registration_fee' => 'integer',
         // Ketiganya sengaja nullable: null = ikut pengaturan global.
         'form_enabled' => 'boolean',
+        'quota' => 'integer',
+        'close_when_full' => 'boolean',
         'payment_enabled' => 'boolean',
         'payment_unique_code' => 'boolean',
         'payment_deadline_hours' => 'integer',
@@ -170,8 +183,111 @@ class Institution extends Model
         return match ($this->form_mode) {
             self::FORM_MODE_EXTERNAL_LINK => filled($this->external_url),
             self::FORM_MODE_EMBED => filled($this->embed_url),
-            default => RegistrationWave::currentOpen($this) !== null,
+            default => RegistrationWave::currentOpen($this) !== null && ! $this->closedByQuota(),
         };
+    }
+
+    public function hasQuota(): bool
+    {
+        return (int) ($this->quota ?? 0) > 0;
+    }
+
+    /**
+     * Pendaftar tahun ajaran aktif yang memakai slot kuota — semua kecuali
+     * yang Ditolak. Memakai hasil `withQuotaUsage()` bila sudah dimuat, jadi
+     * daftar jenjang tidak menembak satu query per kartu.
+     */
+    public function quotaUsed(): int
+    {
+        if (array_key_exists('quota_used_count', $this->attributes)) {
+            return (int) $this->attributes['quota_used_count'];
+        }
+
+        return $this->registrations()
+            ->where(fn (Builder $query): Builder => self::constrainToQuotaUsage($query))
+            ->count();
+    }
+
+    /**
+     * Slot yang masih tersisa, atau null bila jenjang ini tanpa kuota.
+     */
+    public function remainingQuota(): ?int
+    {
+        return $this->hasQuota() ? max(0, $this->quota - $this->quotaUsed()) : null;
+    }
+
+    public function isQuotaFull(): bool
+    {
+        return $this->hasQuota() && $this->quotaUsed() >= $this->quota;
+    }
+
+    /**
+     * Whether the form should close itself once the quota is reached. Only a
+     * jenjang with the internal form stores pendaftar, so only it can tell.
+     */
+    public function closesWhenFull(): bool
+    {
+        return $this->usesInternalForm() && $this->hasQuota() && (bool) $this->close_when_full;
+    }
+
+    /**
+     * Whether registration is closed right now purely because the quota ran out.
+     */
+    public function closedByQuota(): bool
+    {
+        return $this->closesWhenFull() && $this->isQuotaFull();
+    }
+
+    public function resolvedQuotaFullMessage(): string
+    {
+        return $this->quota_full_message
+            ?: ((string) Setting::get('spmb_quota_full_message', '') ?: self::DEFAULT_QUOTA_FULL_MESSAGE);
+    }
+
+    /**
+     * Eager-load the quota usage of every jenjang in one query.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeWithQuotaUsage(Builder $query): Builder
+    {
+        return $query->withCount([
+            'registrations as quota_used_count' => fn (Builder $query): Builder => self::constrainToQuotaUsage($query),
+        ]);
+    }
+
+    /**
+     * @param  Builder<SpmbRegistration>  $query
+     * @return Builder<SpmbRegistration>
+     */
+    private static function constrainToQuotaUsage(Builder $query): Builder
+    {
+        $activeYear = AcademicYear::active();
+
+        if ($activeYear === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query
+            ->where('academic_year_id', $activeYear->id)
+            ->where('status', '!=', self::QUOTA_FREEING_STATUS);
+    }
+
+    /**
+     * Langkah pendaftaran cadangan saat Pengaturan PPDB maupun jenjangnya
+     * belum mengisi prosedur sama sekali.
+     *
+     * @return list<array{icon: string, title: string, description: string}>
+     */
+    public static function defaultProcedures(): array
+    {
+        return [
+            ['icon' => '📝', 'title' => 'Isi Formulir Online', 'description' => 'Kunjungi halaman PPDB dan isi formulir pendaftaran secara lengkap dan benar.'],
+            ['icon' => '📁', 'title' => 'Siapkan Berkas', 'description' => 'Persiapkan dokumen yang diperlukan: ijazah/SHUN, rapor, dan pas foto terbaru.'],
+            ['icon' => '✅', 'title' => 'Verifikasi Berkas', 'description' => 'Datang ke sekolah untuk verifikasi berkas pada tanggal yang telah ditentukan.'],
+            ['icon' => '🎉', 'title' => 'Pengumuman Hasil', 'description' => 'Hasil seleksi diumumkan melalui halaman resmi sekolah dan via WhatsApp/email.'],
+        ];
     }
 
     /**

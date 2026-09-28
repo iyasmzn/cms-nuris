@@ -12,11 +12,14 @@
       $blocks — array definisi blok (dari cast `blocks` milik model)
       $title  — teks alt/caption cadangan (judul halaman/artikel)
       $mode   — 'inline' (bawaan) | 'full' | 'boxed'
+      $customBodies — opsional, jenis blok khusus → partial isinya (mis. seksi
+                      data PPDB); blok lain tetap memakai content-block-body
 --}}
 @php
     $title = $title ?? '';
     $mode = $mode ?? 'inline';
     $sectioned = $mode !== 'inline';
+    $customBodies = $customBodies ?? [];
 @endphp
 
 @if(!empty($blocks))
@@ -24,6 +27,8 @@
         @php
             $eyebrow = trim((string) ($block['eyebrow'] ?? ''));
             $heading = trim((string) ($block['heading'] ?? ''));
+            $intro = trim((string) ($block['intro'] ?? ''));
+            $bodyView = $customBodies[$block['type'] ?? ''] ?? 'partials.content-block-body';
             // Setiap seksi tetap punya target tautan walau anchornya tidak diisi
             $anchor = \Illuminate\Support\Str::slug((string) ($block['anchor'] ?? '')) ?: 'seksi-'.($loop->index + 1);
             $padding = $block['padding'] ?? 'md';
@@ -33,13 +38,13 @@
         @endphp
 
         @if(! $sectioned)
-            @include('partials.content-block-body', ['block' => $block, 'title' => $title, 'sectioned' => false])
+            @include($bodyView, ['block' => $block, 'title' => $title, 'sectioned' => false])
         @else
             <x-section-background :config="\App\Support\SectionBackground::fromBlock($block, $mode === 'boxed' ? 'alt' : 'base')"
                                   id="{{ $anchor }}"
                                   class="block-section block-section-{{ $mode }} block-pad-{{ $padding }}">
                 <div class="block-section-inner">
-                    @if($eyebrow !== '' || $heading !== '')
+                    @if($eyebrow !== '' || $heading !== '' || $intro !== '')
                         <div class="block-section-head block-text-{{ $headingAlign }}">
                             @if($eyebrow !== '')
                                 <div class="fi-label block-section-eyebrow">{{ $eyebrow }}</div>
@@ -48,10 +53,14 @@
                             @if($heading !== '')
                                 <h2 class="block-section-title">{{ $heading }}</h2>
                             @endif
+
+                            @if($intro !== '')
+                                <p class="block-section-intro">{{ $intro }}</p>
+                            @endif
                         </div>
                     @endif
 
-                    @include('partials.content-block-body', ['block' => $block, 'title' => $title, 'sectioned' => true])
+                    @include($bodyView, ['block' => $block, 'title' => $title, 'sectioned' => true])
                 </div>
             </x-section-background>
         @endif

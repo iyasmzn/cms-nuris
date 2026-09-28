@@ -93,6 +93,36 @@ class InstitutionResourceTest extends TestCase
         $this->assertSame(6, $institution->paymentDeadlineHours());
     }
 
+    public function test_it_saves_the_quota_and_auto_close_switch(): void
+    {
+        $institution = Institution::factory()->create();
+
+        Livewire::test(EditInstitution::class, ['record' => $institution->id])
+            ->fillForm([
+                'quota' => 120,
+                'close_when_full' => true,
+                'quota_full_message' => 'Kursi SMP sudah penuh.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $institution->refresh();
+
+        $this->assertSame(120, $institution->quota);
+        $this->assertTrue($institution->closesWhenFull());
+        $this->assertSame('Kursi SMP sudah penuh.', $institution->resolvedQuotaFullMessage());
+    }
+
+    public function test_quota_must_be_a_positive_whole_number(): void
+    {
+        $institution = Institution::factory()->create();
+
+        Livewire::test(EditInstitution::class, ['record' => $institution->id])
+            ->fillForm(['quota' => 0])
+            ->call('save')
+            ->assertHasFormErrors(['quota' => 'min']);
+    }
+
     public function test_clearing_a_switch_puts_the_jenjang_back_on_the_global_setting(): void
     {
         Setting::set('spmb_payment_enabled', '1');

@@ -212,13 +212,13 @@ class SpmbRegistration extends Model
      * Whether the public registration form should accept new submissions:
      * a wave of the active academic year must currently be open, and the
      * admin must not have force-closed the form. Pass an institution to check
-     * a single jenjang (SD/SMP/SMA).
+     * a single jenjang (SD/SMP/SMA), which also closes once its quota is full.
      */
     public static function isOpen(?Institution $institution = null): bool
     {
         $enabled = $institution?->formEnabled() ?? setting_bool('spmb_form_enabled', true);
 
-        if (! $enabled) {
+        if (! $enabled || $institution?->closedByQuota()) {
             return false;
         }
 
