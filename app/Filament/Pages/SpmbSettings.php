@@ -68,6 +68,7 @@ class SpmbSettings extends Page
             'spmb_form_description' => Setting::get('spmb_form_description', 'Isi formulir di bawah ini dengan data yang benar dan lengkap. Panitia akan menghubungi Anda untuk proses verifikasi.'),
             'spmb_closed_message' => Setting::get('spmb_closed_message', 'Pendaftaran SPMB saat ini sedang ditutup. Pantau informasi terbaru melalui halaman ini.'),
             'spmb_success_message' => Setting::get('spmb_success_message', SpmbRegistration::DEFAULT_SUCCESS_MESSAGE),
+            'spmb_quota_full_message' => Setting::get('spmb_quota_full_message', Institution::DEFAULT_QUOTA_FULL_MESSAGE),
 
             // Prosedur
             'procedures' => is_array($procedures) ? $procedures : $this->defaultProcedures(),
@@ -162,7 +163,7 @@ class SpmbSettings extends Page
                 ]),
 
             Section::make('Pengaturan Form Pendaftaran')
-                ->description('Nilai bawaan untuk semua jenjang. Judul, deskripsi, pesan penutup, keterangan pasca-daftar, dan status buka/tutup bisa ditimpa per jenjang di menu Jenjang / Unit.')
+                ->description('Nilai bawaan untuk semua jenjang. Judul, deskripsi, pesan penutup, pesan kuota penuh, keterangan pasca-daftar, dan status buka/tutup bisa ditimpa per jenjang di menu Jenjang / Unit.')
                 ->icon(Heroicon::OutlinedDocumentText)
                 ->schema([
                     Grid::make(2)->schema([
@@ -185,6 +186,13 @@ class SpmbSettings extends Page
                     Textarea::make('spmb_closed_message')
                         ->label('Pesan saat Form Ditutup')
                         ->rows(2)
+                        ->columnSpanFull(),
+
+                    Textarea::make('spmb_quota_full_message')
+                        ->label('Pesan saat Kuota Penuh')
+                        ->rows(2)
+                        ->maxLength(500)
+                        ->helperText('Tampil di jenjang yang menyalakan "Tutup pendaftaran otomatis saat kuota penuh". Kuotanya sendiri diatur per jenjang.')
                         ->columnSpanFull(),
 
                     Textarea::make('spmb_success_message')
@@ -403,6 +411,7 @@ class SpmbSettings extends Page
             'spmb_form_title' => $data['spmb_form_title'] ?? '',
             'spmb_form_description' => $data['spmb_form_description'] ?? '',
             'spmb_closed_message' => $data['spmb_closed_message'] ?? '',
+            'spmb_quota_full_message' => $data['spmb_quota_full_message'] ?? '',
             'spmb_success_message' => $data['spmb_success_message'] ?? '',
 
             // Konten

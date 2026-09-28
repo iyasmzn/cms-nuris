@@ -1,5 +1,5 @@
 @php
-    $institutions = \App\Models\Institution::query()->active()->ordered()->get();
+    $institutions = \App\Models\Institution::query()->active()->ordered()->withQuotaUsage()->get();
     $openInstitutions = $institutions->filter(fn (\App\Models\Institution $i): bool => $i->registrationOpen());
 @endphp
 
@@ -88,6 +88,8 @@
                             </div>
                             @if($open)
                                 <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 shrink-0">Dibuka</span>
+                            @elseif($institution->closedByQuota())
+                                <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-red-50 text-red-600 shrink-0">Kuota Penuh</span>
                             @else
                                 <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-500 shrink-0">Segera</span>
                             @endif

@@ -117,7 +117,7 @@
                         <span class="text-xs font-bold text-amber-300 uppercase tracking-widest">SPMB Dibuka{{ $scheduleWave ? ' — '.$scheduleWave->name : '' }}</span>
                     @else
                         <span class="w-2 h-2 rounded-full bg-red-400"></span>
-                        <span class="text-xs font-bold text-red-300 uppercase tracking-widest">SPMB Ditutup</span>
+                        <span class="text-xs font-bold text-red-300 uppercase tracking-widest">{{ $quotaFull ? 'Kuota Penuh' : 'SPMB Ditutup' }}</span>
                     @endif
                 </div>
                 <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-4">
@@ -391,8 +391,8 @@
         @if(!$spmbOpen || !$formEnabled)
         {{-- Closed state --}}
         <div class="fi-card p-10 text-center" data-aos="fade-up">
-            <div class="text-5xl mb-4">🔒</div>
-            <h3 class="font-bold text-lg mb-2" style="color:var(--text)">Form Pendaftaran Ditutup</h3>
+            <div class="text-5xl mb-4">{{ $quotaFull ? '🎫' : '🔒' }}</div>
+            <h3 class="font-bold text-lg mb-2" style="color:var(--text)">{{ $quotaFull ? 'Kuota Pendaftaran Penuh' : 'Form Pendaftaran Ditutup' }}</h3>
             <p class="text-sm max-w-md mx-auto" style="color:var(--muted)">{{ $closedMessage }}</p>
             @if(setting('contact_whatsapp') || setting('social_whatsapp'))
             <a href="https://wa.me/{{ setting('contact_whatsapp', setting('social_whatsapp')) }}" target="_blank" rel="noopener"

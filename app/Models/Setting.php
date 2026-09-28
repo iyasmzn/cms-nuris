@@ -57,6 +57,17 @@ class Setting extends Model
     }
 
     /**
+     * Delete settings so their readers fall back to their defaults again.
+     *
+     * @param  list<string>  $keys
+     */
+    public static function forget(array $keys): void
+    {
+        static::query()->whereIn('key', $keys)->delete();
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    /**
      * Return all settings as a flat key=>value array, cached for 1 hour.
      *
      * @return array<string, mixed>

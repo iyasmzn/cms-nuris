@@ -21,6 +21,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Str;
 
 /**
  * Repeater blok konten. Dipakai dua cara:
@@ -65,8 +66,11 @@ class ContentBlocks
     /**
      * @param  string  $directory  folder penyimpanan gambar blok
      * @param  bool  $sections  blok berdiri sebagai seksi sendiri (konten utama)
+     * @param  array<string, string>  $extraTypes  jenis blok khusus halaman pemanggil (kunci → label
+     *                                             "emoji  Nama — penjelasan"), tampil di urutan teratas
+     * @param  list<Component>  $extraFields  bidang milik jenis blok khusus; visibilitasnya diatur pemanggil
      */
-    public static function make(string $directory, bool $sections = false): Repeater
+    public static function make(string $directory, bool $sections = false, array $extraTypes = [], array $extraFields = []): Repeater
     {
         return Repeater::make('blocks')
             ->label('')
@@ -75,7 +79,7 @@ class ContentBlocks
             ->schema([
                 Select::make('type')
                     ->label('Jenis Blok')
-                    ->options([
+                    ->options($extraTypes + [
                         'rich_text' => '📄  Teks — paragraf, judul, daftar, tabel',
                         'image_cover' => '🖼️  Cover Image — satu gambar penuh lebar',
                         'image_carousel' => '🎠  Carousel — slider beberapa gambar',
@@ -441,6 +445,8 @@ class ContentBlocks
                             ->helperText('Penanda halaman di bawah kartu.'),
                     ]),
 
+                ...$extraFields,
+
                 // ── Pengaturan seksi ──────────────────────────
                 ...($sections ? self::sectionSettings($directory) : []),
             ])
@@ -453,7 +459,7 @@ class ContentBlocks
             ->defaultItems($sections ? 1 : 0)
             // Seksi yang sudah diberi judul dikenali dari judulnya, bukan jenisnya
             ->itemLabel(fn (array $state): string => filled($state['heading'] ?? null)
-                ? self::icon($state['type'] ?? '').'  '.$state['heading']
+                ? self::icon($state['type'] ?? '', $extraTypes).'  '.$state['heading']
                 : match ($state['type'] ?? '') {
                     'rich_text' => '📄  Teks'.self::excerpt($state['content'] ?? null),
                     'image_cover' => '🖼️  Cover Image',
@@ -463,16 +469,25 @@ class ContentBlocks
                     'media_text' => '📝  Gambar & Teks'.(! empty($state['heading']) ? ' — '.$state['heading'] : ''),
                     'cards' => '🧩  Deretan Kartu — '.count($state['items'] ?? []).' kartu',
                     'cards_carousel' => '🎡  Carousel Kartu — '.count($state['items'] ?? []).' kartu',
-                    default => 'Blok Baru',
+                    default => isset($extraTypes[$state['type'] ?? ''])
+                        ? Str::before($extraTypes[$state['type']], ' — ')
+                        : 'Blok Baru',
                 })
             ->columnSpanFull();
     }
 
     /**
      * Emoji penanda jenis blok, dipakai pada label blok yang sudah berjudul.
+     * Jenis khusus memakai emoji di depan labelnya sendiri.
+     *
+     * @param  array<string, string>  $extraTypes
      */
-    private static function icon(string $type): string
+    private static function icon(string $type, array $extraTypes = []): string
     {
+        if (isset($extraTypes[$type])) {
+            return Str::before($extraTypes[$type], ' ');
+        }
+
         return match ($type) {
             'rich_text' => '📄',
             'image_cover' => '🖼️',

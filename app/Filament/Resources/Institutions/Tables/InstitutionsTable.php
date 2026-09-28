@@ -17,6 +17,7 @@ class InstitutionsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->withQuotaUsage())
             ->reorderable('sort_order')
             ->defaultSort('sort_order', 'asc')
             ->columns([
@@ -48,6 +49,20 @@ class InstitutionsTable
                     ->alignCenter()
                     ->badge()
                     ->color('gray'),
+
+                TextColumn::make('quota')
+                    ->label('Kuota')
+                    ->state(fn (Institution $record): string => $record->hasQuota()
+                        ? ($record->usesInternalForm() ? $record->quotaUsed().' / '.$record->quota : (string) $record->quota)
+                        : 'Tanpa batas')
+                    ->badge()
+                    ->color(fn (Institution $record): string => match (true) {
+                        ! $record->hasQuota() => 'gray',
+                        $record->usesInternalForm() && $record->isQuotaFull() => 'danger',
+                        default => 'success',
+                    })
+                    ->description(fn (Institution $record): ?string => $record->closedByQuota() ? 'Pendaftaran tertutup' : null)
+                    ->alignCenter(),
 
                 TextColumn::make('registration_fee')
                     ->label('Biaya Daftar')

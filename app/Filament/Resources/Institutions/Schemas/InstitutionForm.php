@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Institutions\Schemas;
 
 use App\Filament\Support\IconUpload;
 use App\Models\Institution;
+use App\Models\Setting;
 use App\Models\SpmbRegistration;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -154,6 +155,40 @@ class InstitutionForm
                         ->onColor('success')
                         ->offColor('danger')
                         ->helperText('Matikan untuk menyembunyikan tombol cek status pendaftaran dan tagihan pembayaran di halaman PPDB jenjang ini — misalnya bila pendaftarannya ditangani situs lain.')
+                        ->columnSpanFull(),
+                ]),
+
+            Section::make('Kuota Penerimaan')
+                ->description('Daya tampung jenjang ini untuk tahun ajaran aktif. Pendaftar berstatus Ditolak tidak dihitung, jadi menolak pendaftar membuka kembali slotnya.')
+                ->icon('heroicon-o-user-group')
+                ->schema([
+                    TextInput::make('quota')
+                        ->label('Kuota')
+                        ->numeric()
+                        ->integer()
+                        ->minValue(1)
+                        ->suffix('kursi')
+                        ->placeholder('Tanpa batas')
+                        ->live(onBlur: true)
+                        ->helperText(fn (?Institution $record): string => self::quotaUsageHint($record))
+                        ->columnSpanFull(),
+
+                    Toggle::make('close_when_full')
+                        ->label('Tutup pendaftaran otomatis saat kuota penuh')
+                        ->default(false)
+                        ->onColor('success')
+                        ->live()
+                        ->visible(fn (Get $get): bool => $get('form_mode') === Institution::FORM_MODE_INTERNAL && filled($get('quota')))
+                        ->helperText('Formulir tertutup sendiri begitu kuota terisi dan terbuka lagi bila ada pendaftar yang ditolak. Matikan bila kuota hanya sebagai informasi, misalnya tetap menerima daftar tunggu.')
+                        ->columnSpanFull(),
+
+                    Textarea::make('quota_full_message')
+                        ->label('Pesan saat Kuota Penuh')
+                        ->rows(2)
+                        ->maxLength(500)
+                        ->placeholder(fn (): string => (string) Setting::get('spmb_quota_full_message', '') ?: Institution::DEFAULT_QUOTA_FULL_MESSAGE)
+                        ->helperText('Kosongkan untuk memakai pesan global dari Pengaturan PPDB.')
+                        ->visible(fn (Get $get): bool => $get('form_mode') === Institution::FORM_MODE_INTERNAL && filled($get('quota')) && (bool) $get('close_when_full'))
                         ->columnSpanFull(),
                 ]),
 
@@ -362,6 +397,21 @@ class InstitutionForm
                         ->columnSpanFull(),
                 ]),
         ]);
+    }
+
+    /**
+     * How full the quota is right now, so the panitia sees the effect of the
+     * number they type before saving.
+     */
+    private static function quotaUsageHint(?Institution $record): string
+    {
+        $hint = 'Kosongkan bila tanpa batas.';
+
+        if ($record === null || ! $record->usesInternalForm()) {
+            return $hint;
+        }
+
+        return 'Saat ini terisi '.$record->quotaUsed().' pendaftar pada tahun ajaran '.spmb_year_label().'. '.$hint;
     }
 
     /**
