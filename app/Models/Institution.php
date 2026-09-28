@@ -33,12 +33,16 @@ class Institution extends Model
         'sort_order',
         'is_active',
         'form_mode',
+        'form_enabled',
         'external_url',
         'embed_url',
         'procedures',
         'fees',
         'requirements',
         'registration_fee',
+        'payment_enabled',
+        'payment_unique_code',
+        'payment_deadline_hours',
         'bank_accounts',
         'payment_instructions',
         'form_title',
@@ -59,6 +63,11 @@ class Institution extends Model
         'requirements' => 'array',
         'bank_accounts' => 'array',
         'registration_fee' => 'integer',
+        // Ketiganya sengaja nullable: null = ikut pengaturan global.
+        'form_enabled' => 'boolean',
+        'payment_enabled' => 'boolean',
+        'payment_unique_code' => 'boolean',
+        'payment_deadline_hours' => 'integer',
     ];
 
     /** @return HasMany<Teacher, $this> */
@@ -154,7 +163,7 @@ class Institution extends Model
      */
     public function registrationOpen(): bool
     {
-        if (! (bool) Setting::get('spmb_form_enabled', true)) {
+        if (! $this->formEnabled()) {
             return false;
         }
 
@@ -252,13 +261,61 @@ class Institution extends Model
     }
 
     /**
+     * Whether this jenjang's formulir accepts submissions at all. Falls back
+     * to the global switch when the jenjang has no opinion of its own, so satu
+     * jenjang bisa ditutup tanpa menutup jenjang lain.
+     */
+    public function formEnabled(): bool
+    {
+        return $this->form_enabled ?? setting_bool('spmb_form_enabled', true);
+    }
+
+    /**
+     * Whether biaya pendaftaran is collected for this jenjang, falling back to
+     * the global switch.
+     */
+    public function paymentEnabled(): bool
+    {
+        return $this->payment_enabled ?? setting_bool('spmb_payment_enabled', false);
+    }
+
+    /**
+     * Whether a 3-digit kode unik is added to this jenjang's tagihan so two
+     * transfers of the same nominal stay distinguishable in the mutasi.
+     */
+    public function usesUniqueCode(): bool
+    {
+        return $this->payment_unique_code ?? setting_bool('spmb_payment_unique_code', true);
+    }
+
+    /**
+     * How long a pendaftar has to settle a tagihan of this jenjang, in hours.
+     * Zero means no deadline at all.
+     */
+    public function paymentDeadlineHours(): int
+    {
+        return $this->payment_deadline_hours ?? (int) Setting::get('spmb_payment_deadline_hours', 48);
+    }
+
+    /**
+     * Whether payment handling is in play anywhere — globally, or switched on
+     * by at least one jenjang. Drives panel elements that are not tied to a
+     * single jenjang, such as the dashboard chart and table-wide actions.
+     */
+    public static function paymentEnabledAnywhere(): bool
+    {
+        return setting_bool('spmb_payment_enabled', false)
+            || static::query()->where('payment_enabled', true)->exists();
+    }
+
+    /**
      * Whether a tagihan biaya pendaftaran should be issued for this jenjang:
      * payment handling must be switched on globally and the jenjang must have
      * a fee above zero.
      */
     public function chargesRegistrationFee(): bool
     {
-        return setting_bool('spmb_payment_enabled', false)
+        return $this->paymentEnabled()
             && (int) ($this->registration_fee ?? 0) > 0;
     }
 

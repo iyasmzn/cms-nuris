@@ -9,7 +9,6 @@ use App\Models\Institution;
 use App\Models\PpdbField;
 use App\Models\RegistrationPayment;
 use App\Models\RegistrationWave;
-use App\Models\Setting;
 use App\Models\SpmbRegistration;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\RedirectResponse;
@@ -108,8 +107,8 @@ class SpmbController extends Controller
 
         $request->validate($this->spamProtectionRules($request));
 
-        if (! (bool) Setting::get('spmb_form_enabled', true)) {
-            return back()->with('error', Setting::get('spmb_closed_message', 'Form pendaftaran saat ini sedang ditutup.'));
+        if (! $institution->formEnabled()) {
+            return back()->with('error', $institution->resolvedClosedMessage());
         }
 
         $wave = RegistrationWave::currentOpen($institution);

@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\AcademicYear;
+use App\Models\Institution;
 use App\Models\RegistrationPayment;
 use App\Models\SpmbRegistration;
 use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
@@ -43,12 +44,13 @@ class RegistrationsPerPaymentStatusChart extends ChartWidget
     ];
 
     /**
-     * Tanpa fitur pembayaran yang menyala tidak ada satu pun tagihan terbit,
-     * jadi grafik ini hanya akan menampilkan nol.
+     * Tanpa fitur pembayaran yang menyala — global maupun di salah satu
+     * jenjang — tidak ada satu pun tagihan terbit, jadi grafik ini hanya akan
+     * menampilkan nol.
      */
     public static function canView(): bool
     {
-        return setting_bool('spmb_payment_enabled', false) && parent::canView();
+        return Institution::paymentEnabledAnywhere() && parent::canView();
     }
 
     public function getHeading(): ?string

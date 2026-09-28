@@ -121,6 +121,13 @@ class InstitutionForm
                         ->live()
                         ->columnSpanFull(),
 
+                    self::globalOverride(
+                        'form_enabled',
+                        'Pendaftaran Dibuka',
+                        fn (): bool => setting_bool('spmb_form_enabled', true),
+                        'Menutup jenjang ini saja tanpa menutup jenjang lain. Pesan penutupnya diatur di bagian Konten Halaman PPDB.',
+                    )->columnSpanFull(),
+
                     TextInput::make('external_url')
                         ->label('URL Pendaftaran Eksternal')
                         ->url()
@@ -151,10 +158,33 @@ class InstitutionForm
                 ]),
 
             Section::make('Biaya Pendaftaran')
-                ->description('Nominal, rekening tujuan dan instruksi transfer khusus jenjang ini. Kosongkan rekening dan instruksi untuk memakai pengaturan global (Pengaturan PPDB).')
+                ->description('Penagihan biaya pendaftaran khusus jenjang ini. Setiap isian yang dikosongkan mengikuti Pengaturan PPDB global.')
                 ->icon('heroicon-o-credit-card')
-                ->visible(fn (): bool => setting_bool('spmb_payment_enabled', false))
                 ->schema([
+                    Grid::make(3)->schema([
+                        self::globalOverride(
+                            'payment_enabled',
+                            'Tagih Biaya Pendaftaran',
+                            fn (): bool => setting_bool('spmb_payment_enabled', false),
+                            'Bila aktif, pendaftar jenjang ini langsung menerima tagihan setelah mengirim formulir.',
+                        ),
+
+                        self::globalOverride(
+                            'payment_unique_code',
+                            'Pakai Kode Unik',
+                            fn (): bool => setting_bool('spmb_payment_unique_code', true),
+                            'Menambah 1–999 rupiah pada nominal agar transfer mudah dicocokkan di mutasi.',
+                        ),
+
+                        TextInput::make('payment_deadline_hours')
+                            ->label('Batas Waktu Bayar (jam)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(720)
+                            ->placeholder(fn (): string => 'Ikut global ('.(int) setting('spmb_payment_deadline_hours', 48).' jam)')
+                            ->helperText('Isi 0 bila tagihan jenjang ini tidak pernah kedaluwarsa.'),
+                    ]),
+
                     TextInput::make('registration_fee')
                         ->label('Nominal Biaya Pendaftaran yang Ditagih')
                         ->numeric()
@@ -332,5 +362,23 @@ class InstitutionForm
                         ->columnSpanFull(),
                 ]),
         ]);
+    }
+
+    /**
+     * A switch with three states: follow the global Pengaturan PPDB (null),
+     * force on, or force off. A plain toggle cannot express "ikut global",
+     * which is why this is a Select.
+     *
+     * @param  callable(): bool  $globalValue  Current global value, read lazily
+     *                                         so the placeholder stays honest.
+     */
+    private static function globalOverride(string $name, string $label, callable $globalValue, ?string $helper = null): Select
+    {
+        return Select::make($name)
+            ->label($label)
+            ->options([1 => 'Aktif', 0 => 'Nonaktif'])
+            ->placeholder(fn (): string => 'Ikut pengaturan global ('.($globalValue() ? 'Aktif' : 'Nonaktif').')')
+            ->native(false)
+            ->helperText($helper);
     }
 }

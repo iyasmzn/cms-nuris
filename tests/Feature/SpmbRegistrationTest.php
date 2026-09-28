@@ -157,6 +157,62 @@ class SpmbRegistrationTest extends TestCase
         $this->assertStringNotContainsString('{nomor_pendaftaran}', (string) session('success'));
     }
 
+    public function test_one_jenjang_can_be_closed_without_closing_the_others(): void
+    {
+        $lain = Institution::factory()->create(['slug' => 'sma']);
+        RegistrationWave::factory()->open()->create([
+            'academic_year_id' => $this->year->id,
+            'institution_id' => $lain->id,
+        ]);
+
+        $this->institution->update(['form_enabled' => false]);
+
+        $this->assertFalse(SpmbRegistration::isOpen($this->institution->fresh()));
+        $this->assertTrue(SpmbRegistration::isOpen($lain));
+
+        $response = $this->post(route('ppdb.store', $this->institution), [
+            'full_name' => 'Ditolak Karena Tutup',
+            'nik' => '3273010101080031',
+            'previous_school' => 'SMP Negeri 4',
+            'phone' => '081234567893',
+            'admission_path_id' => $this->path->id,
+        ]);
+
+        $response->assertSessionHas('error');
+        $this->assertDatabaseMissing('spmb_registrations', ['full_name' => 'Ditolak Karena Tutup']);
+    }
+
+    public function test_one_jenjang_can_stay_open_while_the_global_switch_is_off(): void
+    {
+        Setting::set('spmb_form_enabled', '0');
+        $this->institution->update(['form_enabled' => true]);
+
+        $this->assertTrue(SpmbRegistration::isOpen($this->institution->fresh()));
+
+        $this->post(route('ppdb.store', $this->institution), [
+            'full_name' => 'Tetap Diterima',
+            'nik' => '3273010101080032',
+            'previous_school' => 'SMP Negeri 5',
+            'phone' => '081234567894',
+            'admission_path_id' => $this->path->id,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('spmb_registrations', ['full_name' => 'Tetap Diterima']);
+    }
+
+    public function test_a_closed_jenjang_shows_its_own_closing_message(): void
+    {
+        $this->institution->update([
+            'form_enabled' => false,
+            'closed_message' => 'Pendaftaran SMP sudah penuh.',
+        ]);
+
+        $response = $this->get(route('ppdb.show', $this->institution));
+
+        $response->assertStatus(200);
+        $response->assertSee('Pendaftaran SMP sudah penuh.');
+    }
+
     public function test_document_requirements_fall_back_to_the_global_setting(): void
     {
         Setting::set('spmb_requirements', json_encode(['Fotokopi Kartu Keluarga', 'Pas foto 3x4']));

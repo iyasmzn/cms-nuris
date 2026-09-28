@@ -162,7 +162,7 @@ class SpmbSettings extends Page
                 ]),
 
             Section::make('Pengaturan Form Pendaftaran')
-                ->description('Kelola teks dan status buka/tutup form pendaftaran SPMB online.')
+                ->description('Nilai bawaan untuk semua jenjang. Judul, deskripsi, pesan penutup, keterangan pasca-daftar, dan status buka/tutup bisa ditimpa per jenjang di menu Jenjang / Unit.')
                 ->icon(Heroicon::OutlinedDocumentText)
                 ->schema([
                     Grid::make(2)->schema([
@@ -170,7 +170,7 @@ class SpmbSettings extends Page
                             ->label('Form Pendaftaran Aktif')
                             ->onColor('success')
                             ->offColor('danger')
-                            ->helperText('Nonaktifkan untuk menutup sementara form pendaftaran.'),
+                            ->helperText('Menutup form seluruh jenjang sekaligus. Untuk menutup satu jenjang saja, atur di menu Jenjang / Unit.'),
 
                         TextInput::make('spmb_form_title')
                             ->label('Judul Form')
@@ -300,7 +300,7 @@ class SpmbSettings extends Page
                 ]),
 
             Section::make('Pembayaran Biaya Pendaftaran')
-                ->description('Aktifkan untuk menagih biaya pendaftaran lewat transfer manual. Nominal yang ditagih diatur per jenjang di menu Jenjang / Unit, bukan di daftar biaya informatif di atas.')
+                ->description('Nilai bawaan untuk semua jenjang. Setiap jenjang boleh menimpanya sendiri di menu Jenjang / Unit — termasuk mengaktifkan tagihan hanya untuk jenjang tertentu. Nominal biaya selalu diatur per jenjang.')
                 ->icon(Heroicon::OutlinedCreditCard)
                 ->schema([
                     Toggle::make('spmb_payment_enabled')
@@ -313,12 +313,12 @@ class SpmbSettings extends Page
 
                     Placeholder::make('payment_setup_status')
                         ->hiddenLabel()
-                        ->visible(fn (Get $get): bool => (bool) $get('spmb_payment_enabled'))
+                        ->visible(fn (Get $get): bool => self::paymentSectionVisible($get))
                         ->content(fn (): HtmlString => $this->paymentSetupStatus())
                         ->columnSpanFull(),
 
                     Grid::make(2)
-                        ->visible(fn (Get $get): bool => (bool) $get('spmb_payment_enabled'))
+                        ->visible(fn (Get $get): bool => self::paymentSectionVisible($get))
                         ->schema([
                             Toggle::make('spmb_payment_unique_code')
                                 ->label('Pakai Kode Unik 3 Digit')
@@ -338,12 +338,12 @@ class SpmbSettings extends Page
                         ->label('Petunjuk Pembayaran')
                         ->rows(3)
                         ->maxLength(600)
-                        ->visible(fn (Get $get): bool => (bool) $get('spmb_payment_enabled'))
+                        ->visible(fn (Get $get): bool => self::paymentSectionVisible($get))
                         ->columnSpanFull(),
 
                     Repeater::make('bank_accounts')
                         ->label('Rekening Tujuan')
-                        ->visible(fn (Get $get): bool => (bool) $get('spmb_payment_enabled'))
+                        ->visible(fn (Get $get): bool => self::paymentSectionVisible($get))
                         ->schema([
                             Grid::make(12)->schema([
                                 TextInput::make('bank')
@@ -511,5 +511,15 @@ class SpmbSettings extends Page
             'Kartu Keluarga asli dan fotokopi',
             'Pas foto terbaru ukuran 3×4 (5 lembar)',
         ];
+    }
+
+    /**
+     * Whether the payment defaults are worth showing: either payments are on
+     * globally, or a jenjang has switched them on for itself — in which case
+     * these values still apply to it as fallbacks.
+     */
+    private static function paymentSectionVisible(Get $get): bool
+    {
+        return (bool) $get('spmb_payment_enabled') || Institution::paymentEnabledAnywhere();
     }
 }

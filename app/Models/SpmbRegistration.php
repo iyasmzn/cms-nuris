@@ -216,7 +216,9 @@ class SpmbRegistration extends Model
      */
     public static function isOpen(?Institution $institution = null): bool
     {
-        if (! (bool) Setting::get('spmb_form_enabled', true)) {
+        $enabled = $institution?->formEnabled() ?? setting_bool('spmb_form_enabled', true);
+
+        if (! $enabled) {
             return false;
         }
 

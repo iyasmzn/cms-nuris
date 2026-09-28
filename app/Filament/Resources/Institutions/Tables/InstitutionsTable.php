@@ -56,10 +56,10 @@ class InstitutionsTable
                         : 'Belum diisi')
                     ->badge()
                     ->color(fn (Institution $record): string => (int) ($record->registration_fee ?? 0) > 0 ? 'success' : 'gray')
-                    ->description(fn (Institution $record): ?string => setting_bool('spmb_payment_enabled', false) && (int) ($record->registration_fee ?? 0) <= 0
+                    ->description(fn (Institution $record): ?string => $record->paymentEnabled() && (int) ($record->registration_fee ?? 0) <= 0
                         ? 'Tagihan tidak terbit'
                         : null)
-                    ->visible(fn (): bool => setting_bool('spmb_payment_enabled', false)),
+                    ->visible(fn (): bool => Institution::paymentEnabledAnywhere()),
 
                 IconColumn::make('is_active')
                     ->label('Aktif')

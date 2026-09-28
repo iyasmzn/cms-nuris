@@ -213,11 +213,14 @@ class RegistrationPayment extends Model
      * Pick a 3-digit kode unik that no other outstanding tagihan of the same
      * base amount is using, so two transfers of the same nominal can still be
      * told apart in the rekening mutasi. Returns 0 when the feature is off or
-     * when every code is already taken.
+     * when every code is already taken. The switch is read from the jenjang,
+     * which falls back to the global setting on its own.
      */
-    public static function allocateUniqueCode(int $amount): int
+    public static function allocateUniqueCode(int $amount, ?Institution $institution = null): int
     {
-        if (! setting_bool('spmb_payment_unique_code', true)) {
+        $enabled = $institution?->usesUniqueCode() ?? setting_bool('spmb_payment_unique_code', true);
+
+        if (! $enabled) {
             return 0;
         }
 
@@ -240,7 +243,9 @@ class RegistrationPayment extends Model
      */
     public static function issueFor(SpmbRegistration $registration): ?self
     {
-        if (! setting_bool('spmb_payment_enabled', false)) {
+        $institution = $registration->institution;
+
+        if (! ($institution?->paymentEnabled() ?? setting_bool('spmb_payment_enabled', false))) {
             return null;
         }
 
@@ -248,18 +253,18 @@ class RegistrationPayment extends Model
             return null;
         }
 
-        $amount = (int) ($registration->institution?->registration_fee ?? 0);
+        $amount = (int) ($institution?->registration_fee ?? 0);
 
         if ($amount <= 0) {
             return null;
         }
 
-        $deadlineHours = (int) setting('spmb_payment_deadline_hours', 48);
+        $deadlineHours = $institution?->paymentDeadlineHours() ?? (int) setting('spmb_payment_deadline_hours', 48);
 
         return static::create([
             'spmb_registration_id' => $registration->id,
             'amount' => $amount,
-            'unique_code' => static::allocateUniqueCode($amount),
+            'unique_code' => static::allocateUniqueCode($amount, $institution),
             'method' => self::METHOD_MANUAL_TRANSFER,
             'status' => self::STATUS_UNPAID,
             'expires_at' => $deadlineHours > 0 ? Carbon::now()->addHours($deadlineHours) : null,

@@ -83,7 +83,7 @@
 
 @section('content')
 @php
-    $formEnabled   = (bool) setting('spmb_form_enabled', true);
+    $formEnabled   = $institution->formEnabled();
     $spmbYear      = spmb_year_label();
     $otherJenjang  = \App\Models\Institution::query()->active()->whereKeyNot($institution->id)->exists();
     $fmtDate       = fn ($d) => $d ? $d->locale('id')->translatedFormat('d M Y') : '—';

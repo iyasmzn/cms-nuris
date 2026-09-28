@@ -279,7 +279,7 @@ class SpmbRegistrationsTable
                         ->modalHeading('Terbitkan Tagihan Pendaftaran')
                         ->modalDescription('Untuk pendaftar yang masuk sebelum nominal biaya diatur. Pendaftar yang sudah punya tagihan, atau yang jenjangnya belum punya nominal, dilewati.')
                         ->deselectRecordsAfterCompletion()
-                        ->visible(fn (): bool => setting_bool('spmb_payment_enabled', false)
+                        ->visible(fn (): bool => Institution::paymentEnabledAnywhere()
                             && (auth()->user()?->can('Create:RegistrationPayment') ?? false))
                         ->action(function (Collection $records): void {
                             $issued = $records

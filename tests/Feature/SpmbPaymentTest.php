@@ -486,6 +486,72 @@ class SpmbPaymentTest extends TestCase
         $response->assertDontSee('Instruksi global.');
     }
 
+    // ── Saklar per jenjang ───────────────────────────────────────────
+
+    public function test_a_jenjang_can_charge_while_payments_are_globally_off(): void
+    {
+        Setting::set('spmb_payment_enabled', '0');
+        $this->institution->update(['payment_enabled' => true]);
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+
+        $this->assertNotNull(RegistrationPayment::issueFor($registration));
+    }
+
+    public function test_a_jenjang_can_opt_out_while_payments_are_globally_on(): void
+    {
+        $this->institution->update(['payment_enabled' => false]);
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+
+        $this->assertNull(RegistrationPayment::issueFor($registration));
+        $this->assertFalse($this->institution->fresh()->chargesRegistrationFee());
+    }
+
+    public function test_a_jenjang_without_an_opinion_follows_the_global_switch(): void
+    {
+        $this->assertNull($this->institution->payment_enabled);
+        $this->assertTrue($this->institution->paymentEnabled());
+
+        Setting::set('spmb_payment_enabled', '0');
+
+        $this->assertFalse($this->institution->fresh()->paymentEnabled());
+    }
+
+    public function test_a_jenjang_can_switch_off_the_kode_unik_on_its_own(): void
+    {
+        Setting::set('spmb_payment_unique_code', '1');
+        $this->institution->update(['payment_unique_code' => false]);
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+
+        $this->assertNotNull($payment);
+        $this->assertSame(0, $payment->unique_code);
+        $this->assertSame(150_000, $payment->total());
+    }
+
+    public function test_a_jenjang_sets_its_own_payment_deadline(): void
+    {
+        Setting::set('spmb_payment_deadline_hours', '48');
+        $this->institution->update(['payment_deadline_hours' => 6]);
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+
+        $this->assertNotNull($payment?->expires_at);
+        $this->assertEqualsWithDelta(6, now()->diffInHours($payment->expires_at, absolute: true), 0.1);
+    }
+
+    public function test_a_jenjang_deadline_of_zero_means_no_expiry(): void
+    {
+        $this->institution->update(['payment_deadline_hours' => 0]);
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+
+        $this->assertNull(RegistrationPayment::issueFor($registration)?->expires_at);
+    }
+
     public function test_uploading_a_bukti_validates_its_input(): void
     {
         Storage::fake('local');

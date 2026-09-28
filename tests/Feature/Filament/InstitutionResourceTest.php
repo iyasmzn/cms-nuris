@@ -71,6 +71,45 @@ class InstitutionResourceTest extends TestCase
         $this->assertSame('Terima kasih {nama}, nomor Anda {nomor_pendaftaran}.', $institution->success_message);
     }
 
+    public function test_it_saves_the_per_unit_ppdb_switches(): void
+    {
+        $institution = Institution::factory()->create();
+
+        Livewire::test(EditInstitution::class, ['record' => $institution->id])
+            ->fillForm([
+                'form_enabled' => 0,
+                'payment_enabled' => 1,
+                'payment_unique_code' => 0,
+                'payment_deadline_hours' => 6,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $institution->refresh();
+
+        $this->assertFalse($institution->formEnabled());
+        $this->assertTrue($institution->paymentEnabled());
+        $this->assertFalse($institution->usesUniqueCode());
+        $this->assertSame(6, $institution->paymentDeadlineHours());
+    }
+
+    public function test_clearing_a_switch_puts_the_jenjang_back_on_the_global_setting(): void
+    {
+        Setting::set('spmb_payment_enabled', '1');
+
+        $institution = Institution::factory()->create(['payment_enabled' => false]);
+
+        Livewire::test(EditInstitution::class, ['record' => $institution->id])
+            ->fillForm(['payment_enabled' => null])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $institution->refresh();
+
+        $this->assertNull($institution->payment_enabled);
+        $this->assertTrue($institution->paymentEnabled());
+    }
+
     public function test_it_lists_institutions(): void
     {
         $institutions = Institution::factory()->count(3)->create();
