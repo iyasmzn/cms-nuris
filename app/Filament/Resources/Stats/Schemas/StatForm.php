@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Stats\Schemas;
 
-use App\Filament\Support\IconUpload;
+use App\Filament\Concerns\InteractsWithImagePicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
@@ -12,6 +12,8 @@ use Filament\Schemas\Schema;
 
 class StatForm
 {
+    use InteractsWithImagePicker;
+
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
@@ -74,7 +76,7 @@ class StatForm
                         ->helperText('Biasanya dinyalakan untuk tautan ke situs lain.')
                         ->columnSpanFull(),
 
-                    IconUpload::make()
+                    self::iconPicker()
                         ->columnSpanFull(),
                 ]),
         ]);

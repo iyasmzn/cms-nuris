@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Institutions\Schemas;
 
-use App\Filament\Support\IconUpload;
+use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Models\Institution;
 use App\Models\Setting;
 use App\Models\SpmbRegistration;
@@ -20,6 +20,8 @@ use Illuminate\Support\Str;
 
 class InstitutionForm
 {
+    use InteractsWithImagePicker;
+
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
@@ -77,7 +79,7 @@ class InstitutionForm
                         ->maxLength(255)
                         ->columnSpanFull(),
 
-                    IconUpload::make()
+                    self::iconPicker()
                         ->columnSpanFull(),
 
                     Grid::make(3)->schema([

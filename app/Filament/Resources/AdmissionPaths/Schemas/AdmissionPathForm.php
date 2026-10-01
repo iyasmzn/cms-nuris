@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\AdmissionPaths\Schemas;
 
 use App\Filament\Concerns\InteractsWithImagePicker;
-use App\Filament\Support\IconUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -66,7 +65,7 @@ class AdmissionPathForm
                         ->helperText('Kosongkan agar jalur ini tersedia untuk SEMUA jenjang. Pilih satu atau beberapa jenjang untuk membatasi hanya ke jenjang tersebut.')
                         ->columnSpanFull(),
 
-                    IconUpload::make()
+                    self::iconPicker()
                         ->columnSpanFull(),
 
                     self::imagePicker(

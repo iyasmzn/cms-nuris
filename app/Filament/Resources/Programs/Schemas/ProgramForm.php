@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Programs\Schemas;
 use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Filament\Schemas\ContentBlocks;
 use App\Filament\Schemas\PageHeroFields;
-use App\Filament\Support\IconUpload;
 use App\Models\Category;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -77,7 +76,7 @@ class ProgramForm
                             ->hint('Gunakan emoji, contoh: 📖, 🕌, 🎓')
                             ->maxLength(10),
 
-                        IconUpload::make()
+                        self::iconPicker()
                             ->columnSpanFull(),
                     ])
                     ->columns(2),

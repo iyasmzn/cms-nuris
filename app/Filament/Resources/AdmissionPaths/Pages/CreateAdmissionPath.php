@@ -18,6 +18,6 @@ class CreateAdmissionPath extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        return self::applyImagePickers($data, ['image'], self::imageBaseName($data['name'] ?? null, 'Jalur Pendaftaran'));
+        return self::applyImagePickers($data, ['image', 'icon_image'], self::imageBaseName($data['name'] ?? null, 'Jalur Pendaftaran'));
     }
 }
