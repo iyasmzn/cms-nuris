@@ -24,6 +24,7 @@ class CreateProgram extends CreateRecord
 
         $baseName = self::imageBaseName($data['title'] ?? null, 'Program');
 
+        $data = self::applyImagePickers($data, ['icon_image'], $baseName);
         $data['blocks'] = self::applyBlockImagePickers($data['blocks'] ?? [], $baseName);
 
         return self::applyPageHero($data, $baseName);

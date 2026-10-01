@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\AlumniStats\Schemas;
 
-use App\Filament\Support\IconUpload;
+use App\Filament\Concerns\InteractsWithImagePicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -10,6 +10,8 @@ use Filament\Schemas\Schema;
 
 class AlumniStatForm
 {
+    use InteractsWithImagePicker;
+
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
@@ -53,7 +55,7 @@ class AlumniStatForm
                         ->placeholder('Tersebar di dalam & luar negeri')
                         ->columnSpanFull(),
 
-                    IconUpload::make()
+                    self::iconPicker()
                         ->columnSpanFull(),
                 ]),
         ]);

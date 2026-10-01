@@ -7,13 +7,16 @@ use App\Filament\Resources\Institutions\Pages\EditInstitution;
 use App\Filament\Resources\Institutions\Pages\ListInstitutions;
 use App\Filament\Resources\Institutions\RelationManagers\PpdbFieldsRelationManager;
 use App\Models\Institution;
+use App\Models\Media;
 use App\Models\PpdbField;
 use App\Models\Setting;
 use App\Models\User;
 use App\Policies\InstitutionPolicy;
 use Filament\Actions\DeleteAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
@@ -291,5 +294,42 @@ class InstitutionResourceTest extends TestCase
         // than an ungenerated *:PpdbField permission that Shield never creates.
         $this->assertNull(Gate::getPolicyFor(PpdbField::class));
         $this->assertInstanceOf(InstitutionPolicy::class, Gate::getPolicyFor(Institution::class));
+    }
+
+    public function test_uploaded_icon_is_added_to_the_media_library(): void
+    {
+        Storage::fake('public');
+
+        Livewire::test(CreateInstitution::class)
+            ->fillForm([
+                'name' => 'SMA',
+                'slug' => 'sma',
+                'short_name' => 'SMA',
+                'color' => 'warning',
+                'icon_image' => UploadedFile::fake()->createWithContent('sekolah.svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>'),
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $path = Institution::query()->where('slug', 'sma')->value('icon_image');
+
+        Storage::disk('public')->assertExists($path);
+        $this->assertDatabaseHas(Media::class, ['path' => $path, 'name' => 'SMA']);
+    }
+
+    public function test_icon_can_be_picked_from_the_media_library(): void
+    {
+        $institution = Institution::factory()->create();
+        $media = Media::factory()->create(['path' => 'media/sekolah.png', 'mime_type' => 'image/png']);
+
+        Livewire::test(EditInstitution::class, ['record' => $institution->id])
+            ->fillForm([
+                'icon_image_source' => 'library',
+                'icon_image_library' => $media->id,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('media/sekolah.png', $institution->fresh()->icon_image);
     }
 }

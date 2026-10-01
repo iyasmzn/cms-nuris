@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\FloatingButtons\Schemas;
 
-use App\Filament\Support\IconUpload;
+use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Models\FloatingButton;
 use App\Support\PageTargets;
 use Filament\Forms\Components\ColorPicker;
@@ -18,6 +18,8 @@ use Filament\Support\Icons\Heroicon;
 
 class FloatingButtonForm
 {
+    use InteractsWithImagePicker;
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -40,7 +42,7 @@ class FloatingButtonForm
                                     ->hint('Emoji atau karakter singkat yang tampil di tombol.'),
                             ]),
 
-                        IconUpload::make()
+                        self::iconPicker()
                             ->columnSpanFull(),
 
                         TextInput::make('url')

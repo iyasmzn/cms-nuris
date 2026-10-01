@@ -6,8 +6,11 @@ use App\Filament\Resources\AlumniStats\Pages\CreateAlumniStat;
 use App\Filament\Resources\AlumniStats\Pages\EditAlumniStat;
 use App\Filament\Resources\AlumniStats\Pages\ListAlumniStats;
 use App\Models\AlumniStat;
+use App\Models\Media;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -135,5 +138,41 @@ class AlumniStatResourceTest extends TestCase
             [$first->id, $second->id],
             AlumniStat::ordered()->get()->pluck('id')->all(),
         );
+    }
+
+    public function test_uploaded_icon_is_added_to_the_media_library(): void
+    {
+        Storage::fake('public');
+
+        Livewire::test(CreateAlumniStat::class)
+            ->fillForm([
+                'icon' => '🎓',
+                'value' => '3.500+',
+                'label' => 'Alumni Terdata',
+                'icon_image' => UploadedFile::fake()->createWithContent('toga.svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>'),
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $path = AlumniStat::query()->where('label', 'Alumni Terdata')->value('icon_image');
+
+        Storage::disk('public')->assertExists($path);
+        $this->assertDatabaseHas(Media::class, ['path' => $path, 'name' => 'Alumni Terdata']);
+    }
+
+    public function test_icon_can_be_picked_from_the_media_library(): void
+    {
+        $alumniStat = AlumniStat::factory()->create();
+        $media = Media::factory()->create(['path' => 'media/toga.png', 'mime_type' => 'image/png']);
+
+        Livewire::test(EditAlumniStat::class, ['record' => $alumniStat->id])
+            ->fillForm([
+                'icon_image_source' => 'library',
+                'icon_image_library' => $media->id,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('media/toga.png', $alumniStat->fresh()->icon_image);
     }
 }

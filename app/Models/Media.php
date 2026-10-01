@@ -41,6 +41,7 @@ class Media extends Model
         'events' => 'Kegiatan',
         'stories' => 'Cerita Santri',
         'popups' => 'Popup',
+        'icons' => 'Ikon',
     ];
 
     protected $fillable = [

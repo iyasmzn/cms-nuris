@@ -2,6 +2,7 @@
 
 namespace App\Filament\Concerns;
 
+use App\Filament\Support\IconUpload;
 use App\Models\Media;
 use App\Services\MediaLibraryService;
 use Filament\Forms\Components\FileUpload;
@@ -48,9 +49,6 @@ trait InteractsWithImagePicker
         ?string $aspectRatio = null,
         bool $withMeta = true,
     ): Fieldset {
-        $isUpload = fn (Get $get): bool => ($get("{$key}_source") ?? 'upload') === 'upload';
-        $isLibrary = fn (Get $get): bool => $get("{$key}_source") === 'library';
-
         $upload = FileUpload::make($key)
             ->label('Unggah Gambar')
             ->image()
@@ -85,8 +83,32 @@ trait InteractsWithImagePicker
                     $set("{$key}_name", app(MediaLibraryService::class)->uniqueName($base));
                     $set("{$key}_alt", $base);
                 }))
+            ->hint($hint);
+
+        return self::imagePickerFieldset($key, $label, $upload, $withMeta);
+    }
+
+    /**
+     * Icon variant of the picker: uploads go through {@see IconUpload}, so files
+     * are stored untouched (no resize/crop) and `.ico`/`.svg`/animated GIFs stay
+     * intact. Uploads are synced to the media library without name/alt fields;
+     * pass a base name to {@see applyImagePickers()} on save.
+     */
+    protected static function iconPicker(string $key = 'icon_image', string $label = 'Ikon Gambar', string $directory = 'icons'): Fieldset
+    {
+        return self::imagePickerFieldset($key, $label, IconUpload::make($key, $directory), withMeta: false);
+    }
+
+    /**
+     * Wrap an upload field with the source toggle, library select & preview.
+     */
+    private static function imagePickerFieldset(string $key, string $label, FileUpload $upload, bool $withMeta): Fieldset
+    {
+        $isUpload = fn (Get $get): bool => ($get("{$key}_source") ?? 'upload') === 'upload';
+        $isLibrary = fn (Get $get): bool => $get("{$key}_source") === 'library';
+
+        $upload
             ->visible($isUpload)
-            ->hint($hint)
             ->columnSpanFull();
 
         $schema = [
