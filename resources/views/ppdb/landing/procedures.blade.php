@@ -1,5 +1,5 @@
 {{-- Seksi "Alur Pendaftaran": langkah bernomor dari Pengaturan PPDB atau jenjang terpilih. --}}
-<div class="pl-grid">
+<div class="{{ \App\Support\PpdbLanding::gridClass($block, 'procedures_columns') }}">
     @foreach($block['data'] as $index => $step)
         <div class="fi-card p-6 pl-step" data-aos="fade-up" data-aos-delay="{{ min($index, 5) * 70 }}">
             <div class="pl-step-num">{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</div>

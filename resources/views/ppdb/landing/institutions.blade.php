@@ -12,7 +12,7 @@
         <p class="text-sm" style="color:var(--muted)">Informasi PPDB akan segera tersedia. Silakan cek kembali beberapa saat lagi.</p>
     </div>
 @else
-    <div class="pl-grid">
+    <div class="{{ \App\Support\PpdbLanding::gridClass($block, 'institutions_columns') }}">
         @foreach($institutions as $institution)
             @php
                 $open = $institution->registrationOpen();

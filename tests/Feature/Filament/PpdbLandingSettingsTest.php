@@ -81,7 +81,8 @@ class PpdbLandingSettingsTest extends TestCase
                 'hero.primary_url' => '#jalur',
                 'blocks' => [
                     ['type' => 'ppdb_paths', 'heading' => 'Jalur Penerimaan', 'intro' => 'Beragam jalur.', 'anchor' => 'jalur', 'paths_layout' => 'list', 'paths_columns' => 2],
-                    ['type' => 'ppdb_procedures', 'heading' => 'Alur SMA', 'institution_id' => $institution->id],
+                    ['type' => 'ppdb_procedures', 'heading' => 'Alur SMA', 'institution_id' => $institution->id, 'procedures_columns' => 3],
+                    ['type' => 'ppdb_institutions', 'heading' => 'Jenjang', 'institutions_columns' => PpdbLanding::AUTO_COLUMNS],
                     ['type' => 'rich_text', 'heading' => 'Tentang Kami', 'content' => '<p>Sekolah berasrama.</p>'],
                     [
                         'type' => 'ppdb_timeline',
@@ -104,14 +105,16 @@ class PpdbLandingSettingsTest extends TestCase
 
         $this->assertSame('Selamat Datang di Platform Pendaftaran', $hero['title']);
         $this->assertSame('#jalur', $hero['primary_url']);
-        $this->assertSame(['ppdb_paths', 'ppdb_procedures', 'rich_text', 'ppdb_timeline'], array_column($sections, 'type'));
-        $this->assertSame('horizontal', $sections[3]['timeline_layout']);
-        $this->assertSame(['Pendaftaran', 'Tes Seleksi'], array_column(array_values($sections[3]['timeline_items']), 'title'));
-        $this->assertTrue(array_values($sections[3]['timeline_items'])[0]['highlighted']);
+        $this->assertSame(['ppdb_paths', 'ppdb_procedures', 'ppdb_institutions', 'rich_text', 'ppdb_timeline'], array_column($sections, 'type'));
+        $this->assertSame('horizontal', $sections[4]['timeline_layout']);
+        $this->assertSame(['Pendaftaran', 'Tes Seleksi'], array_column(array_values($sections[4]['timeline_items']), 'title'));
+        $this->assertTrue(array_values($sections[4]['timeline_items'])[0]['highlighted']);
         $this->assertSame('Beragam jalur.', $sections[0]['intro']);
         $this->assertSame('list', $sections[0]['paths_layout']);
         $this->assertEquals(2, $sections[0]['paths_columns']);
         $this->assertEquals($institution->id, $sections[1]['institution_id']);
+        $this->assertEquals(3, $sections[1]['procedures_columns']);
+        $this->assertSame(PpdbLanding::AUTO_COLUMNS, $sections[2]['institutions_columns']);
         $this->assertSame('Pendaftaran dibuka.', Setting::get(PpdbLanding::META_SETTING));
         $this->assertTrue(PpdbLanding::isCustomized());
     }

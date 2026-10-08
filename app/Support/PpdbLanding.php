@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\AcademicYear;
 use App\Models\AdmissionPath;
+use App\Models\ContentSection;
 use App\Models\Faq;
 use App\Models\Institution;
 use App\Models\RegistrationWave;
@@ -82,6 +83,47 @@ final class PpdbLanding
     ];
 
     public const DEFAULT_PATH_COLUMNS = 3;
+
+    /**
+     * Nilai "Kartu Sebaris" untuk grid otomatis: baris diisi sebanyak kartu
+     * yang muat di layar, seperti tampilan awal seksi Jenjang, Kuota, dan Alur.
+     */
+    public const AUTO_COLUMNS = 'auto';
+
+    /**
+     * Jumlah kartu sebaris yang dipakai seksi; nilai asing kembali ke bawaannya.
+     *
+     * @param  array<string, mixed>  $block
+     */
+    public static function columns(array $block, string $key, int $default): int
+    {
+        $columns = (int) ($block[$key] ?? $default);
+
+        return isset(ContentSection::ITEM_COLUMNS[$columns]) ? $columns : $default;
+    }
+
+    /**
+     * Pilihan "Kartu Sebaris" seksi yang bisa memakai grid otomatis → label.
+     *
+     * @return array<int|string, string>
+     */
+    public static function autoColumnOptions(): array
+    {
+        return [self::AUTO_COLUMNS => 'Otomatis — sebanyak yang muat di layar'] + ContentSection::ITEM_COLUMNS;
+    }
+
+    /**
+     * Kelas grid kartu seksi: kolom tetap bila "Kartu Sebaris" dipilih, selain
+     * itu (Otomatis, kosong, atau nilai asing) grid otomatis.
+     *
+     * @param  array<string, mixed>  $block
+     */
+    public static function gridClass(array $block, string $key): string
+    {
+        $columns = (int) ($block[$key] ?? 0);
+
+        return isset(ContentSection::ITEM_COLUMNS[$columns]) ? 'pl-cols pl-cols-'.$columns : 'pl-grid';
+    }
 
     /**
      * Tampilan kartu jalur yang benar-benar dipakai. "Otomatis" memilih kartu

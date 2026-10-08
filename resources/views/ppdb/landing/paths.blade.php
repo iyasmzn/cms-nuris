@@ -13,8 +13,7 @@
     /** @var \Illuminate\Support\Collection<int, \App\Models\AdmissionPath> $paths */
     $paths = $block['data'];
     $layout = \App\Support\PpdbLanding::pathLayout($block, $paths);
-    $columns = (int) ($block['paths_columns'] ?? \App\Support\PpdbLanding::DEFAULT_PATH_COLUMNS);
-    $columns = array_key_exists($columns, \App\Models\ContentSection::ITEM_COLUMNS) ? $columns : \App\Support\PpdbLanding::DEFAULT_PATH_COLUMNS;
+    $columns = \App\Support\PpdbLanding::columns($block, 'paths_columns', \App\Support\PpdbLanding::DEFAULT_PATH_COLUMNS);
     $isList = $layout === 'list';
 @endphp
 

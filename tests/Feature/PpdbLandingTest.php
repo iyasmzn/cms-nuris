@@ -54,6 +54,29 @@ class PpdbLandingTest extends TestCase
             ->assertSee('Jenjang Kami');
     }
 
+    public function test_jenjang_section_uses_the_chosen_cards_per_row(): void
+    {
+        $this->saveSections([['type' => 'ppdb_institutions', 'heading' => 'Jenjang Kami', 'institutions_columns' => 4]]);
+
+        $this->get(route('ppdb.index'))
+            ->assertOk()
+            ->assertSee('class="pl-cols pl-cols-4"', false);
+    }
+
+    public function test_jenjang_section_uses_the_automatic_grid_unless_a_count_is_chosen(): void
+    {
+        $this->saveSections([
+            ['type' => 'ppdb_institutions', 'heading' => 'Jenjang Bawaan'],
+            ['type' => 'ppdb_institutions', 'heading' => 'Jenjang Otomatis', 'institutions_columns' => PpdbLanding::AUTO_COLUMNS],
+            ['type' => 'ppdb_institutions', 'heading' => 'Jenjang Asing', 'institutions_columns' => 9],
+        ]);
+
+        $html = $this->get(route('ppdb.index'))->assertOk()->getContent();
+
+        $this->assertSame(3, substr_count($html, 'class="pl-grid"'));
+        $this->assertStringNotContainsString('class="pl-cols', $html);
+    }
+
     public function test_saved_hero_replaces_the_default_and_fills_placeholders(): void
     {
         Setting::set('site_name', 'Sekolah Contoh');
@@ -279,6 +302,20 @@ class PpdbLandingTest extends TestCase
             ->assertDontSee('Terisi');
     }
 
+    public function test_quota_section_uses_the_chosen_cards_per_row(): void
+    {
+        $this->smp->update(['quota' => 120]);
+
+        $this->saveSections([
+            ['type' => 'ppdb_quota', 'heading' => 'Kuota Tahun Ini', 'quota_columns' => 2],
+            ['type' => 'ppdb_quota', 'heading' => 'Kuota Lagi', 'quota_columns' => 9],
+        ]);
+
+        $this->get(route('ppdb.index'))
+            ->assertOk()
+            ->assertSeeInOrder(['Kuota Tahun Ini', 'class="pl-cols pl-cols-2"', 'Kuota Lagi', 'class="pl-grid"'], false);
+    }
+
     public function test_faq_section_can_be_narrowed_to_one_category(): void
     {
         Faq::create(['question' => 'Kapan pendaftaran dibuka?', 'answer' => '<p>Januari.</p>', 'category' => 'SPMB', 'is_published' => true]);
@@ -305,6 +342,23 @@ class PpdbLandingTest extends TestCase
         $this->get(route('ppdb.index'))
             ->assertOk()
             ->assertSeeInOrder(['Alur Umum', 'Langkah Global', 'Alur SMA', 'Tes Psikologi SMA']);
+    }
+
+    public function test_procedures_section_uses_the_chosen_cards_per_row(): void
+    {
+        $this->saveSections([
+            ['type' => 'ppdb_procedures', 'heading' => 'Alur Bawaan'],
+            ['type' => 'ppdb_procedures', 'heading' => 'Alur Tiga', 'procedures_columns' => 3],
+            ['type' => 'ppdb_procedures', 'heading' => 'Alur Asing', 'procedures_columns' => 'banyak'],
+        ]);
+
+        $this->get(route('ppdb.index'))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'Alur Bawaan', 'class="pl-grid"',
+                'Alur Tiga', 'class="pl-cols pl-cols-3"',
+                'Alur Asing', 'class="pl-grid"',
+            ], false);
     }
 
     public function test_schedule_section_groups_waves_by_jenjang(): void
