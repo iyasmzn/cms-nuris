@@ -51,6 +51,10 @@ class PpdbLandingBlocks
                 ->visible(fn (Get $get): bool => $get('type') === 'ppdb_quota')
                 ->columnSpanFull(),
 
+            self::columnsField('institutions_columns', 'ppdb_institutions'),
+            self::columnsField('quota_columns', 'ppdb_quota'),
+            self::columnsField('procedures_columns', 'ppdb_procedures'),
+
             Select::make('paths_layout')
                 ->label('Tampilan Kartu Jalur')
                 ->options(PpdbLanding::PATH_LAYOUTS)
@@ -61,15 +65,7 @@ class PpdbLandingBlocks
                 ->visible(fn (Get $get): bool => $get('type') === 'ppdb_paths')
                 ->columnSpanFull(),
 
-            Select::make('paths_columns')
-                ->label('Kartu Sebaris')
-                ->options(ContentSection::ITEM_COLUMNS)
-                ->default(PpdbLanding::DEFAULT_PATH_COLUMNS)
-                ->native(false)
-                ->selectablePlaceholder(false)
-                ->helperText('Berlaku di layar lebar. Layar ponsel selalu satu kartu, layar sedang paling banyak dua.')
-                ->visible(fn (Get $get): bool => $get('type') === 'ppdb_paths')
-                ->columnSpanFull(),
+            self::columnsField('paths_columns', 'ppdb_paths', PpdbLanding::DEFAULT_PATH_COLUMNS),
 
             Select::make('faq_category')
                 ->label('Kategori FAQ')
@@ -86,6 +82,26 @@ class PpdbLandingBlocks
                 ->visible(fn (Get $get): bool => $get('type') === 'ppdb_faq')
                 ->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * Pilihan "Kartu Sebaris" untuk satu jenis seksi data PPDB. Tanpa jumlah
+     * bawaan, pilihannya diawali "Otomatis" (grid yang menyesuaikan layar)
+     * dan itulah bawaannya.
+     */
+    private static function columnsField(string $name, string $type, ?int $default = null): Select
+    {
+        return Select::make($name)
+            ->label('Kartu Sebaris')
+            ->options($default === null ? PpdbLanding::autoColumnOptions() : ContentSection::ITEM_COLUMNS)
+            ->default($default ?? PpdbLanding::AUTO_COLUMNS)
+            ->native(false)
+            ->selectablePlaceholder(false)
+            ->helperText($default === null
+                ? 'Otomatis mengisi baris sebanyak kartu yang muat. Jumlah tetap berlaku di layar lebar; ponsel selalu satu kartu, layar sedang paling banyak dua.'
+                : 'Berlaku di layar lebar. Layar ponsel selalu satu kartu, layar sedang paling banyak dua.')
+            ->visible(fn (Get $get): bool => $get('type') === $type)
+            ->columnSpanFull();
     }
 
     /**

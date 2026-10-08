@@ -5,7 +5,7 @@
     $showRemaining = (bool) ($block['show_remaining'] ?? true);
 @endphp
 
-<div class="pl-grid">
+<div class="{{ \App\Support\PpdbLanding::gridClass($block, 'quota_columns') }}">
     @foreach($institutions as $institution)
         @php
             $tracksUsage = $showRemaining && $institution->usesInternalForm();
