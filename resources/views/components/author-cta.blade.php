@@ -1,7 +1,7 @@
 @guest
     @if(feature_enabled('login_register'))
     <div class="relative overflow-hidden rounded-3xl p-8 sm:p-10 text-center"
-         style="background:linear-gradient(135deg,#082828 0%,#08484A 60%,#0a6060 100%)"
+         style="background:var(--hero-band)"
          data-aos="fade-up">
 
         <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/5"></div>

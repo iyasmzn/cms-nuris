@@ -6,10 +6,12 @@
 
 @section('content')
 
-<section class="min-h-screen -mt-17 pt-28 pb-16 px-4"
-         style="background:linear-gradient(135deg,#082828 0%,#08484A 60%,#0a6060 100%)">
+<section class="page-band min-h-screen -mt-17 pt-28 pb-16 px-4"
+         style="background:var(--hero-band)">
 
-    <div class="w-full max-w-2xl mx-auto" data-aos="fade-up"
+    <x-hero-pattern />
+
+    <div class="relative w-full max-w-2xl mx-auto" data-aos="fade-up"
          x-data="{ tab: new URLSearchParams(location.search).get('tab') || 'akun' }">
 
         {{-- Header --}}

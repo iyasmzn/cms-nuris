@@ -219,7 +219,7 @@
     <div id="reading-progress"></div>
 
     {{-- ── Hero Image ───────────────────────────────────────── --}}
-    <div class="article-hero -mt-17">
+    <div class="article-hero page-band -mt-17">
         <img src="{{ $post->thumbnail_url }}"
              alt="{{ $post->title }}"
              loading="eager">
@@ -237,7 +237,7 @@
                 <span class="inline-block text-[11px] font-bold px-3 py-1.5 rounded-full bg-amber-500 text-white mb-3 uppercase tracking-wide">
                     {{ $post->category }}
                 </span>
-                <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-snug tracking-tight max-w-3xl">
+                <h1 class="section-title text-white max-w-3xl">
                     {{ $post->title }}
                 </h1>
             </div>

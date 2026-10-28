@@ -85,8 +85,9 @@
 @section('content')
 
     {{-- ── Hero band — dark backing for the transparent navbar ──── --}}
-    <div class="-mt-17" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0c1a14 100%);border-bottom:1px solid rgba(255,255,255,.08)">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-5 sm:pt-28 sm:pb-6">
+    <div class="page-band -mt-17" style="background:var(--hero-band);border-bottom:1px solid rgba(255,255,255,.08)">
+        <x-hero-pattern />
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-5 sm:pt-28 sm:pb-6">
             <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-sm" style="color:rgba(255,255,255,.6)">
                 <a href="/" class="hover:text-white transition-colors">Beranda</a>
                 <span class="opacity-50">/</span>

@@ -195,6 +195,7 @@
     </style>
 
     @include('partials.page-layout-styles')
+    @include('partials.page-band-styles')
 </head>
 
 @php
@@ -267,7 +268,7 @@
     ];
 @endphp
 
-<body class="min-h-screen antialiased overflow-x-clip"
+<body class="page-inset min-h-screen antialiased overflow-x-clip"
       x-data="{
           slide: 0,
           prevSlide: null,

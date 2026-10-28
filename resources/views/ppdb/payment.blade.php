@@ -3,7 +3,7 @@
 @push('head')
 <style>
     .ppdb-hero {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0a1628 100%);
+        background: var(--hero-band);
         position: relative;
         overflow: hidden;
     }
@@ -61,13 +61,13 @@
     ];
 @endphp
 
-<section class="ppdb-hero -mt-17 pt-32 pb-14 sm:pt-36 sm:pb-16">
-    <x-hero-geo />
+<section class="ppdb-hero page-band -mt-17 pt-32 pb-14 sm:pt-36 sm:pb-16">
+    <x-hero-pattern />
     <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 z-10 text-center" data-aos="fade-up">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 mb-5">
             <span class="text-xs font-bold text-amber-300 uppercase tracking-widest">No. {{ $registration->registration_number ?? '—' }}</span>
         </div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold text-white leading-tight mb-3">
+        <h1 class="section-title text-white mb-3">
             {{ $registration->full_name }}
         </h1>
         <p class="text-white/70 text-sm">

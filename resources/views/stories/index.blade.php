@@ -3,7 +3,7 @@
 @push('head')
 <style>
     .stories-hero {
-        background: linear-gradient(135deg, #082828 0%, #08484A 55%, #0b5e60 100%);
+        background: var(--hero-band);
         position: relative;
         overflow: hidden;
     }
@@ -21,16 +21,16 @@
 @section('content')
 
 {{-- ── Hero ──────────────────────────────────────────────── --}}
-<section class="stories-hero -mt-17 pt-36 pb-20 sm:pt-44 sm:pb-28">
+<section class="stories-hero page-band -mt-17 pt-36 pb-20 sm:pt-44 sm:pb-28">
 
-    <x-hero-geo />
+    <x-hero-pattern />
 
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="inline-flex items-center gap-2 text-sm font-semibold px-4 py-1.5 rounded-full mb-6"
              style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.2)">
             📖 Cerita Santri
         </div>
-        <h1 class="text-4xl sm:text-5xl font-extrabold text-white mb-4 leading-tight">
+        <h1 class="display-title text-white mb-4">
             Kisah Inspiratif Santri
         </h1>
         <p class="text-lg max-w-xl mx-auto" style="color:rgba(255,255,255,.75)">

@@ -189,11 +189,12 @@
     </style>
 
     @include('partials.page-layout-styles')
+    @include('partials.page-band-styles')
 
     @stack('head')
 </head>
 
-<body class="min-h-screen antialiased overflow-x-clip">
+<body class="page-inset min-h-screen antialiased overflow-x-clip">
 
     @include('partials.gtm-body')
 

@@ -19,8 +19,9 @@
 @section('content')
 
 {{-- ── Breadcrumb ──────────────────────────────────────────── --}}
-<div class="-mt-17" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0c1a14 100%);border-bottom:1px solid rgba(255,255,255,.08)">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-5 sm:pt-28 sm:pb-6">
+<div class="page-band -mt-17" style="background:var(--hero-band);border-bottom:1px solid rgba(255,255,255,.08)">
+    <x-hero-pattern />
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-5 sm:pt-28 sm:pb-6">
         <nav class="flex items-center gap-2 text-sm" style="color:rgba(255,255,255,.6)">
             <a href="{{ route('home') }}" class="hover:opacity-75 transition-opacity">Beranda</a>
             <span>/</span>
@@ -40,7 +41,7 @@
         <div class="max-w-7xl mx-auto">
             <span class="inline-block text-[11px] font-bold px-3 py-1.5 rounded-full mb-3 uppercase tracking-wide"
                   style="background:rgba(8,72,74,.85);color:#fff">Cerita Santri</span>
-            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-snug tracking-tight max-w-3xl mb-4">
+            <h1 class="section-title text-white max-w-3xl mb-4">
                 {{ $story->title }}
             </h1>
             {{-- Author --}}

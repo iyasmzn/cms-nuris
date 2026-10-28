@@ -21,7 +21,7 @@
 @push('head')
 <style>
     .dl-hero {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0a1628 100%);
+        background: var(--hero-band);
         position: relative;
         overflow: hidden;
     }
@@ -138,8 +138,8 @@
 @section('content')
 
     {{-- ── Page Hero ──────────────────────────────────────────── --}}
-    <section class="dl-hero -mt-17 pt-30 pb-14 sm:pt-36 sm:pb-20">
-        <x-hero-geo />
+    <section class="dl-hero page-band -mt-17 pt-30 pb-14 sm:pt-36 sm:pb-20">
+        <x-hero-pattern />
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- Mobile breadcrumb --}}
@@ -155,7 +155,7 @@
                         <span class="w-4 h-px bg-amber-400 inline-block"></span>
                         Dokumen & Berkas
                     </span>
-                    <h1 class="text-3xl sm:text-5xl font-extrabold text-white leading-tight mb-3" data-aos="fade-up" data-aos-delay="60">
+                    <h1 class="display-title text-white mb-3" data-aos="fade-up" data-aos-delay="60">
                         Unduhan
                     </h1>
                     <p class="text-white/60 text-sm sm:text-base max-w-lg leading-relaxed" data-aos="fade-up" data-aos-delay="100">

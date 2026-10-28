@@ -3,7 +3,7 @@
 @push('head')
 <style>
     .events-hero {
-        background: linear-gradient(135deg, #082828 0%, #08484A 60%, #0a5a5c 100%);
+        background: var(--hero-band);
         position: relative;
         overflow: hidden;
     }
@@ -36,14 +36,14 @@
 @section('content')
 
 {{-- ── Hero ──────────────────────────────────────────────── --}}
-<section class="events-hero -mt-17 pt-36 pb-20 sm:pt-44 sm:pb-28">
-    <x-hero-geo />
+<section class="events-hero page-band -mt-17 pt-36 pb-20 sm:pt-44 sm:pb-28">
+    <x-hero-pattern />
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="inline-flex items-center gap-2 text-sm font-semibold px-4 py-1.5 rounded-full mb-6"
              style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.2)">
             🗓 Kegiatan & Event
         </div>
-        <h1 class="text-4xl sm:text-5xl font-extrabold text-white mb-4 leading-tight">
+        <h1 class="display-title text-white mb-4">
             Kegiatan Pesantren
         </h1>
         <p class="text-lg max-w-xl mx-auto" style="color:rgba(255,255,255,.75)">

@@ -9,7 +9,7 @@
 @push('head')
 <style>
     .ppdb-hero {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0a1628 100%);
+        background: var(--hero-band);
         position: relative;
         overflow: hidden;
     }
@@ -202,11 +202,11 @@
 @endphp
 
 {{-- ═══════════════════════ HERO ═══════════════════════════════ --}}
-<section class="ppdb-hero -mt-17 pt-32 pb-16 sm:pt-40 sm:pb-24">
+<section class="ppdb-hero page-band -mt-17 pt-32 pb-16 sm:pt-40 sm:pb-24">
     @if($heroCover->hasMedia())
         <x-page-hero-media :hero="$heroCover" :title="$heroTitle" />
     @else
-        <x-hero-geo />
+        <x-hero-pattern />
     @endif
 
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 z-10 text-center" data-aos="fade-up">
@@ -217,7 +217,7 @@
             </div>
         @endif
 
-        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-4">
+        <h1 class="display-title text-white mb-4">
             {{ $heroTitle }}
             @if($heroHighlight !== '')
                 <br><span class="text-amber-400">{{ $heroHighlight }}</span>

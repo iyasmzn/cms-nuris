@@ -107,11 +107,13 @@
      HERO
 ═══════════════════════════════════════════════════ --}}
 @php $heroCover = $page->hero_cover; @endphp
-<div class="page-hero -mt-17">
+<div class="page-hero page-band -mt-17">
     @if($heroCover->hasMedia())
         {{-- Cover pilihan admin: gambar, berkas video, atau video YouTube --}}
         <x-page-hero-media :hero="$heroCover" :title="$page->title" />
     @else
+        <x-hero-pattern />
+
         {{-- Decorative circles --}}
         <div class="page-hero-circle" style="width:380px;height:380px;top:-120px;right:-80px;"></div>
         <div class="page-hero-circle" style="width:220px;height:220px;bottom:-60px;left:10%;"></div>
@@ -141,7 +143,7 @@
         </div>
 
         {{-- Title --}}
-        <h1 class="text-3xl sm:text-4xl font-extrabold text-white leading-tight tracking-tight mb-4">
+        <h1 class="section-title text-white mb-4">
             {{ $page->title }}
         </h1>
 
