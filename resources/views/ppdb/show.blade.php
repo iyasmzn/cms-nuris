@@ -342,7 +342,11 @@
             <div class="flex-1">
                 <p class="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1">Dibayar saat mendaftar</p>
                 <p class="text-2xl font-extrabold" style="color:var(--text)">{{ rupiah($institution->registration_fee) }}</p>
+                @if($institution->acceptsCashPayment())
+                <p class="text-xs mt-1" style="color:var(--muted)">Tagihan muncul otomatis setelah formulir pendaftaran dikirim. Bayar lewat transfer bank, atau tunai langsung di kantor.</p>
+                @else
                 <p class="text-xs mt-1" style="color:var(--muted)">Tagihan beserta nomor rekening tujuan muncul otomatis setelah formulir pendaftaran dikirim.</p>
+                @endif
             </div>
             @if($institution->showsStatusButton())
             <a href="{{ route('ppdb.status') }}"

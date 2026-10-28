@@ -125,21 +125,28 @@ class SpmbRegistrationInfolist
                             : null)
                         ->weight('bold'),
 
+                    TextEntry::make('payment.method')
+                        ->label('Metode')
+                        ->state(fn (SpmbRegistration $record): ?string => $record->payment?->methodLabel())
+                        ->placeholder('Belum dibayar'),
+
                     TextEntry::make('payment.sender_name')
-                        ->label('Nama Pengirim')
+                        ->label(fn (SpmbRegistration $record): string => $record->payment?->isCash() ? 'Nama Penyetor' : 'Nama Pengirim')
                         ->placeholder('Belum ada bukti'),
 
                     TextEntry::make('payment.transferred_on')
-                        ->label('Tgl. Transfer')
+                        ->label(fn (SpmbRegistration $record): string => $record->payment?->isCash() ? 'Tgl. Bayar Tunai' : 'Tgl. Transfer')
                         ->date('d M Y')
                         ->placeholder('—'),
 
                     TextEntry::make('payment.bank_account')
                         ->label('Rekening Tujuan')
+                        ->visible(fn (SpmbRegistration $record): bool => ! $record->payment?->isCash())
                         ->placeholder('—'),
 
                     TextEntry::make('payment.submitted_at')
                         ->label('Bukti Dikirim')
+                        ->visible(fn (SpmbRegistration $record): bool => ! $record->payment?->isCash())
                         ->dateTime('d M Y, H:i')
                         ->placeholder('—'),
 
@@ -155,6 +162,7 @@ class SpmbRegistrationInfolist
                     ViewEntry::make('payment_proof')
                         ->label('Bukti Transfer')
                         ->view('filament.infolists.payment-proof')
+                        ->visible(fn (SpmbRegistration $record): bool => ! $record->payment?->isCash())
                         ->columnSpanFull(),
 
                     TextEntry::make('payment.note')

@@ -274,6 +274,24 @@ class InstitutionForm
                         ->placeholder('Transfer sesuai nominal yang tertera (termasuk 3 digit terakhir), lalu unggah bukti transfer pada halaman ini.')
                         ->helperText('Tampil di atas formulir unggah bukti transfer. Kosongkan untuk memakai instruksi global.')
                         ->columnSpanFull(),
+
+                    Grid::make(3)->schema([
+                        self::globalOverride(
+                            'payment_cash_enabled',
+                            'Terima Bayar Tunai di Kantor',
+                            fn (): bool => setting_bool('spmb_payment_cash_enabled', false),
+                            'Pendaftar boleh memilih bayar tunai langsung ke kantor selain transfer.',
+                        )->live(),
+                    ]),
+
+                    Textarea::make('payment_cash_instructions')
+                        ->label('Petunjuk Bayar Tunai')
+                        ->rows(3)
+                        ->maxLength(600)
+                        ->placeholder(fn (): string => (string) Setting::get('spmb_payment_cash_instructions', '') ?: Institution::DEFAULT_CASH_PAYMENT_INSTRUCTIONS)
+                        ->helperText('Alamat kantor dan jam layanan untuk jenjang ini. Kosongkan untuk memakai petunjuk global.')
+                        ->visible(fn (Get $get): bool => (bool) ($get('payment_cash_enabled') ?? setting_bool('spmb_payment_cash_enabled', false)))
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Konten Halaman PPDB')

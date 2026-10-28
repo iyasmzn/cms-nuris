@@ -123,6 +123,36 @@ class SpmbRegistrationResourceTest extends TestCase
             ->assertSee($payment->sender_name);
     }
 
+    public function test_cash_can_be_received_from_the_pendaftar_preview(): void
+    {
+        $this->actingAs($this->panelUser('SpmbRegistration', 'RegistrationPayment'));
+
+        $institution = Institution::factory()->create([
+            'registration_fee' => 150_000,
+            'payment_cash_enabled' => true,
+        ]);
+        $registration = SpmbRegistration::factory()->pending()->create([
+            'institution_id' => $institution->id,
+        ]);
+        $payment = RegistrationPayment::factory()->create([
+            'spmb_registration_id' => $registration->id,
+            'amount' => 150_000,
+        ]);
+
+        Livewire::test(ViewSpmbRegistration::class, ['record' => $registration->id])
+            ->callAction('terimaTunai', [
+                'payer_name' => 'Ibu Siti',
+                'paid_on' => now()->toDateString(),
+            ])
+            ->assertHasNoActionErrors()
+            ->assertNotified();
+
+        $payment->refresh();
+        $this->assertSame(RegistrationPayment::STATUS_PAID, $payment->status);
+        $this->assertSame(RegistrationPayment::METHOD_CASH, $payment->method);
+        $this->assertSame('verified', $registration->refresh()->status);
+    }
+
     public function test_changing_status_from_the_preview_leaves_the_pendaftar_data_untouched(): void
     {
         $registration = SpmbRegistration::factory()->pending()->create([

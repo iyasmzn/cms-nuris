@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RegistrationPayments\Pages;
 
+use App\Filament\Actions\ReceiveCashPaymentAction;
 use App\Filament\Actions\RejectPaymentAction;
 use App\Filament\Actions\SettlePaymentAction;
 use App\Filament\Resources\RegistrationPayments\RegistrationPaymentResource;
@@ -22,6 +23,7 @@ class ViewRegistrationPayment extends ViewRecord
     {
         return [
             SettlePaymentAction::make(),
+            ReceiveCashPaymentAction::make(),
             RejectPaymentAction::make(),
 
             EditAction::make()

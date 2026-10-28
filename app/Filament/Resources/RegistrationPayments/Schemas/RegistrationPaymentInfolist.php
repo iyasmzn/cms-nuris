@@ -59,9 +59,8 @@ class RegistrationPaymentInfolist
 
                     TextEntry::make('method')
                         ->label('Metode')
-                        ->formatStateUsing(fn (string $state): string => $state === RegistrationPayment::METHOD_GATEWAY
-                            ? 'Payment gateway'
-                            : 'Transfer manual'),
+                        ->state(fn (RegistrationPayment $record): ?string => $record->methodLabel())
+                        ->placeholder('Belum dibayar'),
                 ]),
 
             Section::make('Pendaftar')
@@ -102,9 +101,33 @@ class RegistrationPaymentInfolist
                         )),
                 ]),
 
+            Section::make('Pembayaran Tunai')
+                ->description('Dibayar langsung di kantor, tanpa bukti transfer.')
+                ->icon('heroicon-o-banknotes')
+                ->columns(3)
+                ->visible(fn (RegistrationPayment $record): bool => $record->isCash())
+                ->schema([
+                    TextEntry::make('payer_name')
+                        ->label('Nama Penyetor')
+                        ->state(fn (RegistrationPayment $record): ?string => $record->sender_name)
+                        ->placeholder('—'),
+
+                    TextEntry::make('paid_on')
+                        ->label('Tgl. Diterima')
+                        ->state(fn (RegistrationPayment $record): mixed => $record->transferred_on)
+                        ->date('d M Y')
+                        ->placeholder('—'),
+
+                    TextEntry::make('cash_amount')
+                        ->label('Uang Diterima')
+                        ->state(fn (RegistrationPayment $record): string => rupiah($record->total()))
+                        ->weight('bold'),
+                ]),
+
             Section::make('Bukti Transfer')
                 ->icon('heroicon-o-paper-clip')
                 ->columns(3)
+                ->visible(fn (RegistrationPayment $record): bool => ! $record->isCash())
                 ->schema([
                     TextEntry::make('sender_name')
                         ->label('Nama Pengirim')

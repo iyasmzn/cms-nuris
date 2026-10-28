@@ -36,6 +36,15 @@
     .rek-card:hover { border-color: #fbbf24; }
     .info-row { display: flex; justify-content: space-between; gap: 1rem; padding: .6rem 0; border-bottom: 1px solid var(--border); font-size: .8125rem; }
     .info-row:last-child { border-bottom: 0; }
+    .pay-methods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .625rem; margin-bottom: 1.25rem; }
+    .pay-method { display: flex; align-items: center; gap: .65rem; padding: .8rem .9rem; border-radius: .625rem; border: 1.5px solid var(--border); background: var(--card); text-align: left; cursor: pointer; transition: all .15s; }
+    .pay-method:hover { border-color: #fbbf24; }
+    .pay-method.is-active { border-color: #d97706; background: #fffbeb; }
+    .pay-method-icon { font-size: 1.35rem; line-height: 1; }
+    .pay-method-title { display: block; font-size: .8125rem; font-weight: 700; color: var(--text); }
+    .pay-method-hint { display: block; font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+    .pay-cash-instructions { white-space: pre-line; }
+    [x-cloak] { display: none !important; }
 </style>
 @endpush
 
@@ -130,7 +139,7 @@
 
     @if($payment)
     {{-- ── Tagihan ───────────────────────────────────────────── --}}
-    <div class="fi-card overflow-hidden" data-aos="fade-up">
+    <div class="fi-card overflow-hidden" data-aos="fade-up" @if($offersCash) x-data="{ method: 'transfer' }" @endif>
         <div class="p-6">
             <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
                 <div>
@@ -142,16 +151,53 @@
                 </span>
             </div>
 
-            <div class="p-5 rounded-xl border border-amber-200 bg-amber-50 text-center mb-5">
-                <p class="text-xs font-semibold text-amber-800 mb-1">Total yang harus ditransfer</p>
+            {{-- ── Pilihan cara bayar ───────────────────────── --}}
+            @if($offersCash)
+            <div class="pay-methods" role="tablist" aria-label="Cara pembayaran">
+                <button type="button" role="tab" class="pay-method"
+                        :class="{ 'is-active': method === 'transfer' }"
+                        :aria-selected="(method === 'transfer').toString()"
+                        x-on:click="method = 'transfer'">
+                    <span class="pay-method-icon">🏦</span>
+                    <span>
+                        <span class="pay-method-title">Transfer Bank</span>
+                        <span class="pay-method-hint">Lalu unggah bukti transfer</span>
+                    </span>
+                </button>
+                <button type="button" role="tab" class="pay-method"
+                        :class="{ 'is-active': method === 'cash' }"
+                        :aria-selected="(method === 'cash').toString()"
+                        x-on:click="method = 'cash'">
+                    <span class="pay-method-icon">💵</span>
+                    <span>
+                        <span class="pay-method-title">Tunai di Kantor</span>
+                        <span class="pay-method-hint">Bayar langsung ke panitia</span>
+                    </span>
+                </button>
+            </div>
+            @endif
+
+            <div class="p-5 rounded-xl border border-amber-200 bg-amber-50 text-center mb-5" @if($offersCash) x-show="method === 'transfer'" @endif>
+                <p class="text-xs font-semibold text-amber-800 mb-1">{{ $payment->isSettled() ? 'Total dibayar' : 'Total yang harus ditransfer' }}</p>
                 <p class="text-3xl font-extrabold text-amber-700">{{ rupiah($payment->total()) }}</p>
-                @if($payment->unique_code > 0)
+                @if($payment->unique_code > 0 && ! $payment->isSettled())
                 <p class="text-xs text-amber-700 mt-2">
                     {{ rupiah($payment->amount) }} + {{ $payment->unique_code }} kode unik.
                     <strong>Transfer tepat sampai 3 digit terakhir</strong> agar pembayaran mudah dicocokkan.
                 </p>
                 @endif
             </div>
+
+            @if($offersCash)
+            {{-- Kode unik only exists to match transfers, so cash pays the plain fee. --}}
+            <div class="p-5 rounded-xl border border-green-200 bg-green-50 text-center mb-5" x-show="method === 'cash'" x-cloak>
+                <p class="text-xs font-semibold text-green-800 mb-1">Total yang dibayar tunai</p>
+                <p class="text-3xl font-extrabold text-green-700">{{ rupiah($payment->amount) }}</p>
+                @if($payment->unique_code > 0)
+                <p class="text-xs text-green-700 mt-2">Tanpa kode unik — kode unik hanya berlaku untuk transfer.</p>
+                @endif
+            </div>
+            @endif
 
             @if($payment->expires_at && ! $payment->isSettled())
             <div class="info-row">
@@ -165,7 +211,11 @@
             <div class="mt-5 p-5 rounded-xl border border-green-200 bg-green-50 text-center">
                 <div class="text-3xl mb-2">✅</div>
                 <p class="font-bold text-green-800 text-sm mb-1">Pembayaran Lunas</p>
+                @if($payment->isCash())
+                <p class="text-xs text-green-700">Dibayar tunai di kantor pada {{ $fmtDate($payment->transferred_on) }}. Tidak ada tindakan lanjutan yang diperlukan.</p>
+                @else
                 <p class="text-xs text-green-700">Diverifikasi pada {{ $fmtDateTime($payment->verified_at) }}. Tidak ada tindakan lanjutan yang diperlukan.</p>
+                @endif
             </div>
 
             {{-- ── Menunggu verifikasi ──────────────────────── --}}
@@ -195,14 +245,14 @@
             <div class="mt-5 p-4 rounded-xl border border-red-200 bg-red-50">
                 <p class="font-bold text-red-800 text-sm mb-1">Bukti transfer sebelumnya ditolak</p>
                 <p class="text-xs text-red-700">{{ $payment->note }}</p>
-                <p class="text-xs text-red-700 mt-1">Silakan unggah ulang bukti transfer yang benar.</p>
+                <p class="text-xs text-red-700 mt-1">Silakan unggah ulang bukti transfer yang benar{{ $offersCash ? ', atau pilih bayar tunai di kantor' : '' }}.</p>
             </div>
             @endif
         </div>
 
         {{-- ── Instruksi + form unggah bukti ─────────────── --}}
         @if($proofUrl)
-        <div class="border-t p-6" style="border-color:var(--border)">
+        <div class="border-t p-6" style="border-color:var(--border)" @if($offersCash) x-show="method === 'transfer'" @endif>
             @if($instructions)
             <p class="text-sm mb-5" style="color:var(--muted)">{{ $instructions }}</p>
             @endif
@@ -271,6 +321,30 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                 </button>
             </form>
+        </div>
+        @endif
+
+        {{-- ── Bayar tunai di kantor ─────────────────────── --}}
+        @if($offersCash)
+        <div class="border-t p-6" style="border-color:var(--border)" x-show="method === 'cash'" x-cloak>
+            <h3 class="font-bold text-sm mb-2" style="color:var(--text)">Cara Bayar Tunai di Kantor</h3>
+            <p class="pay-cash-instructions text-sm mb-5" style="color:var(--muted)">{{ $cashInstructions }}</p>
+
+            <div class="p-4 rounded-xl border" style="border-color:var(--border)">
+                <div class="info-row">
+                    <span style="color:var(--muted)">Sebutkan Nomor Pendaftaran</span>
+                    <span class="font-bold" style="color:var(--text)">{{ $registration->registration_number ?? '—' }}</span>
+                </div>
+                <div class="info-row">
+                    <span style="color:var(--muted)">Nomor Tagihan</span>
+                    <span class="font-semibold" style="color:var(--text)">{{ $payment->invoice_number ?? '—' }}</span>
+                </div>
+            </div>
+
+            <p class="text-xs mt-4 leading-relaxed" style="color:var(--muted)">
+                Tidak perlu mengunggah bukti apa pun. Minta kwitansi atau tanda terima dari petugas —
+                setelah panitia mencatat pembayaran Anda, status di halaman ini berubah menjadi <strong>Lunas</strong>.
+            </p>
         </div>
         @endif
     </div>
