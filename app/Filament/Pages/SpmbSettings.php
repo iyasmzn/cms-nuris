@@ -329,6 +329,7 @@ class SpmbSettings extends Page
 
                     Grid::make(2)
                         ->visible(fn (Get $get): bool => self::paymentSectionVisible($get))
+                        ->dehydratedWhenHidden()
                         ->schema([
                             Toggle::make('spmb_payment_unique_code')
                                 ->label('Pakai Kode Unik 3 Digit')
@@ -349,11 +350,13 @@ class SpmbSettings extends Page
                         ->rows(3)
                         ->maxLength(600)
                         ->visible(fn (Get $get): bool => self::paymentSectionVisible($get))
+                        ->dehydratedWhenHidden()
                         ->columnSpanFull(),
 
                     Repeater::make('bank_accounts')
                         ->label('Rekening Tujuan')
                         ->visible(fn (Get $get): bool => self::paymentSectionVisible($get))
+                        ->dehydratedWhenHidden()
                         ->schema([
                             Grid::make(12)->schema([
                                 TextInput::make('bank')
@@ -387,8 +390,6 @@ class SpmbSettings extends Page
                         ->collapsible()
                         ->columnSpanFull(),
 
-                    // Both stay saved while hidden, so switching tagihan off for
-                    // a while does not quietly reset the cash option.
                     Toggle::make('spmb_payment_cash_enabled')
                         ->label('Terima Bayar Tunai di Kantor')
                         ->onColor('success')
@@ -551,6 +552,11 @@ class SpmbSettings extends Page
      * Whether the payment defaults are worth showing: either payments are on
      * globally, or a jenjang has switched them on for itself — in which case
      * these values still apply to it as fallbacks.
+     *
+     * Every field this hides is marked `dehydratedWhenHidden()`. A hidden
+     * field is otherwise left out of the form state, and `save()` rewrites
+     * every key — so switching tagihan off and saving would wipe the rekening
+     * and petunjuk and reset the other defaults.
      */
     private static function paymentSectionVisible(Get $get): bool
     {

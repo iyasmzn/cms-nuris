@@ -110,13 +110,20 @@ class SpmbSettingsTest extends TestCase
     }
 
     /**
-     * The cash fields hide while no jenjang charges a fee. Saving the page in
-     * that state must not reset them.
+     * The payment fields hide while no jenjang charges a fee, yet `save()`
+     * rewrites every key. Saving the page in that state must keep what was
+     * configured, so switching tagihan off for a while loses nothing.
      */
-    public function test_the_cash_option_survives_a_save_while_tagihan_are_switched_off(): void
+    public function test_payment_settings_survive_a_save_while_tagihan_are_switched_off(): void
     {
+        $rekening = [['bank' => 'BSI', 'number' => '7123456789', 'holder' => 'Yayasan Nurul Islam']];
+
         Setting::setMany([
             'spmb_payment_enabled' => '0',
+            'spmb_payment_unique_code' => '0',
+            'spmb_payment_deadline_hours' => '24',
+            'spmb_payment_instructions' => 'Transfer lalu unggah bukti.',
+            'spmb_bank_accounts' => json_encode($rekening),
             'spmb_payment_cash_enabled' => '1',
             'spmb_payment_cash_instructions' => 'Kantor TU.',
         ]);
@@ -125,10 +132,15 @@ class SpmbSettingsTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(SpmbSettings::class)
+            ->assertFormFieldHidden('bank_accounts')
             ->assertFormFieldHidden('spmb_payment_cash_enabled')
             ->call('save')
             ->assertHasNoFormErrors();
 
+        $this->assertFalse(setting_bool('spmb_payment_unique_code', true));
+        $this->assertSame(24, (int) Setting::get('spmb_payment_deadline_hours'));
+        $this->assertSame('Transfer lalu unggah bukti.', Setting::get('spmb_payment_instructions'));
+        $this->assertSame($rekening, json_decode((string) Setting::get('spmb_bank_accounts'), true));
         $this->assertTrue(setting_bool('spmb_payment_cash_enabled'));
         $this->assertSame('Kantor TU.', Setting::get('spmb_payment_cash_instructions'));
     }
