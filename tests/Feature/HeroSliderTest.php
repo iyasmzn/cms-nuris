@@ -28,6 +28,49 @@ class HeroSliderTest extends TestCase
             ->assertSee('@mouseenter="heroPaused', false);
     }
 
+    public function test_the_slide_content_is_centred_by_default(): void
+    {
+        $this->assertContains('hero-align-center', $this->heroClasses());
+    }
+
+    public function test_the_slide_content_follows_the_configured_alignment(): void
+    {
+        foreach (['left', 'right'] as $alignment) {
+            Setting::set('hero_content_align', $alignment);
+
+            $classes = $this->heroClasses();
+
+            $this->assertContains("hero-align-{$alignment}", $classes);
+            $this->assertNotContains('hero-align-center', $classes);
+        }
+    }
+
+    public function test_an_unknown_alignment_falls_back_to_the_centre(): void
+    {
+        Setting::set('hero_content_align', 'diagonal');
+
+        $classes = $this->heroClasses();
+
+        $this->assertContains('hero-align-center', $classes);
+        $this->assertNotContains('hero-align-diagonal', $classes);
+    }
+
+    /**
+     * Kelas pada elemen hero itu sendiri. Blok `<style>` hero memuat semua
+     * nama kelas perataan, jadi mencari teksnya di seluruh halaman tidak
+     * membuktikan apa-apa.
+     *
+     * @return list<string>
+     */
+    private function heroClasses(): array
+    {
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertSame(1, preg_match('/<section id="beranda"\s+class="([^"]*)"/', $html, $match));
+
+        return preg_split('/\s+/', trim($match[1]));
+    }
+
     public function test_the_configured_interval_transition_and_duration_are_rendered(): void
     {
         Setting::setMany([

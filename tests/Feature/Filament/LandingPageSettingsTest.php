@@ -216,6 +216,28 @@ class LandingPageSettingsTest extends TestCase
         $this->assertSame('400', (string) Setting::get('hero_transition_duration'));
     }
 
+    /**
+     * Mengubah satu isian saja, persis seperti admin di panel. Mengisi ulang
+     * seluruh daftar seksi lewat `fillForm()` membuat Filament mengkloning
+     * skema setiap item berulang-ulang sampai kehabisan memori.
+     */
+    public function test_it_persists_the_hero_content_alignment(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
+
+        $heroItem = collect($component->get('data.sections'))
+            ->search(fn (array $entry): bool => $entry['key'] === 'section_hero');
+
+        $component
+            ->set("data.sections.{$heroItem}.hero_content_align", 'left')
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('left', Setting::get('hero_content_align'));
+    }
+
     public function test_the_saved_hero_slider_behaviour_is_shown_again_when_the_page_is_reopened(): void
     {
         $admin = User::factory()->create()->assignRole('super_admin');
@@ -224,6 +246,7 @@ class LandingPageSettingsTest extends TestCase
             'hero_pause_on_hover' => false,
             'hero_interval' => 12,
             'hero_transition' => 'zoom',
+            'hero_content_align' => 'right',
         ]);
 
         $sections = collect(Livewire::actingAs($admin)->test(LandingPageSettings::class)->get('data.sections'));
@@ -232,6 +255,16 @@ class LandingPageSettingsTest extends TestCase
         $this->assertFalse($hero['hero_pause_on_hover']);
         $this->assertSame(12, (int) $hero['hero_interval']);
         $this->assertSame('zoom', $hero['hero_transition']);
+        $this->assertSame('right', $hero['hero_content_align']);
+    }
+
+    public function test_the_hero_content_is_centred_until_another_alignment_is_saved(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        $sections = collect(Livewire::actingAs($admin)->test(LandingPageSettings::class)->get('data.sections'));
+
+        $this->assertSame('center', $sections->firstWhere('key', 'section_hero')['hero_content_align']);
     }
 
     public function test_it_persists_the_alumni_logo_row_behaviour(): void
