@@ -28,6 +28,32 @@
         pointer-events: none;
     }
 
+    /* ── Perataan isi slide ───────────────────────────────────────
+       Diatur di Pengaturan Halaman Depan lewat kelas hero-align-*.
+       Bayangan gelap di atas foto ikut condong ke sisi tempat teks
+       berada; untuk isi rata tengah dibuat simetris — pita atas
+       menjaga navbar tetap terbaca, vignette menahan tepi agar judul
+       tetap kontras. */
+    .hero-overlay {
+        background: linear-gradient(135deg, rgba(0,0,0,.7) 0%, rgba(0,0,0,.4) 55%, rgba(0,0,0,.1) 100%);
+    }
+    .hero-align-right .hero-overlay {
+        background: linear-gradient(225deg, rgba(0,0,0,.7) 0%, rgba(0,0,0,.4) 55%, rgba(0,0,0,.1) 100%);
+    }
+    .hero-align-center .hero-overlay {
+        background:
+            radial-gradient(ellipse 95% 75% at 50% 45%, rgba(0,0,0,.30) 0%, rgba(0,0,0,.62) 100%),
+            linear-gradient(to bottom, rgba(0,0,0,.55) 0%, rgba(0,0,0,.22) 38%, rgba(0,0,0,.50) 100%);
+    }
+
+    .hero-align-center .hero-copy { max-width: 48rem; margin-inline: auto; text-align: center; }
+    .hero-align-center .hero-copy-lead { max-width: 42rem; margin-inline: auto; }
+    .hero-align-center .hero-copy-actions { justify-content: center; }
+
+    .hero-align-right .hero-copy { margin-left: auto; text-align: right; }
+    .hero-align-right .hero-copy-lead { margin-left: auto; }
+    .hero-align-right .hero-copy-actions { justify-content: flex-end; }
+
     /* ── Perpindahan slide ────────────────────────────────────────
        Slide yang keluar (.is-leaving) bergerak berlawanan arah dengan
        slide yang masuk, arahnya (--hero-dir) ditentukan tombol/dot
@@ -60,7 +86,7 @@
 </style>
 
 <section id="beranda"
-         class="hero-media hero-anim-{{ $heroSlider->transition }} relative h-130 sm:h-145 lg:h-160 overflow-hidden -mt-17"
+         class="hero-media page-band hero-anim-{{ $heroSlider->transition }} hero-align-{{ $heroSlider->contentAlign }} relative h-130 sm:h-145 lg:h-160 overflow-hidden -mt-17"
          style="--hero-duration: {{ $heroSlider->duration }}ms"
          :style="{ '--hero-dir': slideDir }"
          @if($heroSlider->pauseOnHover)
@@ -111,9 +137,8 @@
                 </div>
             @endif
 
-            {{-- Refined gradient overlay --}}
-            <div class="absolute inset-0 pointer-events-none"
-                 style="background:linear-gradient(135deg,rgba(0,0,0,.7) 0%,rgba(0,0,0,.4) 55%,rgba(0,0,0,.1) 100%)"></div>
+            {{-- Bayangan gelap — arahnya mengikuti perataan isi slide --}}
+            <div class="hero-overlay absolute inset-0 pointer-events-none"></div>
 
             {{-- Tanpa tombol preview, area video sendiri yang membuka pop-up --}}
             @if($s->hasVideoPreview() && ! $s->showsVideoButton())
@@ -127,7 +152,7 @@
             {{-- Content --}}
             <div class="relative z-10 h-full flex items-center pointer-events-none">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-                    <div class="max-w-2xl text-white pointer-events-auto">
+                    <div class="hero-copy max-w-2xl text-white pointer-events-auto">
 
                         {{-- Slide counter pill: tak ada yang perlu dihitung kalau slide-nya tunggal --}}
                         @if($slides->count() > 1)
@@ -144,12 +169,12 @@
                         </h1>
 
                         @if($s->subtitle)
-                            <p class="text-white/75 text-base sm:text-lg leading-relaxed mb-8 max-w-xl font-light">
+                            <p class="hero-copy-lead text-white/75 text-base sm:text-lg leading-relaxed mb-8 max-w-xl font-light">
                                 {{ $s->subtitle }}
                             </p>
                         @endif
 
-                        <div class="flex flex-wrap gap-3">
+                        <div class="hero-copy-actions flex flex-wrap gap-3">
                             @if($s->button_label && $s->button_url)
                                 <a href="{{ $s->button_url }}"
                                    class="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold hover:opacity-90 transition-all shadow-xl text-sm"
@@ -213,13 +238,6 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
         </button>
     @endif
-
-    {{-- Bottom wave --}}
-    <div class="absolute bottom-0 inset-x-0 z-10 pointer-events-none">
-        <svg viewBox="0 0 1440 56" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" class="w-full h-14">
-            <path d="M0 56L80 48C160 40 320 24 480 22.7C640 21.3 800 34.7 960 40C1120 45.3 1280 42.7 1360 41.3L1440 40V56H0Z" fill="var(--bg)"/>
-        </svg>
-    </div>
 </section>
 
 {{-- Pop-up pemutar video (bersuara, dengan kontrol) --}}

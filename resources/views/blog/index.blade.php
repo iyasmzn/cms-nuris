@@ -22,7 +22,7 @@
 @push('head')
 <style>
     .blog-hero {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0c1a14 100%);
+        background: var(--hero-band);
         position: relative;
         overflow: hidden;
     }
@@ -122,8 +122,8 @@
 @section('content')
 
     {{-- ── Page Hero ──────────────────────────────────────────── --}}
-    <section class="blog-hero -mt-17 pt-30 pb-14 sm:pt-36 sm:pb-20">
-        <x-hero-geo />
+    <section class="blog-hero page-band -mt-17 pt-30 pb-14 sm:pt-36 sm:pb-20">
+        <x-hero-pattern />
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {{-- Mobile breadcrumb --}}
             <nav aria-label="Breadcrumb" class="md:hidden flex items-center gap-1.5 text-xs mb-5 text-white/50">
@@ -136,7 +136,7 @@
                 <span class="w-4 h-px bg-amber-400 inline-block"></span>
                 Blog & Berita
             </span>
-            <h1 class="text-3xl sm:text-5xl font-extrabold text-white leading-tight mb-3" data-aos="fade-up" data-aos-delay="60">
+            <h1 class="display-title text-white mb-3" data-aos="fade-up" data-aos-delay="60">
                 {{ $category ? "Kategori: {$category}" : 'Semua Artikel' }}
             </h1>
             <p class="text-white/60 text-sm sm:text-base max-w-lg leading-relaxed" data-aos="fade-up" data-aos-delay="100">

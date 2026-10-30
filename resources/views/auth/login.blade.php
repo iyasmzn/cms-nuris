@@ -2,10 +2,12 @@
 
 @section('content')
 
-<section class="min-h-screen flex items-center justify-center -mt-17 py-20 px-4"
-         style="background:linear-gradient(135deg,#082828 0%,#08484A 60%,#0a6060 100%)">
+<section class="page-band min-h-screen flex items-center justify-center -mt-17 py-20 px-4"
+         style="background:var(--hero-band)">
 
-    <div class="w-full max-w-md" data-aos="fade-up">
+    <x-hero-pattern />
+
+    <div class="relative w-full max-w-md" data-aos="fade-up">
 
         {{-- Logo --}}
         <div class="text-center mb-8">

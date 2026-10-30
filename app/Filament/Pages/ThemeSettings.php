@@ -2,10 +2,13 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\ContentSection;
 use App\Models\Setting;
 use App\Support\ContentTypography;
+use App\Support\HeroPattern;
 use App\Support\PageGutter;
 use App\Support\PageWidth;
+use App\Support\SectionPatterns;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
 use Filament\Forms\Components\ColorPicker;
@@ -52,6 +55,11 @@ class ThemeSettings extends Page
             'theme_font_custom_url' => Setting::get('theme_font_custom_url', ''),
             'theme_font_custom_family' => Setting::get('theme_font_custom_family', ''),
             'content_font_size' => ContentTypography::size(),
+            'hero_pattern' => Setting::get('hero_pattern') ?: HeroPattern::DEFAULT_PATTERN,
+            'hero_pattern_opacity' => (int) Setting::get('hero_pattern_opacity', HeroPattern::DEFAULT_OPACITY),
+            'hero_pattern_scale' => (int) Setting::get('hero_pattern_scale', HeroPattern::DEFAULT_SCALE),
+            'hero_pattern_color' => Setting::get('hero_pattern_color') ?: HeroPattern::DEFAULT_COLOR,
+            'hero_pattern_custom_color' => Setting::get('hero_pattern_custom_color'),
             PageWidth::SETTING_KEY => PageWidth::key(),
             ...self::gutterFormState(PageGutter::values()),
         ]);
@@ -158,6 +166,66 @@ class ThemeSettings extends Page
                         )),
                 ]),
 
+            Section::make('Pola Pita Kepala Halaman')
+                ->description('Hiasan halus di atas pita gelap yang menjadi kepala tiap halaman — hero subhalaman, kepala halaman statis, sampai layar masuk & daftar. Disetel sekali di sini dan berlaku untuk semuanya, sebab pita kepala adalah satu elemen rancangan yang sama di seluruh situs. Warna pitanya sendiri mengikuti Warna Utama di atas.')
+                ->icon(Heroicon::OutlinedSparkles)
+                ->schema([
+                    Select::make('hero_pattern')
+                        ->label('Pola')
+                        ->options(fn (): array => SectionPatterns::selectOptions())
+                        ->allowHtml()
+                        ->default(HeroPattern::DEFAULT_PATTERN)
+                        ->required()
+                        ->native(false)
+                        ->selectablePlaceholder(false)
+                        ->live()
+                        ->helperText('Bawaannya Khatam (bintang delapan). Hero beranda dan kepala berfoto (artikel, halaman bercover) sengaja dilewati: pola di atas foto berebut perhatian dengan judulnya.')
+                        ->columnSpanFull(),
+
+                    // Tetap tersimpan saat tersembunyi: memilih "Tanpa Pola"
+                    // sebentar tidak boleh membuang kepekatan, ukuran, dan
+                    // warna yang sudah disetel admin.
+                    Grid::make(2)
+                        ->visible(fn (Get $get): bool => $get('hero_pattern') !== 'none')
+                        ->dehydratedWhenHidden()
+                        ->schema([
+                            Select::make('hero_pattern_opacity')
+                                ->label('Kepekatan')
+                                ->options(ContentSection::PATTERN_OPACITY_LEVELS)
+                                ->default(HeroPattern::DEFAULT_OPACITY)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->helperText('Pita kepala memuat judul halaman; pola yang terlalu pekat membuatnya susah dibaca.'),
+
+                            Select::make('hero_pattern_scale')
+                                ->label('Ukuran Ubin')
+                                ->options(ContentSection::PATTERN_SCALES)
+                                ->default(HeroPattern::DEFAULT_SCALE)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->helperText('Makin rapat, makin ramai.'),
+
+                            Select::make('hero_pattern_color')
+                                ->label('Warna Pola')
+                                ->options(HeroPattern::COLORS)
+                                ->default(HeroPattern::DEFAULT_COLOR)
+                                ->required()
+                                ->native(false)
+                                ->selectablePlaceholder(false)
+                                ->live()
+                                ->helperText('Pilihannya hanya yang terbaca di atas pita gelap.'),
+
+                            ColorPicker::make('hero_pattern_custom_color')
+                                ->label('Hex Warna Pola')
+                                ->default('#ffffff')
+                                ->visible(fn (Get $get): bool => $get('hero_pattern_color') === 'custom')
+                                ->dehydratedWhenHidden()
+                                ->helperText('Kosong atau tidak berbentuk hex akan kembali ke putih.'),
+                        ]),
+                ]),
+
             Section::make('Lebar & Margin Halaman')
                 ->description('Mengatur seberapa lebar isi website dan berapa jaraknya dari tepi layar. Berlaku untuk seluruh halaman publik — beranda, artikel, program, dan lainnya — termasuk menu atas dan footer.')
                 ->icon(Heroicon::OutlinedArrowsRightLeft)
@@ -205,6 +273,12 @@ class ThemeSettings extends Page
         Setting::set('theme_font_custom_family', clean_font_family_name($data['theme_font_custom_family'] ?? ''));
         Setting::set(ContentTypography::SETTING_KEY, ContentTypography::sanitizeSize($data['content_font_size'] ?? null));
 
+        Setting::set('hero_pattern', $data['hero_pattern'] ?? HeroPattern::DEFAULT_PATTERN);
+        Setting::set('hero_pattern_opacity', (int) ($data['hero_pattern_opacity'] ?? HeroPattern::DEFAULT_OPACITY));
+        Setting::set('hero_pattern_scale', (int) ($data['hero_pattern_scale'] ?? HeroPattern::DEFAULT_SCALE));
+        Setting::set('hero_pattern_color', $data['hero_pattern_color'] ?? HeroPattern::DEFAULT_COLOR);
+        Setting::set('hero_pattern_custom_color', $data['hero_pattern_custom_color'] ?? '');
+
         Setting::set(PageWidth::SETTING_KEY, PageWidth::sanitize($data[PageWidth::SETTING_KEY] ?? null));
 
         foreach (array_keys(PageGutter::BREAKPOINTS) as $breakpoint) {
@@ -216,7 +290,7 @@ class ThemeSettings extends Page
         Notification::make()
             ->success()
             ->title('Tema berhasil disimpan')
-            ->body('Perubahan warna, font, ukuran teks konten, serta lebar dan margin halaman akan langsung terlihat di website.')
+            ->body('Perubahan warna, font, ukuran teks konten, pola pita kepala, serta lebar dan margin halaman akan langsung terlihat di website.')
             ->send();
     }
 
@@ -234,13 +308,19 @@ class ThemeSettings extends Page
                 ->icon(Heroicon::OutlinedArrowPath)
                 ->requiresConfirmation()
                 ->modalHeading('Reset Tema?')
-                ->modalDescription('Warna akan dikembalikan ke Amber, font ke Instrument Sans, ukuran teks konten ke '.ContentTypography::DEFAULT_SIZE.'px, serta lebar dan margin halaman ke ukuran bawaan.')
+                ->modalDescription('Warna akan dikembalikan ke Amber, font ke Instrument Sans, ukuran teks konten ke '.ContentTypography::DEFAULT_SIZE.'px, pola pita kepala ke Khatam putih, serta lebar dan margin halaman ke ukuran bawaan.')
                 ->action(function (): void {
                     Setting::set('theme_primary_color', '#d97706');
                     Setting::set('theme_font', 'instrument-sans');
                     Setting::set('theme_font_custom_url', '');
                     Setting::set('theme_font_custom_family', '');
                     Setting::set(ContentTypography::SETTING_KEY, ContentTypography::DEFAULT_SIZE);
+
+                    Setting::set('hero_pattern', HeroPattern::DEFAULT_PATTERN);
+                    Setting::set('hero_pattern_opacity', HeroPattern::DEFAULT_OPACITY);
+                    Setting::set('hero_pattern_scale', HeroPattern::DEFAULT_SCALE);
+                    Setting::set('hero_pattern_color', HeroPattern::DEFAULT_COLOR);
+                    Setting::set('hero_pattern_custom_color', '');
 
                     Setting::set(PageWidth::SETTING_KEY, PageWidth::DEFAULT_WIDTH);
 
@@ -255,6 +335,11 @@ class ThemeSettings extends Page
                         'theme_font_custom_url' => '',
                         'theme_font_custom_family' => '',
                         'content_font_size' => ContentTypography::DEFAULT_SIZE,
+                        'hero_pattern' => HeroPattern::DEFAULT_PATTERN,
+                        'hero_pattern_opacity' => HeroPattern::DEFAULT_OPACITY,
+                        'hero_pattern_scale' => HeroPattern::DEFAULT_SCALE,
+                        'hero_pattern_color' => HeroPattern::DEFAULT_COLOR,
+                        'hero_pattern_custom_color' => null,
                         PageWidth::SETTING_KEY => PageWidth::DEFAULT_WIDTH,
                         ...self::gutterFormState(PageGutter::defaults()),
                     ]);

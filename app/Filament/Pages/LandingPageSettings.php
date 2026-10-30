@@ -400,6 +400,7 @@ class LandingPageSettings extends Page
             'hero_interval' => $hero->interval,
             'hero_transition' => $hero->transition,
             'hero_transition_duration' => $hero->duration,
+            'hero_content_align' => $hero->contentAlign,
         ];
     }
 
@@ -708,8 +709,9 @@ class LandingPageSettings extends Page
     }
 
     /**
-     * Perilaku slider hero: putar otomatis, jeda saat kursor menyentuh hero,
-     * serta gaya & lama animasi perpindahannya. Isinya dibaca `HeroSlider`.
+     * Perilaku slider hero: perataan isi slide, putar otomatis, jeda saat
+     * kursor menyentuh hero, serta gaya & lama animasi perpindahannya. Isinya
+     * dibaca `HeroSlider`.
      *
      * @return array<int, mixed>
      */
@@ -717,11 +719,25 @@ class LandingPageSettings extends Page
     {
         return [
             Section::make('Perilaku Slider Hero')
-                ->description('Gambar & isi tiap slide diatur di menu Slide. Di sini hanya cara slide berpindah.')
+                ->description('Gambar & isi tiap slide diatur di menu Slide. Di sini perataan isinya dan cara slide berpindah.')
                 ->icon(Heroicon::OutlinedPlayCircle)
                 ->visible(fn (Get $get): bool => $get('key') === self::HERO_KEY)
                 ->columnSpanFull()
                 ->schema([
+                    ToggleButtons::make('hero_content_align')
+                        ->label('Perataan Isi Slide')
+                        ->options(HeroSlider::CONTENT_ALIGNMENTS)
+                        ->icons([
+                            'left' => Heroicon::OutlinedBars3BottomLeft,
+                            'center' => Heroicon::OutlinedBars3,
+                            'right' => Heroicon::OutlinedBars3BottomRight,
+                        ])
+                        ->default(HeroSlider::DEFAULT_CONTENT_ALIGN)
+                        ->required()
+                        ->inline()
+                        ->helperText('Posisi label, judul, subjudul, dan tombol di dalam hero, berlaku untuk semua slide. Bayangan gelap di atas foto ikut menyesuaikan agar teks tetap terbaca.')
+                        ->columnSpanFull(),
+
                     Toggle::make('hero_autoplay')
                         ->label('Putar Otomatis')
                         ->default(true)
@@ -1135,6 +1151,7 @@ class LandingPageSettings extends Page
             'hero_interval' => (int) ($section['hero_interval'] ?? HeroSlider::DEFAULT_INTERVAL),
             'hero_transition' => $section['hero_transition'] ?? 'fade',
             'hero_transition_duration' => (int) ($section['hero_transition_duration'] ?? HeroSlider::DEFAULT_DURATION),
+            'hero_content_align' => $section['hero_content_align'] ?? HeroSlider::DEFAULT_CONTENT_ALIGN,
         ];
     }
 

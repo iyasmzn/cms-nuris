@@ -4,7 +4,7 @@
 <style>
     /* ── Hero ─────────────────────────────────── */
     .ppdb-hero {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0a1628 100%);
+        background: var(--hero-band);
         position: relative;
         overflow: hidden;
     }
@@ -96,8 +96,8 @@
 @endphp
 
 {{-- ═══════════════════════ HERO ═══════════════════════════════ --}}
-<section class="ppdb-hero -mt-17 pt-32 pb-16 sm:pt-36 sm:pb-20">
-    <x-hero-geo />
+<section class="ppdb-hero page-band -mt-17 pt-32 pb-16 sm:pt-36 sm:pb-20">
+    <x-hero-pattern />
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
         <div class="flex flex-col lg:flex-row items-center gap-10">
 
@@ -120,7 +120,7 @@
                         <span class="text-xs font-bold text-red-300 uppercase tracking-widest">{{ $quotaFull ? 'Kuota Penuh' : 'SPMB Ditutup' }}</span>
                     @endif
                 </div>
-                <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-4">
+                <h1 class="section-title text-white mb-4">
                     PPDB {{ $institution->short_name ?? $institution->name }}<br>
                     <span class="text-amber-400">{{ $spmbYear }}</span>
                 </h1>
