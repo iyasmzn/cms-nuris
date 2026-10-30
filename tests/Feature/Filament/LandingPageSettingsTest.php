@@ -8,6 +8,7 @@ use App\Models\Media;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\AlumniMarquee;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -58,16 +59,16 @@ class LandingPageSettingsTest extends TestCase
 
         $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
 
-        $component
-            ->fillForm([
-                'home_meta_title' => 'Pesantren Modern Terbaik',
-                'home_meta_description' => 'Deskripsi meta khusus halaman depan.',
-                'sections' => $this->withSectionState($component, 'section_programs', [
-                    'eyebrow' => 'Program Kami',
-                    'title' => 'Program Andalan Pesantren',
-                    'subtitle' => 'Deskripsi program yang sudah diubah.',
-                ]),
-            ])
+        $component->fillForm([
+            'home_meta_title' => 'Pesantren Modern Terbaik',
+            'home_meta_description' => 'Deskripsi meta khusus halaman depan.',
+        ]);
+
+        $this->setSectionState($component, 'section_programs', [
+            'eyebrow' => 'Program Kami',
+            'title' => 'Program Andalan Pesantren',
+            'subtitle' => 'Deskripsi program yang sudah diubah.',
+        ])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -84,12 +85,9 @@ class LandingPageSettingsTest extends TestCase
 
         $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
 
-        $component
-            ->fillForm([
-                'sections' => $this->withSectionState($component, 'section_alumni', [
-                    'extra_logos_title' => 'Kampus Pilihan Lulusan',
-                ]),
-            ])
+        $this->setSectionState($component, 'section_alumni', [
+            'extra_logos_title' => 'Kampus Pilihan Lulusan',
+        ])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -103,19 +101,16 @@ class LandingPageSettingsTest extends TestCase
 
         $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
 
-        $component
-            ->fillForm([
-                'sections' => $this->withSectionState($component, 'section_stats', [
-                    'background' => 'image',
-                    'background_image_source' => 'library',
-                    'background_image_library' => $background->id,
-                    'background_blur' => 8,
-                    'background_overlay' => 45,
-                    'background_light_text' => true,
-                    'background_parallax_mode' => 'scroll',
-                    'background_parallax_speed' => 50,
-                ]),
-            ])
+        $this->setSectionState($component, 'section_stats', [
+            'background' => 'image',
+            'background_image_source' => 'library',
+            'background_image_library' => $background->id,
+            'background_blur' => 8,
+            'background_overlay' => 45,
+            'background_light_text' => true,
+            'background_parallax_mode' => 'scroll',
+            'background_parallax_speed' => 50,
+        ])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -134,19 +129,16 @@ class LandingPageSettingsTest extends TestCase
 
         $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
 
-        $component
-            ->fillForm([
-                'sections' => $this->withSectionState($component, 'section_stats', [
-                    'background' => 'base',
-                    'background_pattern' => 'arabesque',
-                    'background_pattern_opacity' => 14,
-                    'background_pattern_scale' => 150,
-                    'background_pattern_color' => 'white',
-                    'background_pattern_animated' => true,
-                    'background_pattern_motion' => 'drift',
-                    'background_pattern_speed' => 12,
-                ]),
-            ])
+        $this->setSectionState($component, 'section_stats', [
+            'background' => 'base',
+            'background_pattern' => 'arabesque',
+            'background_pattern_opacity' => 14,
+            'background_pattern_scale' => 150,
+            'background_pattern_color' => 'white',
+            'background_pattern_animated' => true,
+            'background_pattern_motion' => 'drift',
+            'background_pattern_speed' => 12,
+        ])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -196,16 +188,13 @@ class LandingPageSettingsTest extends TestCase
 
         $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
 
-        $component
-            ->fillForm([
-                'sections' => $this->withSectionState($component, 'section_hero', [
-                    'hero_autoplay' => true,
-                    'hero_pause_on_hover' => false,
-                    'hero_interval' => 9,
-                    'hero_transition' => 'slide',
-                    'hero_transition_duration' => 400,
-                ]),
-            ])
+        $this->setSectionState($component, 'section_hero', [
+            'hero_autoplay' => true,
+            'hero_pause_on_hover' => false,
+            'hero_interval' => 9,
+            'hero_transition' => 'slide',
+            'hero_transition_duration' => 400,
+        ])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -240,20 +229,17 @@ class LandingPageSettingsTest extends TestCase
 
         $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
 
-        $component
-            ->fillForm([
-                'sections' => $this->withSectionState($component, 'section_alumni', [
-                    'alumni_autoplay' => true,
-                    'alumni_pause_on_hover' => false,
-                    'alumni_speed' => 45,
-                    'alumni_direction' => 'right',
-                    'alumni_logo_height' => 96,
-                    'alumni_card_width' => 260,
-                    'alumni_gap' => 8,
-                    'alumni_grayscale' => false,
-                    'alumni_show_name' => false,
-                ]),
-            ])
+        $this->setSectionState($component, 'section_alumni', [
+            'alumni_autoplay' => true,
+            'alumni_pause_on_hover' => false,
+            'alumni_speed' => 45,
+            'alumni_direction' => 'right',
+            'alumni_logo_height' => 96,
+            'alumni_card_width' => 260,
+            'alumni_gap' => 8,
+            'alumni_grayscale' => false,
+            'alumni_show_name' => false,
+        ])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -299,12 +285,9 @@ class LandingPageSettingsTest extends TestCase
 
         $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
 
-        $component
-            ->fillForm([
-                'sections' => $this->withSectionState($component, 'section_blog', [
-                    'alumni_speed' => 99,
-                ]),
-            ])
+        $this->setSectionState($component, 'section_blog', [
+            'alumni_speed' => 99,
+        ])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -317,12 +300,9 @@ class LandingPageSettingsTest extends TestCase
 
         $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
 
-        $component
-            ->fillForm([
-                'sections' => $this->withSectionState($component, 'section_blog', [
-                    'title' => 'Kabar Terbaru',
-                ]),
-            ])
+        $this->setSectionState($component, 'section_blog', [
+            'title' => 'Kabar Terbaru',
+        ])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -340,16 +320,18 @@ class LandingPageSettingsTest extends TestCase
 
         $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
 
-        // Pindahkan FAQ ke urutan paling atas, seperti hasil drag-and-drop
-        $sections = collect($component->get('data.sections'));
-        $faq = $sections->firstWhere('key', 'section_faq');
-        $reordered = $sections->reject(fn (array $entry): bool => $entry['key'] === 'section_faq')
+        // Pindahkan FAQ ke urutan paling atas lewat aksi `reorder` repeater —
+        // aksi yang sama yang dipanggil drag-and-drop di panel.
+        $faq = $this->sectionItem($component, 'section_faq');
+        $itemsWithFaqFirst = collect($component->get('data.sections'))
+            ->keys()
+            ->reject(fn (string $item): bool => $item === $faq)
             ->prepend($faq)
             ->values()
             ->all();
 
         $component
-            ->fillForm(['sections' => $reordered])
+            ->callAction(TestAction::make('reorder')->schemaComponent('sections'), arguments: ['items' => $itemsWithFaqFirst])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -380,17 +362,7 @@ class LandingPageSettingsTest extends TestCase
 
         $component = Livewire::actingAs($admin)->test(LandingPageSettings::class);
 
-        $sections = collect($component->get('data.sections'))
-            ->map(function (array $entry) use ($section): array {
-                if ($entry['key'] === $section->order_key) {
-                    $entry['visible'] = false;
-                }
-
-                return $entry;
-            })
-            ->all();
-
-        $component->fillForm(['sections' => $sections])
+        $this->setSectionState($component, $section->order_key, ['visible' => false])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -450,19 +422,37 @@ class LandingPageSettingsTest extends TestCase
     }
 
     /**
-     * Seksi kini diurutkan sekaligus diubah teksnya dalam satu repeater, jadi
-     * mengisi satu kolom berarti mengirim ulang seluruh state daftarnya.
+     * Ubah isian satu seksi lewat path-nya sendiri, satu per satu dan sesuai
+     * urutan, persis seperti admin mengisi panel.
+     *
+     * Jangan kembali mengisi ulang seluruh `sections` lewat `fillForm()`:
+     * Filament menjalankan hook `afterStateUpdated` sekali untuk setiap isian
+     * di semua baris, dan tiap kalinya mengkloning skema seluruh baris
+     * repeater — test semacam itu kehabisan memori dan tidak pernah selesai.
      *
      * @param  array<string, mixed>  $changes
-     * @return array<int, array<string, mixed>>
      */
-    private function withSectionState(Testable $component, string $key, array $changes): array
+    private function setSectionState(Testable $component, string $key, array $changes): Testable
     {
-        return collect($component->get('data.sections'))
-            ->map(fn (array $entry): array => $entry['key'] === $key
-                ? [...$entry, ...$changes]
-                : $entry)
-            ->values()
-            ->all();
+        $item = $this->sectionItem($component, $key);
+
+        foreach ($changes as $field => $value) {
+            $component->set("data.sections.{$item}.{$field}", $value);
+        }
+
+        return $component;
+    }
+
+    /**
+     * Kunci baris repeater milik sebuah seksi.
+     */
+    private function sectionItem(Testable $component, string $key): string
+    {
+        $item = collect($component->get('data.sections'))
+            ->search(fn (array $entry): bool => $entry['key'] === $key);
+
+        $this->assertIsString($item, "Seksi {$key} tidak ada di daftar.");
+
+        return $item;
     }
 }
