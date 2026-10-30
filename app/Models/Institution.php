@@ -22,6 +22,8 @@ class Institution extends Model
 
     public const DEFAULT_QUOTA_FULL_MESSAGE = 'Kuota pendaftaran jenjang ini sudah terpenuhi. Terima kasih atas minat Anda — hubungi panitia untuk informasi daftar tunggu atau tahun ajaran berikutnya.';
 
+    public const DEFAULT_CASH_PAYMENT_INSTRUCTIONS = 'Datang langsung ke kantor sekretariat PPDB pada jam kerja, lalu sebutkan nomor pendaftaran Anda kepada petugas.';
+
     /**
      * Status pendaftar yang TIDAK memakai slot kuota. Menolak seorang
      * pendaftar otomatis membuka kembali slotnya.
@@ -54,8 +56,10 @@ class Institution extends Model
         'payment_enabled',
         'payment_unique_code',
         'payment_deadline_hours',
+        'payment_cash_enabled',
         'bank_accounts',
         'payment_instructions',
+        'payment_cash_instructions',
         'form_title',
         'form_description',
         'closed_message',
@@ -81,6 +85,7 @@ class Institution extends Model
         'payment_enabled' => 'boolean',
         'payment_unique_code' => 'boolean',
         'payment_deadline_hours' => 'integer',
+        'payment_cash_enabled' => 'boolean',
     ];
 
     /** @return HasMany<Teacher, $this> */
@@ -362,6 +367,25 @@ class Institution extends Model
     public function resolvedPaymentInstructions(): string
     {
         return $this->payment_instructions ?: (string) Setting::get('spmb_payment_instructions', '');
+    }
+
+    /**
+     * Whether pendaftar of this jenjang may pay tunai langsung ke kantor
+     * instead of transferring, falling back to the global switch.
+     */
+    public function acceptsCashPayment(): bool
+    {
+        return $this->payment_cash_enabled ?? setting_bool('spmb_payment_cash_enabled', false);
+    }
+
+    /**
+     * Where and when to pay in cash — alamat kantor, jam layanan — falling back
+     * to the global Setting, then to a generic default.
+     */
+    public function resolvedCashPaymentInstructions(): string
+    {
+        return $this->payment_cash_instructions
+            ?: ((string) Setting::get('spmb_payment_cash_instructions', '') ?: self::DEFAULT_CASH_PAYMENT_INSTRUCTIONS);
     }
 
     /**

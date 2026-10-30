@@ -58,13 +58,20 @@ class RegistrationPaymentForm
                             ->content(fn (?RegistrationPayment $record): string => $record === null ? '—' : rupiah($record->total())),
                     ]),
 
-                    Grid::make(2)->schema([
+                    Grid::make(3)->schema([
                         Select::make('status')
                             ->label('Status Pembayaran')
                             ->options(RegistrationPayment::statusOptions())
                             ->required()
                             ->native(false)
-                            ->helperText('Ubah manual hanya bila perlu koreksi. Gunakan tombol Lunas / Tolak di daftar untuk alur normal.'),
+                            ->helperText('Ubah manual hanya bila perlu koreksi. Gunakan tombol Lunas / Terima Tunai / Tolak di daftar untuk alur normal.'),
+
+                        Select::make('method')
+                            ->label('Metode Pembayaran')
+                            ->options(RegistrationPayment::methodOptions())
+                            ->required()
+                            ->native(false)
+                            ->helperText('Tunai berarti dibayar langsung di kantor, tanpa bukti transfer.'),
 
                         DateTimePicker::make('expires_at')
                             ->label('Batas Waktu Pembayaran')
@@ -80,11 +87,11 @@ class RegistrationPaymentForm
                 ->schema([
                     Grid::make(3)->schema([
                         TextInput::make('sender_name')
-                            ->label('Nama Pengirim')
+                            ->label('Nama Pengirim / Penyetor')
                             ->maxLength(100),
 
                         DatePicker::make('transferred_on')
-                            ->label('Tanggal Transfer')
+                            ->label('Tanggal Transfer / Bayar')
                             ->native(false)
                             ->displayFormat('d/m/Y'),
 

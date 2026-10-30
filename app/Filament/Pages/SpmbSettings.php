@@ -85,6 +85,8 @@ class SpmbSettings extends Page
             'spmb_payment_deadline_hours' => (int) Setting::get('spmb_payment_deadline_hours', 48),
             'spmb_payment_instructions' => Setting::get('spmb_payment_instructions', 'Transfer sesuai nominal yang tertera (termasuk 3 digit terakhir) ke salah satu rekening di bawah, lalu unggah bukti transfer pada halaman ini.'),
             'bank_accounts' => is_array($bankAccounts) ? $bankAccounts : [],
+            'spmb_payment_cash_enabled' => (bool) Setting::get('spmb_payment_cash_enabled', false),
+            'spmb_payment_cash_instructions' => Setting::get('spmb_payment_cash_instructions', ''),
         ]);
     }
 
@@ -327,6 +329,7 @@ class SpmbSettings extends Page
 
                     Grid::make(2)
                         ->visible(fn (Get $get): bool => self::paymentSectionVisible($get))
+                        ->dehydratedWhenHidden()
                         ->schema([
                             Toggle::make('spmb_payment_unique_code')
                                 ->label('Pakai Kode Unik 3 Digit')
@@ -347,11 +350,13 @@ class SpmbSettings extends Page
                         ->rows(3)
                         ->maxLength(600)
                         ->visible(fn (Get $get): bool => self::paymentSectionVisible($get))
+                        ->dehydratedWhenHidden()
                         ->columnSpanFull(),
 
                     Repeater::make('bank_accounts')
                         ->label('Rekening Tujuan')
                         ->visible(fn (Get $get): bool => self::paymentSectionVisible($get))
+                        ->dehydratedWhenHidden()
                         ->schema([
                             Grid::make(12)->schema([
                                 TextInput::make('bank')
@@ -383,6 +388,25 @@ class SpmbSettings extends Page
                         ->defaultItems(0)
                         ->itemLabel(fn (array $state): string => trim(($state['bank'] ?? 'Rekening baru').' — '.($state['number'] ?? '')))
                         ->collapsible()
+                        ->columnSpanFull(),
+
+                    Toggle::make('spmb_payment_cash_enabled')
+                        ->label('Terima Bayar Tunai di Kantor')
+                        ->onColor('success')
+                        ->live()
+                        ->visible(fn (Get $get): bool => self::paymentSectionVisible($get))
+                        ->dehydratedWhenHidden()
+                        ->helperText('Selain transfer, pendaftar boleh membayar tunai langsung ke kantor. Panitia mencatatnya lewat tombol "Terima Tunai" di menu Pembayaran — tanpa kode unik dan tanpa bukti transfer.')
+                        ->columnSpanFull(),
+
+                    Textarea::make('spmb_payment_cash_instructions')
+                        ->label('Petunjuk Bayar Tunai')
+                        ->rows(3)
+                        ->maxLength(600)
+                        ->placeholder(Institution::DEFAULT_CASH_PAYMENT_INSTRUCTIONS)
+                        ->helperText('Tulis alamat kantor dan jam layanan. Tampil di halaman status saat pendaftar memilih bayar tunai. Kosongkan untuk memakai kalimat bawaan.')
+                        ->visible(fn (Get $get): bool => self::cashInstructionsVisible($get))
+                        ->dehydratedWhenHidden()
                         ->columnSpanFull(),
                 ]),
         ]);
@@ -425,6 +449,8 @@ class SpmbSettings extends Page
             'spmb_payment_deadline_hours' => (int) ($data['spmb_payment_deadline_hours'] ?? 48),
             'spmb_payment_instructions' => $data['spmb_payment_instructions'] ?? '',
             'spmb_bank_accounts' => json_encode(array_values($data['bank_accounts'] ?? [])),
+            'spmb_payment_cash_enabled' => (int) ($data['spmb_payment_cash_enabled'] ?? false),
+            'spmb_payment_cash_instructions' => $data['spmb_payment_cash_instructions'] ?? '',
         ]);
 
         Notification::make()
@@ -526,9 +552,28 @@ class SpmbSettings extends Page
      * Whether the payment defaults are worth showing: either payments are on
      * globally, or a jenjang has switched them on for itself — in which case
      * these values still apply to it as fallbacks.
+     *
+     * Every field this hides is marked `dehydratedWhenHidden()`. A hidden
+     * field is otherwise left out of the form state, and `save()` rewrites
+     * every key — so switching tagihan off and saving would wipe the rekening
+     * and petunjuk and reset the other defaults.
      */
     private static function paymentSectionVisible(Get $get): bool
     {
         return (bool) $get('spmb_payment_enabled') || Institution::paymentEnabledAnywhere();
+    }
+
+    /**
+     * The global cash instructions also serve as the fallback for any jenjang
+     * that switched cash on for itself, so they stay editable in that case.
+     */
+    private static function cashInstructionsVisible(Get $get): bool
+    {
+        if (! self::paymentSectionVisible($get)) {
+            return false;
+        }
+
+        return (bool) $get('spmb_payment_cash_enabled')
+            || Institution::query()->where('payment_cash_enabled', true)->exists();
     }
 }

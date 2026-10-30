@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class RegistrationPayment extends Model
@@ -28,6 +29,8 @@ class RegistrationPayment extends Model
     public const METHOD_MANUAL_TRANSFER = 'manual_transfer';
 
     public const METHOD_GATEWAY = 'gateway';
+
+    public const METHOD_CASH = 'cash';
 
     /**
      * Permission yang membebaskan pemiliknya dari pembatasan per unit pada
@@ -112,6 +115,34 @@ class RegistrationPayment extends Model
         return self::statusOptions()[$this->status] ?? $this->status;
     }
 
+    /** @return array<string, string> */
+    public static function methodOptions(): array
+    {
+        return [
+            self::METHOD_MANUAL_TRANSFER => 'Transfer bank',
+            self::METHOD_CASH => 'Tunai di kantor',
+        ];
+    }
+
+    /**
+     * How the tagihan was paid, or null while nothing has been paid yet: until
+     * a bukti arrives or the tagihan is settled, `method` only holds the
+     * default it was issued with.
+     */
+    public function methodLabel(): ?string
+    {
+        if (! $this->isSettled() && $this->status !== self::STATUS_WAITING) {
+            return null;
+        }
+
+        return self::methodOptions()[$this->method] ?? $this->method;
+    }
+
+    public function isCash(): bool
+    {
+        return $this->method === self::METHOD_CASH;
+    }
+
     /**
      * The exact amount the pendaftar must transfer: the fee plus the 3-digit
      * kode unik that makes an incoming transfer identifiable in the mutasi.
@@ -134,6 +165,22 @@ class RegistrationPayment extends Model
     public function isSettled(): bool
     {
         return $this->status === self::STATUS_PAID;
+    }
+
+    /**
+     * Whether panitia may record a cash payment against this tagihan: its
+     * jenjang takes cash at the office and the tagihan is still open. A bukti
+     * awaiting verification blocks it — that transfer may already have landed,
+     * so it must be settled or rejected first to avoid charging twice.
+     */
+    public function acceptsCash(): bool
+    {
+        if ($this->isSettled() || $this->status === self::STATUS_WAITING) {
+            return false;
+        }
+
+        return $this->registration?->institution?->acceptsCashPayment()
+            ?? setting_bool('spmb_payment_cash_enabled', false);
     }
 
     /**
@@ -196,6 +243,35 @@ class RegistrationPayment extends Model
                 'status' => 'verified',
                 'verified_at' => $registration->verified_at ?? now(),
             ])->save();
+        }
+    }
+
+    /**
+     * Record biaya pendaftaran handed over in cash at the office and settle the
+     * tagihan. The kode unik only exists to match transfers, so it is dropped
+     * and the total reflects what was actually received. A bukti transfer
+     * rejected earlier is superseded, so its file is removed from the disk.
+     *
+     * @param  array{payer_name: string, paid_on?: ?string, note?: ?string}  $attributes
+     */
+    public function recordCashPayment(array $attributes, ?User $receiver = null): void
+    {
+        $supersededProof = $this->proof_path;
+
+        $this->forceFill([
+            'method' => self::METHOD_CASH,
+            'unique_code' => 0,
+            'sender_name' => $attributes['payer_name'],
+            'transferred_on' => $attributes['paid_on'] ?? now()->toDateString(),
+            'bank_account' => null,
+            'proof_path' => null,
+            'submitted_at' => null,
+        ]);
+
+        $this->markPaid($receiver, $attributes['note'] ?? null);
+
+        if (filled($supersededProof)) {
+            Storage::disk('local')->delete($supersededProof);
         }
     }
 

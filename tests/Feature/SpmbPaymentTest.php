@@ -789,5 +789,214 @@ class SpmbPaymentTest extends TestCase
         $response->assertOk();
         $response->assertSee(rupiah(150_000));
         $response->assertSee(route('ppdb.status'), false);
+        $response->assertDontSee('tunai langsung di kantor');
+    }
+
+    // ── Bayar tunai di kantor ────────────────────────────────────────
+
+    public function test_the_ppdb_page_mentions_cash_when_the_jenjang_takes_it(): void
+    {
+        Setting::set('spmb_payment_cash_enabled', '1');
+
+        $this->get(route('ppdb.show', $this->institution))
+            ->assertOk()
+            ->assertSee('tunai langsung di kantor');
+    }
+
+    public function test_status_page_offers_cash_next_to_transfer_when_the_jenjang_takes_it(): void
+    {
+        Setting::set('spmb_payment_cash_enabled', '1');
+        Setting::set('spmb_payment_cash_instructions', 'Kantor TU, Jl. Merdeka 1. Senin sampai Sabtu pukul 08.00-14.00.');
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+        $this->assertGreaterThan(0, $payment->unique_code);
+
+        $response = $this->get(URL::signedRoute('ppdb.payment', $registration));
+
+        $response->assertOk();
+        $response->assertSee('Tunai di Kantor');
+        $response->assertSee('Kantor TU, Jl. Merdeka 1. Senin sampai Sabtu pukul 08.00-14.00.');
+        $response->assertSee($registration->registration_number);
+        // Cash pays the plain fee: the kode unik only exists to match transfers.
+        $response->assertSeeInOrder(['Total yang dibayar tunai', rupiah(150_000)]);
+        // Transferring stays available next to it.
+        $response->assertSee('name="proof"', false);
+    }
+
+    public function test_status_page_does_not_offer_cash_unless_switched_on(): void
+    {
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        RegistrationPayment::issueFor($registration);
+
+        $response = $this->get(URL::signedRoute('ppdb.payment', $registration));
+
+        $response->assertOk();
+        $response->assertDontSee('Tunai di Kantor');
+        $response->assertSee('name="proof"', false);
+    }
+
+    public function test_a_jenjang_can_take_cash_while_it_is_globally_off(): void
+    {
+        Setting::set('spmb_payment_cash_enabled', '0');
+        $this->institution->update(['payment_cash_enabled' => true]);
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        RegistrationPayment::issueFor($registration);
+
+        $this->get(URL::signedRoute('ppdb.payment', $registration))
+            ->assertOk()
+            ->assertSee('Tunai di Kantor');
+    }
+
+    public function test_a_jenjang_can_refuse_cash_while_it_is_globally_on(): void
+    {
+        Setting::set('spmb_payment_cash_enabled', '1');
+        $this->institution->update(['payment_cash_enabled' => false]);
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        RegistrationPayment::issueFor($registration);
+
+        $this->get(URL::signedRoute('ppdb.payment', $registration))
+            ->assertOk()
+            ->assertDontSee('Tunai di Kantor');
+    }
+
+    public function test_a_jenjang_cash_instructions_replace_the_global_ones(): void
+    {
+        Setting::set('spmb_payment_cash_enabled', '1');
+        Setting::set('spmb_payment_cash_instructions', 'Petunjuk tunai global.');
+        $this->institution->update(['payment_cash_instructions' => 'Bayar di kantor SMP, lantai 2.']);
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        RegistrationPayment::issueFor($registration);
+
+        $response = $this->get(URL::signedRoute('ppdb.payment', $registration));
+
+        $response->assertOk();
+        $response->assertSee('Bayar di kantor SMP, lantai 2.');
+        $response->assertDontSee('Petunjuk tunai global.');
+    }
+
+    public function test_cash_instructions_fall_back_to_a_default(): void
+    {
+        $this->assertSame(Institution::DEFAULT_CASH_PAYMENT_INSTRUCTIONS, $this->institution->resolvedCashPaymentInstructions());
+
+        Setting::set('spmb_payment_cash_instructions', 'Petunjuk tunai global.');
+
+        $this->assertSame('Petunjuk tunai global.', $this->institution->fresh()->resolvedCashPaymentInstructions());
+    }
+
+    public function test_cash_is_not_offered_once_the_tagihan_has_expired(): void
+    {
+        Setting::set('spmb_payment_cash_enabled', '1');
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+        $payment->update(['expires_at' => now()->subHour()]);
+
+        $this->get(URL::signedRoute('ppdb.payment', $registration))
+            ->assertOk()
+            ->assertDontSee('Tunai di Kantor');
+    }
+
+    public function test_recording_a_cash_payment_settles_the_tagihan_without_the_kode_unik(): void
+    {
+        $registration = SpmbRegistration::factory()->pending()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+        $paidOn = now()->subDay()->toDateString();
+
+        $receiver = User::factory()->create();
+        $payment->recordCashPayment([
+            'payer_name' => 'Ibu Siti',
+            'paid_on' => $paidOn,
+            'note' => 'Kwitansi 0012',
+        ], $receiver);
+
+        $payment->refresh();
+        $this->assertSame(RegistrationPayment::STATUS_PAID, $payment->status);
+        $this->assertSame(RegistrationPayment::METHOD_CASH, $payment->method);
+        $this->assertSame(0, $payment->unique_code);
+        $this->assertSame(150_000, $payment->total());
+        $this->assertSame('Ibu Siti', $payment->sender_name);
+        $this->assertSame($paidOn, $payment->transferred_on->toDateString());
+        $this->assertSame('Kwitansi 0012', $payment->note);
+        $this->assertSame($receiver->id, $payment->verified_by);
+        $this->assertSame('Tunai di kantor', $payment->methodLabel());
+        $this->assertSame('verified', $registration->refresh()->status);
+    }
+
+    public function test_cash_supersedes_a_rejected_bukti_and_removes_its_file(): void
+    {
+        Storage::fake('local');
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+
+        $this->post(URL::signedRoute('ppdb.payment.proof', $registration), [
+            'sender_name' => 'Ayah Budi',
+            'bank_account' => 0,
+            'transferred_on' => now()->toDateString(),
+            'proof' => UploadedFile::fake()->create('bukti.jpg', 100, 'image/jpeg'),
+        ])->assertSessionHas('success');
+
+        $rejectedProof = $payment->refresh()->proof_path;
+        $payment->markRejected(null, 'Bukti buram.');
+
+        $payment->recordCashPayment(['payer_name' => 'Ayah Budi']);
+
+        $payment->refresh();
+        $this->assertTrue($payment->isSettled());
+        $this->assertNull($payment->proof_path);
+        $this->assertNull($payment->bank_account);
+        $this->assertNull($payment->note);
+        $this->assertSame(now()->toDateString(), $payment->transferred_on->toDateString());
+        Storage::disk('local')->assertMissing($rejectedProof);
+    }
+
+    public function test_cash_is_only_accepted_where_the_jenjang_takes_it(): void
+    {
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+
+        $this->assertFalse($payment->acceptsCash());
+
+        Setting::set('spmb_payment_cash_enabled', '1');
+
+        $this->assertTrue($payment->fresh()->acceptsCash());
+    }
+
+    /**
+     * A bukti awaiting verification may mean the transfer already landed, so
+     * taking cash on top of it could charge the pendaftar twice.
+     */
+    public function test_a_bukti_awaiting_verification_blocks_cash(): void
+    {
+        Setting::set('spmb_payment_cash_enabled', '1');
+
+        $payment = RegistrationPayment::factory()->waitingVerification()->create([
+            'spmb_registration_id' => SpmbRegistration::factory()->create(['institution_id' => $this->institution->id])->id,
+        ]);
+
+        $this->assertFalse($payment->acceptsCash());
+        $this->assertFalse(RegistrationPayment::factory()->paidInCash()->create()->acceptsCash());
+    }
+
+    public function test_status_page_reports_a_cash_settlement(): void
+    {
+        Setting::set('spmb_payment_cash_enabled', '1');
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+        $payment->recordCashPayment(['payer_name' => 'Ibu Siti']);
+
+        $response = $this->get(URL::signedRoute('ppdb.payment', $registration));
+
+        $response->assertOk();
+        $response->assertSee('Pembayaran Lunas');
+        $response->assertSee('Dibayar tunai di kantor');
+        $response->assertSeeInOrder(['Total dibayar', rupiah(150_000)]);
+        $response->assertDontSee('Tunai di Kantor');
+        $response->assertDontSee('name="proof"', false);
     }
 }

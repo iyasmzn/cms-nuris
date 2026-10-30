@@ -48,6 +48,18 @@ class RegistrationPaymentFactory extends Factory
         ]);
     }
 
+    public function paidInCash(): static
+    {
+        return $this->state([
+            'method' => RegistrationPayment::METHOD_CASH,
+            'status' => RegistrationPayment::STATUS_PAID,
+            'unique_code' => 0,
+            'sender_name' => fake()->name(),
+            'transferred_on' => now()->toDateString(),
+            'verified_at' => now(),
+        ]);
+    }
+
     public function expired(): static
     {
         return $this->state([

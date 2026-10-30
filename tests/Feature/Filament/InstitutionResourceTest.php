@@ -96,6 +96,26 @@ class InstitutionResourceTest extends TestCase
         $this->assertSame(6, $institution->paymentDeadlineHours());
     }
 
+    public function test_it_saves_the_cash_payment_option_of_one_jenjang(): void
+    {
+        Setting::set('spmb_payment_cash_enabled', '0');
+
+        $institution = Institution::factory()->create();
+
+        Livewire::test(EditInstitution::class, ['record' => $institution->id])
+            ->fillForm([
+                'payment_cash_enabled' => 1,
+                'payment_cash_instructions' => 'Kantor TU SD, Senin-Jumat 08.00-13.00.',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $institution->refresh();
+
+        $this->assertTrue($institution->acceptsCashPayment());
+        $this->assertSame('Kantor TU SD, Senin-Jumat 08.00-13.00.', $institution->resolvedCashPaymentInstructions());
+    }
+
     public function test_it_saves_the_quota_and_auto_close_switch(): void
     {
         $institution = Institution::factory()->create();

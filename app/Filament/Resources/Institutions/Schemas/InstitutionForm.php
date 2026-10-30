@@ -11,6 +11,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -22,12 +23,19 @@ class InstitutionForm
 {
     use InteractsWithImagePicker;
 
+    /**
+     * The page lays sections out two per row. The dense ones — identity,
+     * biaya, konten — span the full width so their inner grids keep room to
+     * breathe; Mode Formulir and Kuota are short single-column sections and
+     * pair up side by side.
+     */
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
             Section::make('Jenjang / Unit Pendidikan')
                 ->description('Setiap jenjang menjalankan PPDB-nya sendiri: gelombang, jadwal, jalur, dan pendaftar.')
                 ->icon('heroicon-o-building-library')
+                ->columnSpanFull()
                 ->schema([
                     Grid::make(12)->schema([
                         TextInput::make('icon')
@@ -197,20 +205,14 @@ class InstitutionForm
             Section::make('Biaya Pendaftaran')
                 ->description('Penagihan biaya pendaftaran khusus jenjang ini. Setiap isian yang dikosongkan mengikuti Pengaturan PPDB global.')
                 ->icon('heroicon-o-credit-card')
+                ->columnSpanFull()
                 ->schema([
-                    Grid::make(3)->schema([
+                    Grid::make(2)->schema([
                         self::globalOverride(
                             'payment_enabled',
                             'Tagih Biaya Pendaftaran',
                             fn (): bool => setting_bool('spmb_payment_enabled', false),
                             'Bila aktif, pendaftar jenjang ini langsung menerima tagihan setelah mengirim formulir.',
-                        ),
-
-                        self::globalOverride(
-                            'payment_unique_code',
-                            'Pakai Kode Unik',
-                            fn (): bool => setting_bool('spmb_payment_unique_code', true),
-                            'Menambah 1–999 rupiah pada nominal agar transfer mudah dicocokkan di mutasi.',
                         ),
 
                         TextInput::make('payment_deadline_hours')
@@ -219,7 +221,7 @@ class InstitutionForm
                             ->minValue(0)
                             ->maxValue(720)
                             ->placeholder(fn (): string => 'Ikut global ('.(int) setting('spmb_payment_deadline_hours', 48).' jam)')
-                            ->helperText('Isi 0 bila tagihan jenjang ini tidak pernah kedaluwarsa.'),
+                            ->helperText('Berlaku untuk transfer maupun tunai. Isi 0 bila tagihan jenjang ini tidak pernah kedaluwarsa.'),
                     ]),
 
                     TextInput::make('registration_fee')
@@ -231,54 +233,88 @@ class InstitutionForm
                         ->helperText('Kosongkan atau isi 0 bila pendaftaran jenjang ini gratis — tidak ada tagihan yang terbit. Rincian biaya lain (SPP, seragam) diatur di bagian Konten Halaman PPDB dan sifatnya hanya informasi.')
                         ->columnSpanFull(),
 
-                    Repeater::make('bank_accounts')
-                        ->label('Rekening Tujuan Jenjang Ini')
-                        ->helperText('Rekening yang dipilih pendaftar saat mengunggah bukti transfer. Kosongkan bila jenjang ini memakai rekening global.')
+                    Fieldset::make('Transfer Bank')
+                        ->columns(2)
                         ->schema([
-                            Grid::make(12)->schema([
-                                TextInput::make('bank')
-                                    ->label('Bank')
-                                    ->required()
-                                    ->maxLength(40)
-                                    ->placeholder('BSI')
-                                    ->columnSpan(3),
+                            self::globalOverride(
+                                'payment_unique_code',
+                                'Pakai Kode Unik',
+                                fn (): bool => setting_bool('spmb_payment_unique_code', true),
+                                'Menambah 1–999 rupiah pada nominal agar transfer mudah dicocokkan di mutasi.',
+                            ),
 
-                                TextInput::make('number')
-                                    ->label('Nomor Rekening')
-                                    ->required()
-                                    ->maxLength(40)
-                                    ->placeholder('7123456789')
-                                    ->columnSpan(4),
+                            Repeater::make('bank_accounts')
+                                ->label('Rekening Tujuan Jenjang Ini')
+                                ->helperText('Rekening yang dipilih pendaftar saat mengunggah bukti transfer. Kosongkan bila jenjang ini memakai rekening global.')
+                                ->schema([
+                                    Grid::make(12)->schema([
+                                        TextInput::make('bank')
+                                            ->label('Bank')
+                                            ->required()
+                                            ->maxLength(40)
+                                            ->placeholder('BSI')
+                                            ->columnSpan(3),
 
-                                TextInput::make('holder')
-                                    ->label('Atas Nama')
-                                    ->required()
-                                    ->maxLength(80)
-                                    ->placeholder('Yayasan Nurul Islam')
-                                    ->columnSpan(5),
-                            ]),
+                                        TextInput::make('number')
+                                            ->label('Nomor Rekening')
+                                            ->required()
+                                            ->maxLength(40)
+                                            ->placeholder('7123456789')
+                                            ->columnSpan(4),
+
+                                        TextInput::make('holder')
+                                            ->label('Atas Nama')
+                                            ->required()
+                                            ->maxLength(80)
+                                            ->placeholder('Yayasan Nurul Islam')
+                                            ->columnSpan(5),
+                                    ]),
+                                ])
+                                ->addActionLabel('+ Tambah Rekening')
+                                ->reorderable()
+                                ->reorderableWithDragAndDrop()
+                                ->maxItems(5)
+                                ->defaultItems(0)
+                                ->itemLabel(fn (array $state): string => trim(($state['bank'] ?? 'Rekening baru').' — '.($state['number'] ?? '')))
+                                ->collapsible()
+                                ->columnSpanFull(),
+
+                            Textarea::make('payment_instructions')
+                                ->label('Instruksi Pembayaran')
+                                ->rows(3)
+                                ->maxLength(600)
+                                ->placeholder('Transfer sesuai nominal yang tertera (termasuk 3 digit terakhir), lalu unggah bukti transfer pada halaman ini.')
+                                ->helperText('Tampil di atas formulir unggah bukti transfer. Kosongkan untuk memakai instruksi global.')
+                                ->columnSpanFull(),
                         ])
-                        ->addActionLabel('+ Tambah Rekening')
-                        ->reorderable()
-                        ->reorderableWithDragAndDrop()
-                        ->maxItems(5)
-                        ->defaultItems(0)
-                        ->itemLabel(fn (array $state): string => trim(($state['bank'] ?? 'Rekening baru').' — '.($state['number'] ?? '')))
-                        ->collapsible()
                         ->columnSpanFull(),
 
-                    Textarea::make('payment_instructions')
-                        ->label('Instruksi Pembayaran')
-                        ->rows(3)
-                        ->maxLength(600)
-                        ->placeholder('Transfer sesuai nominal yang tertera (termasuk 3 digit terakhir), lalu unggah bukti transfer pada halaman ini.')
-                        ->helperText('Tampil di atas formulir unggah bukti transfer. Kosongkan untuk memakai instruksi global.')
+                    Fieldset::make('Tunai di Kantor')
+                        ->columns(2)
+                        ->schema([
+                            self::globalOverride(
+                                'payment_cash_enabled',
+                                'Terima Bayar Tunai di Kantor',
+                                fn (): bool => setting_bool('spmb_payment_cash_enabled', false),
+                                'Pendaftar boleh memilih bayar tunai langsung ke kantor selain transfer. Tunai tidak memakai kode unik.',
+                            )->live(),
+
+                            Textarea::make('payment_cash_instructions')
+                                ->label('Petunjuk Bayar Tunai')
+                                ->rows(3)
+                                ->maxLength(600)
+                                ->placeholder(fn (): string => (string) Setting::get('spmb_payment_cash_instructions', '') ?: Institution::DEFAULT_CASH_PAYMENT_INSTRUCTIONS)
+                                ->helperText('Alamat kantor dan jam layanan untuk jenjang ini. Kosongkan untuk memakai petunjuk global.')
+                                ->visible(fn (Get $get): bool => (bool) ($get('payment_cash_enabled') ?? setting_bool('spmb_payment_cash_enabled', false)))
+                                ->columnSpanFull(),
+                        ])
                         ->columnSpanFull(),
                 ]),
 
             Section::make('Konten Halaman PPDB')
                 ->description('Khusus jenjang ini. Kosongkan sebuah bagian untuk memakai pengaturan global (Pengaturan PPDB).')
                 ->icon('heroicon-o-document-text')
+                ->columnSpanFull()
                 ->collapsible()
                 ->collapsed()
                 ->schema([

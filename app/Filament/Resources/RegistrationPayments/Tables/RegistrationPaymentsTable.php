@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RegistrationPayments\Tables;
 
+use App\Filament\Actions\ReceiveCashPaymentAction;
 use App\Filament\Actions\RejectPaymentAction;
 use App\Filament\Actions\SettlePaymentAction;
 use App\Filament\Resources\RegistrationPayments\RegistrationPaymentResource;
@@ -34,7 +35,9 @@ class RegistrationPaymentsTable
 
                 TextColumn::make('registration.full_name')
                     ->label('Pendaftar')
-                    ->searchable()
+                    // Pendaftar yang bayar tunai di kantor menyebutkan nomor
+                    // pendaftarannya, jadi nomor itu harus bisa dicari juga.
+                    ->searchable(['full_name', 'registration_number'])
                     ->sortable()
                     ->description(fn (RegistrationPayment $record): string => $record->registration?->registration_number ?? '—'),
 
@@ -66,8 +69,16 @@ class RegistrationPaymentsTable
                     })
                     ->formatStateUsing(fn (string $state): string => RegistrationPayment::statusOptions()[$state] ?? $state),
 
+                TextColumn::make('method')
+                    ->label('Metode')
+                    ->state(fn (RegistrationPayment $record): ?string => $record->methodLabel())
+                    ->badge()
+                    ->color(fn (RegistrationPayment $record): string => $record->isCash() ? 'success' : 'gray')
+                    ->placeholder('—')
+                    ->toggleable(),
+
                 TextColumn::make('sender_name')
-                    ->label('Pengirim')
+                    ->label('Pengirim / Penyetor')
                     ->searchable()
                     ->placeholder('—')
                     ->description(fn (RegistrationPayment $record): ?string => $record->transferred_on?->translatedFormat('d M Y')),
@@ -94,6 +105,11 @@ class RegistrationPaymentsTable
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options(RegistrationPayment::statusOptions())
+                    ->native(false),
+
+                SelectFilter::make('method')
+                    ->label('Metode')
+                    ->options(RegistrationPayment::methodOptions())
                     ->native(false),
 
                 SelectFilter::make('institution')
@@ -126,6 +142,7 @@ class RegistrationPaymentsTable
                     ->visible(fn (RegistrationPayment $record): bool => filled($record->proof_path)),
 
                 SettlePaymentAction::make(),
+                ReceiveCashPaymentAction::make(),
                 RejectPaymentAction::make(),
 
                 ViewAction::make()->label('Detail'),

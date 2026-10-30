@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SpmbRegistrations\Pages;
 
+use App\Filament\Actions\ReceiveCashPaymentAction;
 use App\Filament\Actions\RejectPaymentAction;
 use App\Filament\Actions\SettlePaymentAction;
 use App\Filament\Actions\UpdateRegistrationStatusAction;
@@ -35,6 +36,10 @@ class ViewSpmbRegistration extends ViewRecord
                 ->label('Tandai Lunas')
                 ->record($payment)
                 ->visible(fn (): bool => $payment() !== null && ! $payment()->isSettled()),
+
+            ReceiveCashPaymentAction::make()
+                ->record($payment)
+                ->visible(fn (): bool => $payment()?->acceptsCash() ?? false),
 
             RejectPaymentAction::make()
                 ->label('Tolak Bukti')
