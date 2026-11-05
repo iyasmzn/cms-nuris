@@ -6,6 +6,7 @@ use App\Filament\Concerns\InteractsWithImagePicker;
 use App\Models\Institution;
 use App\Models\Setting;
 use App\Models\SpmbRegistration;
+use Closure;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -236,12 +237,29 @@ class InstitutionForm
                     Fieldset::make('Transfer Bank')
                         ->columns(2)
                         ->schema([
+                            Toggle::make('payment_transfer_enabled')
+                                ->label('Terima Transfer Bank')
+                                ->default(true)
+                                ->onColor('success')
+                                ->live()
+                                ->helperText('Matikan bila jenjang ini hanya menerima bayar tunai di kantor. Rekening — termasuk rekening global — tidak ditampilkan ke pendaftar dan tagihan terbit tanpa kode unik.')
+                                ->rules([
+                                    fn (Get $get): Closure => function (string $attribute, mixed $value, Closure $fail) use ($get): void {
+                                        if ($value || self::acceptsCash($get)) {
+                                            return;
+                                        }
+
+                                        $fail('Jenjang tanpa transfer wajib menerima bayar tunai. Setel "Terima Bayar Tunai di Kantor" menjadi Aktif agar pendaftar tetap bisa membayar.');
+                                    },
+                                ])
+                                ->columnSpanFull(),
+
                             self::globalOverride(
                                 'payment_unique_code',
                                 'Pakai Kode Unik',
                                 fn (): bool => setting_bool('spmb_payment_unique_code', true),
                                 'Menambah 1–999 rupiah pada nominal agar transfer mudah dicocokkan di mutasi.',
-                            ),
+                            )->visible(fn (Get $get): bool => (bool) $get('payment_transfer_enabled')),
 
                             Repeater::make('bank_accounts')
                                 ->label('Rekening Tujuan Jenjang Ini')
@@ -277,6 +295,7 @@ class InstitutionForm
                                 ->defaultItems(0)
                                 ->itemLabel(fn (array $state): string => trim(($state['bank'] ?? 'Rekening baru').' — '.($state['number'] ?? '')))
                                 ->collapsible()
+                                ->visible(fn (Get $get): bool => (bool) $get('payment_transfer_enabled'))
                                 ->columnSpanFull(),
 
                             Textarea::make('payment_instructions')
@@ -285,6 +304,7 @@ class InstitutionForm
                                 ->maxLength(600)
                                 ->placeholder('Transfer sesuai nominal yang tertera (termasuk 3 digit terakhir), lalu unggah bukti transfer pada halaman ini.')
                                 ->helperText('Tampil di atas formulir unggah bukti transfer. Kosongkan untuk memakai instruksi global.')
+                                ->visible(fn (Get $get): bool => (bool) $get('payment_transfer_enabled'))
                                 ->columnSpanFull(),
                         ])
                         ->columnSpanFull(),
@@ -305,7 +325,7 @@ class InstitutionForm
                                 ->maxLength(600)
                                 ->placeholder(fn (): string => (string) Setting::get('spmb_payment_cash_instructions', '') ?: Institution::DEFAULT_CASH_PAYMENT_INSTRUCTIONS)
                                 ->helperText('Alamat kantor dan jam layanan untuk jenjang ini. Kosongkan untuk memakai petunjuk global.')
-                                ->visible(fn (Get $get): bool => (bool) ($get('payment_cash_enabled') ?? setting_bool('spmb_payment_cash_enabled', false)))
+                                ->visible(fn (Get $get): bool => self::acceptsCash($get))
                                 ->columnSpanFull(),
                         ])
                         ->columnSpanFull(),
@@ -450,6 +470,15 @@ class InstitutionForm
         }
 
         return 'Saat ini terisi '.$record->quotaUsed().' pendaftar pada tahun ajaran '.spmb_year_label().'. '.$hint;
+    }
+
+    /**
+     * Whether the form, as currently filled, lets this jenjang take cash — its
+     * own choice, or the global switch while it follows Pengaturan PPDB.
+     */
+    private static function acceptsCash(Get $get): bool
+    {
+        return (bool) ($get('payment_cash_enabled') ?? setting_bool('spmb_payment_cash_enabled', false));
     }
 
     /**

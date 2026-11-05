@@ -68,6 +68,10 @@
         \App\Models\RegistrationPayment::STATUS_REJECTED => 'bg-red-50 text-red-700 border-red-200',
         \App\Models\RegistrationPayment::STATUS_EXPIRED => 'bg-gray-100 text-gray-600 border-gray-200',
     ];
+
+    // Tabs only make sense with two ways to pay. A jenjang tunai saja shows the
+    // cash panel on its own, without any transfer box or rekening.
+    $showsMethodTabs = $offersCash && $offersTransfer;
 @endphp
 
 <section class="ppdb-hero page-band -mt-17 pt-32 pb-14 sm:pt-36 sm:pb-16">
@@ -139,7 +143,7 @@
 
     @if($payment)
     {{-- ── Tagihan ───────────────────────────────────────────── --}}
-    <div class="fi-card overflow-hidden" data-aos="fade-up" @if($offersCash) x-data="{ method: 'transfer' }" @endif>
+    <div class="fi-card overflow-hidden" data-aos="fade-up" @if($showsMethodTabs) x-data="{ method: 'transfer' }" @endif>
         <div class="p-6">
             <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
                 <div>
@@ -152,7 +156,7 @@
             </div>
 
             {{-- ── Pilihan cara bayar ───────────────────────── --}}
-            @if($offersCash)
+            @if($showsMethodTabs)
             <div class="pay-methods" role="tablist" aria-label="Cara pembayaran">
                 <button type="button" role="tab" class="pay-method"
                         :class="{ 'is-active': method === 'transfer' }"
@@ -177,23 +181,26 @@
             </div>
             @endif
 
-            <div class="p-5 rounded-xl border border-amber-200 bg-amber-50 text-center mb-5" @if($offersCash) x-show="method === 'transfer'" @endif>
-                <p class="text-xs font-semibold text-amber-800 mb-1">{{ $payment->isSettled() ? 'Total dibayar' : 'Total yang harus ditransfer' }}</p>
-                <p class="text-3xl font-extrabold text-amber-700">{{ rupiah($payment->total()) }}</p>
-                @if($payment->unique_code > 0 && ! $payment->isSettled())
+            @if($offersTransfer || ! $offersCash)
+            <div class="p-5 rounded-xl border border-amber-200 bg-amber-50 text-center mb-5" @if($showsMethodTabs) x-show="method === 'transfer'" @endif>
+                <p class="text-xs font-semibold text-amber-800 mb-1">{{ $payment->isSettled() ? 'Total dibayar' : ($offersTransfer ? 'Total yang harus ditransfer' : 'Total yang harus dibayar') }}</p>
+                {{-- A jenjang tunai saja collects the plain fee, even on a tagihan issued with a kode unik before transfer was switched off. --}}
+                <p class="text-3xl font-extrabold text-amber-700">{{ rupiah($offersTransfer || $payment->isSettled() ? $payment->total() : $payment->amount) }}</p>
+                @if($offersTransfer && $payment->unique_code > 0 && ! $payment->isSettled())
                 <p class="text-xs text-amber-700 mt-2">
                     {{ rupiah($payment->amount) }} + {{ $payment->unique_code }} kode unik.
                     <strong>Transfer tepat sampai 3 digit terakhir</strong> agar pembayaran mudah dicocokkan.
                 </p>
                 @endif
             </div>
+            @endif
 
             @if($offersCash)
             {{-- Kode unik only exists to match transfers, so cash pays the plain fee. --}}
-            <div class="p-5 rounded-xl border border-green-200 bg-green-50 text-center mb-5" x-show="method === 'cash'" x-cloak>
+            <div class="p-5 rounded-xl border border-green-200 bg-green-50 text-center mb-5" @if($showsMethodTabs) x-show="method === 'cash'" x-cloak @endif>
                 <p class="text-xs font-semibold text-green-800 mb-1">Total yang dibayar tunai</p>
                 <p class="text-3xl font-extrabold text-green-700">{{ rupiah($payment->amount) }}</p>
-                @if($payment->unique_code > 0)
+                @if($offersTransfer && $payment->unique_code > 0)
                 <p class="text-xs text-green-700 mt-2">Tanpa kode unik — kode unik hanya berlaku untuk transfer.</p>
                 @endif
             </div>
@@ -245,14 +252,18 @@
             <div class="mt-5 p-4 rounded-xl border border-red-200 bg-red-50">
                 <p class="font-bold text-red-800 text-sm mb-1">Bukti transfer sebelumnya ditolak</p>
                 <p class="text-xs text-red-700">{{ $payment->note }}</p>
+                @if($offersTransfer)
                 <p class="text-xs text-red-700 mt-1">Silakan unggah ulang bukti transfer yang benar{{ $offersCash ? ', atau pilih bayar tunai di kantor' : '' }}.</p>
+                @else
+                <p class="text-xs text-red-700 mt-1">Silakan lunasi tagihan ini dengan bayar tunai di kantor.</p>
+                @endif
             </div>
             @endif
         </div>
 
         {{-- ── Instruksi + form unggah bukti ─────────────── --}}
         @if($proofUrl)
-        <div class="border-t p-6" style="border-color:var(--border)" @if($offersCash) x-show="method === 'transfer'" @endif>
+        <div class="border-t p-6" style="border-color:var(--border)" @if($showsMethodTabs) x-show="method === 'transfer'" @endif>
             @if($instructions)
             <p class="text-sm mb-5" style="color:var(--muted)">{{ $instructions }}</p>
             @endif
@@ -326,7 +337,7 @@
 
         {{-- ── Bayar tunai di kantor ─────────────────────── --}}
         @if($offersCash)
-        <div class="border-t p-6" style="border-color:var(--border)" x-show="method === 'cash'" x-cloak>
+        <div class="border-t p-6" style="border-color:var(--border)" @if($showsMethodTabs) x-show="method === 'cash'" x-cloak @endif>
             <h3 class="font-bold text-sm mb-2" style="color:var(--text)">Cara Bayar Tunai di Kantor</h3>
             <p class="pay-cash-instructions text-sm mb-5" style="color:var(--muted)">{{ $cashInstructions }}</p>
 

@@ -999,4 +999,147 @@ class SpmbPaymentTest extends TestCase
         $response->assertDontSee('Tunai di Kantor');
         $response->assertDontSee('name="proof"', false);
     }
+
+    // ── Tunai saja (tanpa transfer) ──────────────────────────────────
+
+    private function makeCashOnly(): void
+    {
+        $this->institution->update([
+            'payment_transfer_enabled' => false,
+            'payment_cash_enabled' => true,
+        ]);
+    }
+
+    public function test_a_jenjang_takes_transfer_unless_switched_off(): void
+    {
+        $this->assertTrue($this->institution->acceptsTransferPayment());
+
+        $this->makeCashOnly();
+
+        $this->assertFalse($this->institution->fresh()->acceptsTransferPayment());
+    }
+
+    /**
+     * Emptying the jenjang's own rekening falls back to the global ones, so
+     * switching transfer off is the only way to keep them off the page.
+     */
+    public function test_a_cash_only_jenjang_hides_every_rekening_and_the_bukti_form(): void
+    {
+        $this->makeCashOnly();
+        Setting::set('spmb_payment_cash_instructions', 'Kantor TU, Jl. Merdeka 1.');
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        RegistrationPayment::issueFor($registration);
+
+        $response = $this->get(URL::signedRoute('ppdb.payment', $registration));
+
+        $response->assertOk();
+        $response->assertDontSee('7123456789');
+        $response->assertDontSee('Rekening Tujuan Transfer');
+        $response->assertDontSee('name="proof"', false);
+        $response->assertDontSee('Total yang harus ditransfer');
+        // One way to pay: no tabs, and the cash panel is not hidden behind one.
+        $response->assertDontSee('role="tablist"', false);
+        $response->assertDontSee('x-show="method === \'cash\'"', false);
+        $response->assertSee('Cara Bayar Tunai di Kantor');
+        $response->assertSee('Kantor TU, Jl. Merdeka 1.');
+        $response->assertSeeInOrder(['Total yang dibayar tunai', rupiah(150_000)]);
+    }
+
+    public function test_a_cash_only_jenjang_never_adds_a_kode_unik(): void
+    {
+        Setting::set('spmb_payment_unique_code', '1');
+        $this->makeCashOnly();
+        $this->institution->update(['payment_unique_code' => true]);
+
+        $this->assertFalse($this->institution->fresh()->usesUniqueCode());
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+
+        $this->assertSame(0, $payment->unique_code);
+        $this->assertSame(150_000, $payment->total());
+    }
+
+    public function test_switching_transfer_off_drops_the_kode_unik_from_an_open_tagihan(): void
+    {
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+        $this->assertGreaterThan(0, $payment->unique_code);
+
+        $this->makeCashOnly();
+
+        $response = $this->get(URL::signedRoute('ppdb.payment', $registration));
+
+        $response->assertOk();
+        $response->assertSeeInOrder(['Total yang dibayar tunai', rupiah(150_000)]);
+        $response->assertDontSee(rupiah($payment->total()));
+        $response->assertDontSee('kode unik');
+    }
+
+    public function test_an_expired_tagihan_of_a_cash_only_jenjang_does_not_mention_transfer(): void
+    {
+        $this->makeCashOnly();
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+        $payment->update(['expires_at' => now()->subHour()]);
+
+        $response = $this->get(URL::signedRoute('ppdb.payment', $registration));
+
+        $response->assertOk();
+        $response->assertSee('Batas Waktu Pembayaran Terlewat');
+        $response->assertSeeInOrder(['Total yang harus dibayar', rupiah(150_000)]);
+        $response->assertDontSee('Total yang harus ditransfer');
+        $response->assertDontSee('7123456789');
+    }
+
+    public function test_a_cash_only_jenjang_refuses_a_bukti_upload(): void
+    {
+        Storage::fake('local');
+        $this->makeCashOnly();
+
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+
+        $this->post(URL::signedRoute('ppdb.payment.proof', $registration), [
+            'sender_name' => 'Ayah Budi',
+            'bank_account' => 0,
+            'transferred_on' => now()->toDateString(),
+            'proof' => UploadedFile::fake()->create('bukti.jpg', 100, 'image/jpeg'),
+        ])->assertRedirect()->assertSessionHas('error');
+
+        $payment->refresh();
+        $this->assertSame(RegistrationPayment::STATUS_UNPAID, $payment->status);
+        $this->assertNull($payment->proof_path);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_a_rejected_bukti_of_a_cash_only_jenjang_points_to_cash(): void
+    {
+        $registration = SpmbRegistration::factory()->create(['institution_id' => $this->institution->id]);
+        $payment = RegistrationPayment::issueFor($registration);
+        $payment->markRejected(null, 'Bukti buram.');
+
+        $this->makeCashOnly();
+
+        $response = $this->get(URL::signedRoute('ppdb.payment', $registration));
+
+        $response->assertOk();
+        $response->assertSee('Bukti buram.');
+        $response->assertSee('Silakan lunasi tagihan ini dengan bayar tunai di kantor.');
+        $response->assertDontSee('Silakan unggah ulang bukti transfer');
+        $response->assertDontSee('name="proof"', false);
+    }
+
+    public function test_the_ppdb_page_says_a_cash_only_jenjang_takes_cash_only(): void
+    {
+        $this->makeCashOnly();
+
+        $this->get(route('ppdb.show', $this->institution))
+            ->assertOk()
+            ->assertSee('Pembayaran dilakukan tunai langsung di kantor.')
+            ->assertDontSee('Bayar lewat transfer bank')
+            ->assertDontSee('nomor rekening tujuan');
+    }
 }

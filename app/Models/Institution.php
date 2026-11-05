@@ -56,6 +56,7 @@ class Institution extends Model
         'payment_enabled',
         'payment_unique_code',
         'payment_deadline_hours',
+        'payment_transfer_enabled',
         'payment_cash_enabled',
         'bank_accounts',
         'payment_instructions',
@@ -85,6 +86,7 @@ class Institution extends Model
         'payment_enabled' => 'boolean',
         'payment_unique_code' => 'boolean',
         'payment_deadline_hours' => 'integer',
+        'payment_transfer_enabled' => 'boolean',
         'payment_cash_enabled' => 'boolean',
     ];
 
@@ -370,6 +372,16 @@ class Institution extends Model
     }
 
     /**
+     * Whether pendaftar of this jenjang may transfer to a rekening and upload
+     * a bukti. Switched off, the jenjang is tunai di kantor saja: its rekening
+     * — own or global — are never shown and no kode unik is added.
+     */
+    public function acceptsTransferPayment(): bool
+    {
+        return (bool) ($this->payment_transfer_enabled ?? true);
+    }
+
+    /**
      * Whether pendaftar of this jenjang may pay tunai langsung ke kantor
      * instead of transferring, falling back to the global switch.
      */
@@ -421,10 +433,15 @@ class Institution extends Model
 
     /**
      * Whether a 3-digit kode unik is added to this jenjang's tagihan so two
-     * transfers of the same nominal stay distinguishable in the mutasi.
+     * transfers of the same nominal stay distinguishable in the mutasi. Never
+     * for a jenjang that takes no transfer — cash pays the plain fee.
      */
     public function usesUniqueCode(): bool
     {
+        if (! $this->acceptsTransferPayment()) {
+            return false;
+        }
+
         return $this->payment_unique_code ?? setting_bool('spmb_payment_unique_code', true);
     }
 
