@@ -89,8 +89,9 @@ class PpdbPaymentController extends Controller
 
     /**
      * Status pendaftaran plus, when a tagihan exists, the payment instructions
-     * and bukti transfer upload form — alongside the bayar tunai di kantor
-     * option when the jenjang takes cash. Reachable only through a signed URL.
+     * and bukti transfer upload form — alongside, or for a jenjang tunai saja
+     * instead of, the bayar tunai di kantor option when the jenjang takes cash.
+     * Reachable only through a signed URL.
      *
      * Because the URL itself is the credential, the response is marked
      * noindex, sends no Referer, and is never cached.
@@ -100,7 +101,11 @@ class PpdbPaymentController extends Controller
         $registration->load(['institution', 'academicYear', 'registrationWave', 'admissionPath', 'payment']);
 
         $payment = $registration->payment;
-        $bankAccounts = $registration->institution?->resolvedBankAccounts() ?? spmb_bank_accounts();
+        $offersTransfer = $registration->institution?->acceptsTransferPayment() ?? true;
+        // A jenjang tunai saja must not leak the global rekening it falls back to.
+        $bankAccounts = $offersTransfer
+            ? ($registration->institution?->resolvedBankAccounts() ?? spmb_bank_accounts())
+            : [];
         $instructions = $registration->institution?->resolvedPaymentInstructions()
             ?? (string) setting('spmb_payment_instructions', '');
 
@@ -122,7 +127,7 @@ class PpdbPaymentController extends Controller
             'referrer' => 'no-referrer',
         ];
 
-        $proofUrl = $payment?->acceptsProof()
+        $proofUrl = $offersTransfer && ($payment?->acceptsProof() ?? false)
             ? URL::signedRoute('ppdb.payment.proof', $registration)
             : null;
 
@@ -134,7 +139,7 @@ class PpdbPaymentController extends Controller
         // Personal data on a page often opened from a shared phone or warnet:
         // keep it out of the browser's back-button cache and any proxy.
         return response()
-            ->view('ppdb.payment', compact('registration', 'payment', 'bankAccounts', 'instructions', 'proofUrl', 'offersCash', 'cashInstructions', 'statusUrl', 'seo'))
+            ->view('ppdb.payment', compact('registration', 'payment', 'offersTransfer', 'bankAccounts', 'instructions', 'proofUrl', 'offersCash', 'cashInstructions', 'statusUrl', 'seo'))
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
             ->header('Pragma', 'no-cache');
     }
@@ -146,7 +151,9 @@ class PpdbPaymentController extends Controller
     {
         $payment = $registration->payment;
 
-        if ($payment === null || ! $payment->acceptsProof()) {
+        $acceptsTransfer = $registration->institution?->acceptsTransferPayment() ?? true;
+
+        if ($payment === null || ! $payment->acceptsProof() || ! $acceptsTransfer) {
             return redirect()->to(self::statusUrl($registration))
                 ->with('error', 'Bukti pembayaran tidak dapat dikirim untuk tagihan ini.');
         }

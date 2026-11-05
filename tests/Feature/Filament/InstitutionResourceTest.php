@@ -116,6 +116,73 @@ class InstitutionResourceTest extends TestCase
         $this->assertSame('Kantor TU SD, Senin-Jumat 08.00-13.00.', $institution->resolvedCashPaymentInstructions());
     }
 
+    public function test_it_saves_a_cash_only_jenjang_and_keeps_its_rekening(): void
+    {
+        Setting::set('spmb_payment_cash_enabled', '0');
+
+        $institution = Institution::factory()->create([
+            'bank_accounts' => [
+                ['bank' => 'BRI', 'number' => '0099887766', 'holder' => 'SD IT Nurul Islam'],
+            ],
+        ]);
+
+        Livewire::test(EditInstitution::class, ['record' => $institution->id])
+            ->fillForm([
+                'payment_transfer_enabled' => false,
+                'payment_cash_enabled' => 1,
+            ])
+            ->assertFormFieldHidden('bank_accounts')
+            ->assertFormFieldHidden('payment_unique_code')
+            ->assertFormFieldHidden('payment_instructions')
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $institution->refresh();
+
+        $this->assertFalse($institution->acceptsTransferPayment());
+        $this->assertTrue($institution->acceptsCashPayment());
+        $this->assertFalse($institution->usesUniqueCode());
+        // Hidden, not wiped: switching transfer back on brings the rekening back.
+        // assertEquals because MySQL's JSON column reorders the keys.
+        $this->assertEquals([
+            ['bank' => 'BRI', 'number' => '0099887766', 'holder' => 'SD IT Nurul Islam'],
+        ], $institution->bank_accounts);
+    }
+
+    public function test_a_jenjang_cannot_switch_off_transfer_without_taking_cash(): void
+    {
+        Setting::set('spmb_payment_cash_enabled', '0');
+
+        $institution = Institution::factory()->create();
+
+        Livewire::test(EditInstitution::class, ['record' => $institution->id])
+            ->fillForm([
+                'payment_transfer_enabled' => false,
+                'payment_cash_enabled' => null,
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['payment_transfer_enabled']);
+
+        $this->assertTrue($institution->fresh()->acceptsTransferPayment());
+    }
+
+    public function test_a_jenjang_following_global_cash_may_switch_off_transfer(): void
+    {
+        Setting::set('spmb_payment_cash_enabled', '1');
+
+        $institution = Institution::factory()->create();
+
+        Livewire::test(EditInstitution::class, ['record' => $institution->id])
+            ->fillForm([
+                'payment_transfer_enabled' => false,
+                'payment_cash_enabled' => null,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertFalse($institution->fresh()->acceptsTransferPayment());
+    }
+
     public function test_it_saves_the_quota_and_auto_close_switch(): void
     {
         $institution = Institution::factory()->create();
