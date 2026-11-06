@@ -5,6 +5,11 @@
     .event-hero { height: 22rem; }
     @media (min-width: 640px)  { .event-hero { height: 26rem; } }
     @media (min-width: 1024px) { .event-hero { height: 30rem; } }
+    /* Ditulis di sini, bukan utilitas Tailwind, karena CSS hasil build ikut
+       di-commit dan belum memuat pb-8/sm:pb-12. */
+    .event-hero-body { padding-bottom: 2.25rem; }
+    @media (min-width: 640px)  { .event-hero-body { padding-bottom: 3rem; } }
+    @media (min-width: 1024px) { .event-hero-body { padding-bottom: 3.5rem; } }
     /* Atas digelapkan agar menu navbar tetap terbaca, bawah untuk judul. */
     .event-hero-overlay {
         position: absolute; inset: 0;
@@ -49,7 +54,7 @@
          class="absolute inset-0 w-full h-full object-cover" loading="eager">
     <div class="event-hero-overlay"></div>
 
-    <div class="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 sm:pb-12 flex flex-col justify-end">
+    <div class="event-hero-body relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end">
         <nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-xs sm:text-sm mb-4 min-w-0" style="color:rgba(255,255,255,.65)">
             <a href="{{ route('home') }}" class="hover:text-white transition-colors shrink-0">Beranda</a>
             <svg class="w-3 h-3 opacity-50 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
@@ -63,7 +68,7 @@
               style="background:color-mix(in oklab,var(--primary) 85%,transparent);color:#fff">{{ $event->category }}</span>
         @endif
 
-        <h1 class="section-title text-white max-w-4xl text-balance">
+        <h1 class="section-title text-white max-w-4xl" style="text-wrap:balance">
             {{ $event->title }}
         </h1>
     </div>
