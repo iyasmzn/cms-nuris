@@ -8,6 +8,11 @@ use Illuminate\View\View;
 
 class StaticPageController extends Controller
 {
+    /**
+     * Jumlah maksimum tautan "Halaman Lainnya" di sidebar, agar tidak memanjang saat halaman statis makin banyak.
+     */
+    public const OTHER_PAGES_LIMIT = 5;
+
     public function show(string $slug): View
     {
         $page = StaticPage::active()
@@ -27,6 +32,7 @@ class StaticPageController extends Controller
         $otherPages = StaticPage::active()
             ->ordered()
             ->where('id', '!=', $page->id)
+            ->limit(self::OTHER_PAGES_LIMIT)
             ->get(['id', 'title', 'slug']);
 
         return view('pages.show', compact('page', 'blocks', 'seo', 'otherPages'));

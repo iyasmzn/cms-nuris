@@ -290,39 +290,4 @@
 </div>
 @endunless
 
-{{-- ═══════════════════════════════════════════════════
-     OTHER PAGES — bottom strip
-═══════════════════════════════════════════════════ --}}
-@if($otherPages->isNotEmpty())
-    <section class="border-t py-12" style="border-color:#f3f4f6;background:#f9fafb">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center gap-2 mb-6">
-                <span class="w-4 h-px inline-block" style="background:var(--primary)"></span>
-                <span class="text-[11px] font-bold uppercase tracking-widest" style="color:var(--primary)">Informasi Lainnya</span>
-            </div>
-            <div class="grid gap-3 sm:grid-cols-2">
-                @foreach($otherPages as $other)
-                    <a href="{{ route('page.show', $other->slug) }}"
-                       class="fi-card fi-card-hover flex items-center gap-4 p-4 group min-w-0"
-                       data-aos="fade-up" data-aos-delay="{{ $loop->index * 60 }}">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors" style="background:var(--primary-50);border:1px solid var(--primary-100)">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--primary-500)">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-sm truncate" style="color:var(--text)">{{ $other->title }}</div>
-                            <div class="text-xs mt-0.5" style="color:var(--muted)">/{{ $other->slug }}</div>
-                        </div>
-                        <svg class="w-4 h-4 text-gray-300 shrink-0 transition-all group-hover:translate-x-0.5"
-                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </a>
-                @endforeach
-            </div>
-        </div>
-    </section>
-@endif
-
 @endsection
