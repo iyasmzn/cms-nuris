@@ -2,6 +2,21 @@
 
 @push('head')
 <style>
+    .event-hero { height: 22rem; }
+    @media (min-width: 640px)  { .event-hero { height: 26rem; } }
+    @media (min-width: 1024px) { .event-hero { height: 30rem; } }
+    /* Ditulis di sini, bukan utilitas Tailwind, karena CSS hasil build ikut
+       di-commit dan belum memuat pb-8/sm:pb-12. */
+    .event-hero-body { padding-bottom: 2.25rem; }
+    @media (min-width: 640px)  { .event-hero-body { padding-bottom: 3rem; } }
+    @media (min-width: 1024px) { .event-hero-body { padding-bottom: 3.5rem; } }
+    /* Atas digelapkan agar menu navbar tetap terbaca, bawah untuk judul. */
+    .event-hero-overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(to bottom,
+            rgba(0,0,0,.55) 0%, rgba(0,0,0,.15) 30%,
+            rgba(0,0,0,.25) 55%, rgba(0,0,0,.82) 100%);
+    }
     .sidebar-sticky { position: sticky; top: 5.5rem; }
     .toc-item {
         display: flex; align-items: flex-start; gap: .625rem;
@@ -29,40 +44,35 @@
 
 @section('content')
 
-{{-- ── Breadcrumb ──────────────────────────────────────────── --}}
-<div class="page-band -mt-17" style="background:var(--hero-band);border-bottom:1px solid rgba(255,255,255,.08)">
-    <x-hero-pattern />
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-5 sm:pt-28 sm:pb-6">
-        <nav class="flex items-center gap-2 text-sm" style="color:rgba(255,255,255,.6)">
-            <a href="{{ route('home') }}" class="hover:opacity-75 transition-opacity">Beranda</a>
-            <span>/</span>
-            <a href="{{ route('events.index') }}" class="hover:opacity-75 transition-opacity">Kegiatan</a>
-            <span>/</span>
-            <span class="font-medium line-clamp-1" style="color:#fff">{{ $event->title }}</span>
-        </nav>
-    </div>
-</div>
-
-{{-- ── Hero Image ───────────────────────────────────────────── --}}
-<div class="relative h-64 sm:h-80 lg:h-96 overflow-hidden">
+{{-- ── Hero ─────────────────────────────────────────────────────
+     Satu pita membulat: gambar kegiatan jadi latarnya, navbar melayang di
+     atasnya, dan breadcrumb + kategori + judul dikumpulkan di bagian bawah,
+     sejajar dengan kolom konten di bawahnya.
+--}}
+<div class="event-hero page-band -mt-17">
     <img src="{{ $event->thumbnail_url }}" alt="{{ $event->title }}"
-         class="w-full h-full object-cover">
-    <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,.75),rgba(0,0,0,.2))"></div>
-    <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
-        <div class="max-w-7xl mx-auto">
-            @if($event->category)
-            <span class="inline-block text-xs font-bold px-3 py-1 rounded-full mb-3"
-                  style="background:rgba(8,72,74,.85);color:#fff">{{ $event->category }}</span>
-            @endif
-            <h1 class="section-title text-white max-w-3xl">
-                {{ $event->title }}
-            </h1>
-        </div>
+         class="absolute inset-0 w-full h-full object-cover" loading="eager">
+    <div class="event-hero-overlay"></div>
+
+    <div class="event-hero-body relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end">
+        <nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-xs sm:text-sm mb-4 min-w-0" style="color:rgba(255,255,255,.65)">
+            <a href="{{ route('home') }}" class="hover:text-white transition-colors shrink-0">Beranda</a>
+            <svg class="w-3 h-3 opacity-50 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+            <a href="{{ route('events.index') }}" class="hover:text-white transition-colors shrink-0">Kegiatan</a>
+            <svg class="w-3 h-3 opacity-50 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+            <span class="font-medium truncate text-white">{{ $event->title }}</span>
+        </nav>
+
+        @if($event->category)
+        <span class="self-start text-[11px] font-bold px-3 py-1.5 rounded-full mb-3 uppercase tracking-wide"
+              style="background:color-mix(in oklab,var(--primary) 85%,transparent);color:#fff">{{ $event->category }}</span>
+        @endif
+
+        <h1 class="section-title text-white max-w-4xl" style="text-wrap:balance">
+            {{ $event->title }}
+        </h1>
     </div>
 </div>
-
-{{-- Accent bar --}}
-<div style="height:4px;background:linear-gradient(90deg,var(--primary),var(--primary-300) 50%,var(--primary-100) 100%)"></div>
 
 {{-- ── Content ──────────────────────────────────────────────── --}}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
