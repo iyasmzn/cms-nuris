@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\ContentBlockText;
+use App\Support\LandingHero;
 use App\Support\PageHero;
 use Database\Factories\ProgramFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,6 +51,17 @@ class Program extends Model
         return PageHero::fromArray($this->hero);
     }
 
+    /**
+     * Teks hero landing bila kepala halamannya memakai gaya "Hero Landing",
+     * atau null untuk kepala halaman standar.
+     */
+    public function getLandingHeroAttribute(): ?LandingHero
+    {
+        return LandingHero::isEnabled($this->hero)
+            ? LandingHero::fromArray($this->hero, (string) $this->title)
+            : null;
+    }
+
     public function getThumbnailUrlAttribute(): string
     {
         return $this->image
@@ -60,21 +72,15 @@ class Program extends Model
     /**
      * Ringkasan untuk meta description. Sejak konten detail disusun sebagai
      * seksi, teksnya dipanen dari blok bila ringkasannya kosong.
+     *
+     * @param  array<int, mixed>|null  $blocks  seksi yang benar-benar tampil (hasil
+     *                                          LandingBlocks::prepare()), agar judul blok data
+     *                                          yang sedang kosong tidak ikut; bawaannya seksi tersimpan
      */
-    public function getMetaDescriptionAttribute(): string
+    public function seoDescription(?array $blocks = null): string
     {
-        $source = $this->excerpt ?: ContentBlockText::plain($this->blocks);
+        $source = $this->excerpt ?: ContentBlockText::plain($blocks ?? $this->blocks);
 
         return Str::limit($source, 155);
-    }
-
-    /**
-     * Judul seksi & heading di dalamnya, untuk daftar isi di sidebar.
-     *
-     * @return list<string>
-     */
-    public function getContentHeadingsAttribute(): array
-    {
-        return ContentBlockText::headings($this->blocks);
     }
 }

@@ -8,7 +8,7 @@
     '@type'         => 'WebPage',
     'name'          => $program->title,
     'headline'      => $program->title,
-    'description'   => $program->meta_description,
+    'description'   => $seo['description'],
     'url'           => route('programs.show', $program),
     'image'         => $program->hero_cover->imageUrl() ?: $program->thumbnail_url,
     'datePublished' => $program->created_at?->toIso8601String(),
@@ -65,6 +65,19 @@
 
 @section('content')
 
+@php
+    $heroCover = $program->hero_cover;
+    $landingHero = $program->landing_hero;
+@endphp
+
+@if($landingHero)
+    {{-- ── Hero Landing ─────────────────────────────────────────── --}}
+    @include('partials.landing-hero', [
+        'landingHero' => $landingHero,
+        'heroCover' => $heroCover,
+        'poster' => $program->thumbnail_url,
+    ])
+@else
 {{-- ── Breadcrumb ──────────────────────────────────────────── --}}
 <div class="page-band -mt-17" style="background:var(--hero-band);border-bottom:1px solid rgba(255,255,255,.08)">
     <x-hero-pattern />
@@ -80,7 +93,6 @@
 </div>
 
 {{-- ── Hero Cover ───────────────────────────────────────────── --}}
-@php $heroCover = $program->hero_cover; @endphp
 <div class="relative h-64 sm:h-80 lg:h-96 overflow-hidden">
     <x-page-hero-media :hero="$heroCover"
                        :poster="$program->thumbnail_url"
@@ -107,6 +119,7 @@
 
 {{-- Accent bar --}}
 <div style="height:4px;background:linear-gradient(90deg,var(--primary),var(--primary-300) 50%,var(--primary-100) 100%)"></div>
+@endif
 
 {{-- ── Content ────────────────────────────────────────────────
      Isi program disusun dari seksi. Tanpa sidebar, tiap seksi memakai
@@ -120,7 +133,7 @@
         </div>
     @endif
 
-    @include('partials.content-blocks', ['blocks' => $program->blocks, 'title' => $program->title, 'mode' => 'full'])
+    @include('partials.content-blocks', ['blocks' => $blocks, 'title' => $program->title, 'mode' => 'full', 'customBodies' => \App\Support\LandingBlocks::views()])
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14">
         <a href="{{ route('programs.index') }}" class="btn-outline group text-sm">
@@ -140,7 +153,7 @@
                 <p class="article-lead mb-6">{{ $program->excerpt }}</p>
             @endif
 
-            @include('partials.content-blocks', ['blocks' => $program->blocks, 'title' => $program->title, 'mode' => 'boxed'])
+            @include('partials.content-blocks', ['blocks' => $blocks, 'title' => $program->title, 'mode' => 'boxed', 'customBodies' => \App\Support\LandingBlocks::views()])
 
             {{-- Back --}}
             <div class="mt-8">
@@ -158,7 +171,7 @@
             <div class="sidebar-sticky space-y-4">
 
                 {{-- Table of contents — dipanen dari judul seksi & heading blok teks --}}
-                @php $headings = $program->content_headings; @endphp
+                @php $headings = \App\Support\ContentBlockText::headings($blocks); @endphp
                 @if(count($headings) > 1)
                     <div class="fi-card p-5">
                         <div class="flex items-center gap-2 mb-3">

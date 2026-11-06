@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Media;
 use App\Models\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -26,11 +27,14 @@ class HomePageContentTest extends TestCase
      */
     public function test_the_home_page_leaves_no_uncompiled_blade_directives(): void
     {
+        // Lightbox galeri hanya dicetak bila ada media yang tampil di galeri
+        Media::factory()->inGallery()->create();
+
         $html = $this->get(route('home'))->assertOk()->getContent();
 
         $this->assertStringNotContainsString('@js(', $html);
         $this->assertStringNotContainsString('@php', $html);
-        $this->assertStringContainsString('items: [', $html);
+        $this->assertStringContainsString("items: JSON.parse('[", $html);
     }
 
     public function test_it_shows_custom_section_headings_when_set(): void

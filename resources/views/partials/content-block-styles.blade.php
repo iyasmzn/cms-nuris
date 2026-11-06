@@ -211,4 +211,18 @@
         border-radius: .75rem; object-fit: contain;
         box-shadow: 0 24px 80px rgba(0,0,0,.6);
     }
+
+    /* ── Blok data (seksi halaman depan) ─────────────────────
+       Grid kartu dengan jumlah kolom pilihan admin ("Kartu Sebaris"):
+       ponsel 1 kartu (galeri 2), layar sedang paling banyak 2. */
+    .ldb-grid { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1fr); }
+    .ldb-grid-dense:not(.ldb-cols-1) { gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (min-width: 640px) {
+        .ldb-cols-2, .ldb-cols-3, .ldb-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (min-width: 1024px) {
+        .ldb-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .ldb-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    .ldb-narrow { max-width: 56rem; margin-left: auto; margin-right: auto; }
 </style>

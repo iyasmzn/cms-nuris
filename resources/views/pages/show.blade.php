@@ -11,7 +11,7 @@
     '@type'         => 'WebPage',
     'name'          => $page->title,
     'headline'      => $page->title,
-    'description'   => $page->seo_description,
+    'description'   => $seo['description'],
     'url'           => route('page.show', $page->slug),
     'image'         => $page->hero_cover->imageUrl(),
     'datePublished' => $page->created_at?->toIso8601String(),
@@ -104,9 +104,15 @@
 @section('content')
 
 {{-- ═══════════════════════════════════════════════════
-     HERO
+     HERO — standar (pita judul + breadcrumb) atau Hero Landing
 ═══════════════════════════════════════════════════ --}}
-@php $heroCover = $page->hero_cover; @endphp
+@php
+    $heroCover = $page->hero_cover;
+    $landingHero = $page->landing_hero;
+@endphp
+@if($landingHero)
+    @include('partials.landing-hero', ['landingHero' => $landingHero, 'heroCover' => $heroCover])
+@else
 <div class="page-hero page-band -mt-17">
     @if($heroCover->hasMedia())
         {{-- Cover pilihan admin: gambar, berkas video, atau video YouTube --}}
@@ -163,9 +169,9 @@
         </div>
     </div>
 </div>
-
-{{-- Amber accent bar --}}
-<div style="height:4px;background:linear-gradient(90deg,var(--primary),var(--primary-300) 50%,var(--primary-100) 100%)"></div>
+{{-- Tanpa garis aksen di bawahnya: pita membulat yang menjorok dari tepi layar
+     sudah menjadi batasnya, garis selebar layar justru mencuat di luar sudutnya. --}}
+@endif
 
 {{-- ═══════════════════════════════════════════════════
      CONTENT BODY
@@ -173,11 +179,15 @@
      lebar penuh layar seperti halaman depan; dengan sidebar, seksinya
      dikecilkan jadi kartu bersudut membulat di kolom kiri.
 ═══════════════════════════════════════════════════ --}}
-@php $hasBlocks = filled($page->blocks); @endphp
+@php
+    // $blocks disiapkan controller: blok data sudah berisi datanya, yang kosong dibuang
+    $hasBlocks = filled($blocks);
+    $blockBodies = \App\Support\LandingBlocks::views();
+@endphp
 
 @unless($page->show_sidebar)
     @if($hasBlocks)
-        @include('partials.content-blocks', ['blocks' => $page->blocks, 'title' => $page->title, 'mode' => 'full'])
+        @include('partials.content-blocks', ['blocks' => $blocks, 'title' => $page->title, 'mode' => 'full', 'customBodies' => $blockBodies])
     @else
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
             <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl" style="background:var(--primary-50);border:1px solid var(--primary-100)">📄</div>
@@ -195,7 +205,7 @@
         {{-- ── Main content ────────────────────────────────── --}}
         <article class="lg:col-span-3 min-w-0" data-aos="fade-up" data-aos-duration="500">
             @if($hasBlocks)
-                @include('partials.content-blocks', ['blocks' => $page->blocks, 'title' => $page->title, 'mode' => 'boxed'])
+                @include('partials.content-blocks', ['blocks' => $blocks, 'title' => $page->title, 'mode' => 'boxed', 'customBodies' => $blockBodies])
             @else
                 <div class="fi-card overflow-hidden">
                     <div style="height:3px;background:linear-gradient(90deg,var(--primary),var(--primary-300) 60%,transparent)"></div>
@@ -217,7 +227,7 @@
             <div class="sidebar-sticky space-y-4">
 
                 {{-- Table of contents — dipanen dari judul seksi & heading blok teks --}}
-                @php $headings = $page->content_headings; @endphp
+                @php $headings = \App\Support\ContentBlockText::headings($blocks); @endphp
                 @if(count($headings) > 1)
                     <div class="fi-card p-5">
                         <div class="flex items-center gap-2 mb-3">

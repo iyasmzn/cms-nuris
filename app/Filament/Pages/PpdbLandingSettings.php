@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Concerns\InteractsWithPageHero;
+use App\Filament\Schemas\LandingHeroFields;
 use App\Filament\Schemas\PageHeroFields;
 use App\Filament\Schemas\PpdbLandingBlocks;
 use App\Models\Setting;
@@ -10,11 +11,8 @@ use App\Support\PpdbLanding;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Filament\Schemas\Components\Fieldset;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -64,37 +62,18 @@ class PpdbLandingSettings extends Page
                 ->description('Bagian paling atas halaman. Gunakan {year} untuk tahun ajaran PPDB dan {site} untuk nama situs.')
                 ->icon(Heroicon::OutlinedSparkles)
                 ->schema([
-                    TextInput::make('hero.badge')
-                        ->label('Label Kecil')
-                        ->maxLength(80)
-                        ->placeholder('PPDB / SPMB {year}')
-                        ->helperText('Tampil di atas judul. Kosongkan untuk menyembunyikan.')
-                        ->columnSpanFull(),
-
-                    Grid::make(2)->schema([
-                        TextInput::make('hero.title')
-                            ->label('Judul')
-                            ->required()
-                            ->maxLength(120)
-                            ->placeholder('Penerimaan Peserta Didik Baru'),
-
-                        TextInput::make('hero.highlight')
-                            ->label('Teks Sorotan')
-                            ->maxLength(120)
-                            ->placeholder('Tahun Ajaran {year}')
-                            ->helperText('Baris kedua judul dengan warna aksen. Opsional.'),
-                    ]),
-
-                    Textarea::make('hero.subtitle')
-                        ->label('Deskripsi')
-                        ->rows(3)
-                        ->maxLength(400)
-                        ->columnSpanFull(),
-
-                    Grid::make(2)->schema([
-                        self::buttonFields('primary', 'Tombol Utama', 'Daftar Sekarang', '#jenjang'),
-                        self::buttonFields('secondary', 'Tombol Kedua', 'Cek Status Pendaftaran', '/ppdb/status'),
-                    ]),
+                    ...LandingHeroFields::textFields(
+                        placeholders: [
+                            'badge' => 'PPDB / SPMB {year}',
+                            'title' => 'Penerimaan Peserta Didik Baru',
+                            'highlight' => 'Tahun Ajaran {year}',
+                            'primary_label' => 'Daftar Sekarang',
+                            'primary_url' => '#jenjang',
+                            'secondary_label' => 'Cek Status Pendaftaran',
+                            'secondary_url' => '/ppdb/status',
+                        ],
+                        titleRequired: true,
+                    ),
                 ]),
 
             PageHeroFields::make('ppdb', 'Latar hero halaman /ppdb. Rasio 16:9, lebar optimal 1600px. Kosongkan untuk latar gradasi bawaan.'),
@@ -180,28 +159,5 @@ class PpdbLandingSettings extends Page
             'blocks' => PpdbLanding::sections(),
             'meta_description' => (string) Setting::get(PpdbLanding::META_SETTING, ''),
         ]);
-    }
-
-    private static function buttonFields(string $key, string $label, string $labelPlaceholder, string $urlPlaceholder): Fieldset
-    {
-        return Fieldset::make($label)
-            ->columns(1)
-            ->schema([
-                TextInput::make("hero.{$key}_label")
-                    ->label('Teks Tombol')
-                    ->maxLength(60)
-                    ->placeholder($labelPlaceholder)
-                    ->helperText('Kosongkan untuk menyembunyikan tombol ini.'),
-
-                TextInput::make("hero.{$key}_url")
-                    ->label('Tautan')
-                    ->maxLength(255)
-                    ->placeholder($urlPlaceholder)
-                    ->helperText('URL lengkap, path seperti /ppdb/status, atau anchor seksi seperti #jenjang.')
-                    ->rule('regex:/^(https?:\/\/|\/|#|mailto:|tel:)/')
-                    ->validationMessages([
-                        'regex' => 'Tautan harus diawali http://, https://, /, #, mailto:, atau tel:.',
-                    ]),
-            ]);
     }
 }
