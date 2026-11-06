@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\ContentBlockText;
+use App\Support\LandingHero;
 use App\Support\PageHero;
 use Database\Factories\StaticPageFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -42,24 +43,29 @@ class StaticPage extends Model
     }
 
     /**
-     * Ringkasan untuk meta description. Halaman yang tidak mengisi meta sendiri
-     * tetap mendapat deskripsi dari teks seksinya, bukan string kosong.
+     * Teks hero landing bila kepala halamannya memakai gaya "Hero Landing",
+     * atau null untuk kepala halaman standar.
      */
-    public function getSeoDescriptionAttribute(): string
+    public function getLandingHeroAttribute(): ?LandingHero
     {
-        return filled($this->meta_description)
-            ? $this->meta_description
-            : ContentBlockText::summary($this->blocks);
+        return LandingHero::isEnabled($this->hero)
+            ? LandingHero::fromArray($this->hero, (string) $this->title)
+            : null;
     }
 
     /**
-     * Judul seksi & heading di dalamnya, untuk daftar isi di sidebar.
+     * Ringkasan untuk meta description. Halaman yang tidak mengisi meta sendiri
+     * tetap mendapat deskripsi dari teks seksinya, bukan string kosong.
      *
-     * @return list<string>
+     * @param  array<int, mixed>|null  $blocks  seksi yang benar-benar tampil (hasil
+     *                                          LandingBlocks::prepare()), agar judul blok data
+     *                                          yang sedang kosong tidak ikut; bawaannya seksi tersimpan
      */
-    public function getContentHeadingsAttribute(): array
+    public function seoDescription(?array $blocks = null): string
     {
-        return ContentBlockText::headings($this->blocks);
+        return filled($this->meta_description)
+            ? $this->meta_description
+            : ContentBlockText::summary($blocks ?? $this->blocks);
     }
 
     /**

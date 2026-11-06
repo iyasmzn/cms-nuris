@@ -69,9 +69,22 @@ class ContentBlocks
      * @param  array<string, string>  $extraTypes  jenis blok khusus halaman pemanggil (kunci → label
      *                                             "emoji  Nama — penjelasan"), tampil di urutan teratas
      * @param  list<Component>  $extraFields  bidang milik jenis blok khusus; visibilitasnya diatur pemanggil
+     * @param  string|null  $extraTypesGroup  bila diisi, pilihan "Jenis Blok" dikelompokkan: blok isian
+     *                                        manual lebih dulu, lalu jenis khusus di bawah label ini
      */
-    public static function make(string $directory, bool $sections = false, array $extraTypes = [], array $extraFields = []): Repeater
+    public static function make(string $directory, bool $sections = false, array $extraTypes = [], array $extraFields = [], ?string $extraTypesGroup = null): Repeater
     {
+        $baseTypes = [
+            'rich_text' => '📄  Teks — paragraf, judul, daftar, tabel',
+            'image_cover' => '🖼️  Cover Image — satu gambar penuh lebar',
+            'image_carousel' => '🎠  Carousel — slider beberapa gambar',
+            'image_gallery' => '🖼️  Galeri — grid beberapa gambar',
+            'cta_button' => '🔘  Tombol CTA — tombol ajakan bertindak',
+            'media_text' => '📝  Gambar & Teks — gambar berdampingan teks',
+            'cards' => '🧩  Deretan Kartu — beberapa kartu dalam grid',
+            'cards_carousel' => '🎡  Carousel Kartu — kartu yang berjalan',
+        ];
+
         return Repeater::make('blocks')
             ->label('')
             // Satu bidang per baris: kartu blok memakai lebar formulir seutuhnya.
@@ -79,16 +92,9 @@ class ContentBlocks
             ->schema([
                 Select::make('type')
                     ->label('Jenis Blok')
-                    ->options($extraTypes + [
-                        'rich_text' => '📄  Teks — paragraf, judul, daftar, tabel',
-                        'image_cover' => '🖼️  Cover Image — satu gambar penuh lebar',
-                        'image_carousel' => '🎠  Carousel — slider beberapa gambar',
-                        'image_gallery' => '🖼️  Galeri — grid beberapa gambar',
-                        'cta_button' => '🔘  Tombol CTA — tombol ajakan bertindak',
-                        'media_text' => '📝  Gambar & Teks — gambar berdampingan teks',
-                        'cards' => '🧩  Deretan Kartu — beberapa kartu dalam grid',
-                        'cards_carousel' => '🎡  Carousel Kartu — kartu yang berjalan',
-                    ])
+                    ->options($extraTypesGroup !== null && $extraTypes !== []
+                        ? ['Isian Manual' => $baseTypes, $extraTypesGroup => $extraTypes]
+                        : $extraTypes + $baseTypes)
                     ->required()
                     ->default('rich_text')
                     ->live()

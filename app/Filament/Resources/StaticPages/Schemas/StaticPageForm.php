@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources\StaticPages\Schemas;
 
-use App\Filament\Schemas\ContentBlocks;
+use App\Filament\Schemas\LandingHeroFields;
 use App\Filament\Schemas\PageHeroFields;
+use App\Filament\Schemas\PageSectionBlocks;
 use App\Models\StaticPage;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -55,16 +56,18 @@ class StaticPageForm
                     ])
                     ->columns(2),
 
+                LandingHeroFields::section(),
+
                 PageHeroFields::make(
                     directory: 'pages/hero',
                     imageHint: 'Akan di-resize ke 1600×900px (16:9). Kosongkan untuk memakai latar gradasi bawaan.',
                 ),
 
                 Section::make('Isi Halaman')
-                    ->description('Halaman disusun dari seksi. Tiap seksi punya jenis isi, latar, dan jaraknya sendiri — seperti seksi di halaman depan. Seret untuk mengubah urutannya.')
+                    ->description('Halaman disusun dari seksi. Tiap seksi punya jenis isi, latar, dan jaraknya sendiri — seperti seksi di halaman depan. Selain isian manual, tersedia seksi data otomatis (Statistik, Program, Berita, Galeri, FAQ, Kontak, dll.) yang isinya ditarik dari menunya. Seret untuk mengubah urutannya.')
                     ->icon(Heroicon::OutlinedRectangleGroup)
                     ->schema([
-                        ContentBlocks::make('pages/blocks', sections: true),
+                        PageSectionBlocks::make('pages/blocks'),
                     ])
                     // Penyusun seksi butuh satu baris penuh; kartu lain tetap dua kolom
                     ->columnSpanFull(),

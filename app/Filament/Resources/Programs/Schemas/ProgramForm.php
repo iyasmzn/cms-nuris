@@ -3,8 +3,9 @@
 namespace App\Filament\Resources\Programs\Schemas;
 
 use App\Filament\Concerns\InteractsWithImagePicker;
-use App\Filament\Schemas\ContentBlocks;
+use App\Filament\Schemas\LandingHeroFields;
 use App\Filament\Schemas\PageHeroFields;
+use App\Filament\Schemas\PageSectionBlocks;
 use App\Models\Category;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -81,16 +82,18 @@ class ProgramForm
                     ])
                     ->columns(2),
 
+                LandingHeroFields::section(),
+
                 PageHeroFields::make(
                     directory: 'programs/hero',
                     imageHint: 'Akan di-resize ke 1600×900px (16:9). Kosongkan untuk memakai Gambar Program di atas.',
                 ),
 
                 Section::make('Isi Program')
-                    ->description('Halaman program disusun dari seksi. Tiap seksi punya jenis isi, latar, dan jaraknya sendiri — seperti seksi di halaman depan. Seret untuk mengubah urutannya.')
+                    ->description('Halaman program disusun dari seksi. Tiap seksi punya jenis isi, latar, dan jaraknya sendiri — seperti seksi di halaman depan. Selain isian manual, tersedia seksi data otomatis (Statistik, Program, Berita, Galeri, FAQ, Kontak, dll.) yang isinya ditarik dari menunya. Seret untuk mengubah urutannya.')
                     ->icon(Heroicon::OutlinedRectangleGroup)
                     ->schema([
-                        ContentBlocks::make('programs/blocks', sections: true),
+                        PageSectionBlocks::make('programs/blocks'),
                     ])
                     // Penyusun seksi butuh satu baris penuh; kartu lain tetap dua kolom
                     ->columnSpanFull(),

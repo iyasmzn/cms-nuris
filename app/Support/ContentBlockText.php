@@ -28,6 +28,7 @@ class ContentBlockText
 
             $parts[] = $block['eyebrow'] ?? null;
             $parts[] = $block['heading'] ?? null;
+            $parts[] = $block['intro'] ?? null;
             $parts[] = $block['content'] ?? null;
             $parts[] = $block['text'] ?? null;
             $parts[] = $block['caption'] ?? null;
