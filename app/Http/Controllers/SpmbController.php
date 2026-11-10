@@ -10,6 +10,7 @@ use App\Models\PpdbField;
 use App\Models\RegistrationPayment;
 use App\Models\RegistrationWave;
 use App\Models\SpmbRegistration;
+use App\Support\MetaPixel;
 use App\Support\PageHero;
 use App\Support\PpdbLanding;
 use Illuminate\Contracts\Cache\LockTimeoutException;
@@ -172,6 +173,13 @@ class SpmbController extends Controller
         if ($registration === null) {
             return back()->withInput()->with('error', $institution->resolvedQuotaFullMessage());
         }
+
+        // Counted as a Lead on whichever page the pendaftar lands on next. It
+        // carries the jenjang only — never anything typed into the formulir.
+        MetaPixel::queueEvent('Lead', [
+            'content_name' => $institution->name,
+            'content_category' => 'PPDB',
+        ], route('ppdb.show', $institution));
 
         // A jenjang that charges a fee sends the pendaftar straight to their
         // tagihan; everyone else stays on the PPDB page with a confirmation.

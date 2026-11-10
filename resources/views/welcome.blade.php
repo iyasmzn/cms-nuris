@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     @include('partials.gtm-head')
+    @include('partials.meta-pixel-head')
     @php
         // Homepage SEO — dedicated meta overrides fall back to global identity settings.
         $siteName  = setting('site_name', config('app.name', "Qurrota A'yun"));
@@ -297,6 +298,7 @@
       @endif>
 
     @include('partials.gtm-body')
+    @include('partials.meta-pixel-body')
 
     {{-- Navbar — transparent over hero, solid on scroll --}}
     <x-navbar :over-hero="true" />

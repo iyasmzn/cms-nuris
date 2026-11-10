@@ -97,4 +97,70 @@ class IntegrationSettingsTest extends TestCase
 
         $this->assertNull(Setting::get('gtm_container_id'));
     }
+
+    public function test_admin_can_save_the_meta_pixel_id_via_panel(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(IntegrationSettings::class)
+            ->fillForm([
+                'meta_pixel_enabled' => true,
+                'meta_pixel_id' => ' 1234567890123456 ',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertTrue((bool) Setting::get('meta_pixel_enabled'));
+        $this->assertSame('1234567890123456', Setting::get('meta_pixel_id'));
+    }
+
+    public function test_a_saved_meta_pixel_id_is_shown_again_in_the_panel(): void
+    {
+        Setting::setMany([
+            'meta_pixel_enabled' => '1',
+            'meta_pixel_id' => '1234567890123456',
+        ]);
+
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(IntegrationSettings::class)
+            ->assertSchemaStateSet([
+                'meta_pixel_enabled' => true,
+                'meta_pixel_id' => '1234567890123456',
+            ]);
+    }
+
+    public function test_a_pasted_pixel_script_is_rejected_as_a_pixel_id(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(IntegrationSettings::class)
+            ->fillForm([
+                'meta_pixel_enabled' => true,
+                'meta_pixel_id' => "<script>fbq('init', '1234567890123456');</script>",
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['meta_pixel_id' => 'regex']);
+
+        $this->assertNull(Setting::get('meta_pixel_id'));
+    }
+
+    public function test_the_meta_pixel_id_is_required_once_the_pixel_is_enabled(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(IntegrationSettings::class)
+            ->fillForm([
+                'meta_pixel_enabled' => true,
+                'meta_pixel_id' => '',
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['meta_pixel_id' => 'required']);
+
+        $this->assertNull(Setting::get('meta_pixel_enabled'));
+    }
 }

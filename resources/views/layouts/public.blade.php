@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     @include('partials.gtm-head')
+    @include('partials.meta-pixel-head')
 
     {{-- ── Core SEO ────────────────────────────────────────── --}}
     <title>{{ $seo['title'] ?? setting('site_name', config('app.name')) }}</title>
@@ -197,6 +198,7 @@
 <body class="page-inset min-h-screen antialiased overflow-x-clip">
 
     @include('partials.gtm-body')
+    @include('partials.meta-pixel-body')
 
     {{-- Navbar — transparent over hero, solid on scroll --}}
     <x-navbar />
