@@ -49,6 +49,10 @@ class IntegrationSettings extends Page
             // Google Tag Manager
             'gtm_enabled' => (bool) Setting::get('gtm_enabled', false),
             'gtm_container_id' => Setting::get('gtm_container_id'),
+
+            // Meta Pixel
+            'meta_pixel_enabled' => (bool) Setting::get('meta_pixel_enabled', false),
+            'meta_pixel_id' => Setting::get('meta_pixel_id'),
         ]);
     }
 
@@ -76,6 +80,8 @@ class IntegrationSettings extends Page
             $this->turnstileSection(),
 
             $this->googleTagManagerSection(),
+
+            $this->metaPixelSection(),
 
         ]);
     }
@@ -117,7 +123,7 @@ class IntegrationSettings extends Page
     private function googleTagManagerSection(): Section
     {
         return Section::make('Google Tag Manager')
-            ->description('Wadah script pelacakan (Google Analytics 4, tag konversi Google Ads, Meta Pixel). Dipasang sekali di sini, alat pelacaknya diatur dari dashboard GTM tanpa mengubah kode. Dapatkan Container ID dari tagmanager.google.com → Workspace → Admin.')
+            ->description('Wadah script pelacakan (Google Analytics 4, tag konversi Google Ads). Dipasang sekali di sini, alat pelacaknya diatur dari dashboard GTM tanpa mengubah kode. Dapatkan Container ID dari tagmanager.google.com → Workspace → Admin. Meta Pixel punya bagian sendiri di bawah — jangan dipasang lagi lewat GTM.')
             ->icon(Heroicon::OutlinedChartBar)
             ->schema([
                 Toggle::make('gtm_enabled')
@@ -137,6 +143,34 @@ class IntegrationSettings extends Page
                     ->rule('regex:/^GTM-[A-Za-z0-9]{4,}$/i')
                     ->validationMessages(['regex' => 'Container ID harus berformat GTM-XXXXXXX.'])
                     ->hint('Format GTM-XXXXXXX. Selama kosong atau tidak valid, script tidak dimuat sama sekali.')
+                    ->columnSpanFull(),
+            ]);
+    }
+
+    private function metaPixelSection(): Section
+    {
+        return Section::make('Meta Pixel (Iklan Facebook & Instagram)')
+            ->description('Menghitung pengunjung dan pendaftar yang datang dari iklan Meta. Yang tercatat: PageView di setiap halaman publik, Lead saat pendaftaran PPDB berhasil tersimpan (hanya nama jenjang, tanpa data pendaftar), dan Contact saat tautan chat WhatsApp diklik. Dapatkan Pixel ID dari Meta Events Manager → Sumber data → pilih pixel/dataset.')
+            ->icon(Heroicon::OutlinedMegaphone)
+            ->schema([
+                Toggle::make('meta_pixel_enabled')
+                    ->label('Aktifkan Meta Pixel')
+                    ->helperText('Script hanya dimuat di halaman publik. Panel admin dan halaman status PPDB bertanda tangan tidak memuat pixel; pendaftaran yang dialihkan ke halaman status tetap tercatat sebagai Lead tanpa membawa link rahasianya.')
+                    ->onColor('success')
+                    ->offColor('danger')
+                    ->live()
+                    ->columnSpanFull(),
+
+                TextInput::make('meta_pixel_id')
+                    ->label('Pixel ID')
+                    ->placeholder('1234567890123456')
+                    ->visible(fn (Get $get): bool => (bool) $get('meta_pixel_enabled'))
+                    ->required(fn (Get $get): bool => (bool) $get('meta_pixel_enabled'))
+                    ->trim()
+                    ->maxLength(30)
+                    ->rule('regex:/^\d{10,20}$/')
+                    ->validationMessages(['regex' => 'Pixel ID hanya berisi angka (biasanya 15–16 digit), misalnya 1234567890123456.'])
+                    ->hint('Isi ID-nya saja, bukan kode script. Di Events Manager, biarkan "Pencocokan lanjutan otomatis" (Automatic Advanced Matching) nonaktif: form PPDB berisi data pribadi anak.')
                     ->columnSpanFull(),
             ]);
     }
@@ -232,6 +266,12 @@ class IntegrationSettings extends Page
         $toSave['gtm_container_id'] = blank($data['gtm_container_id'] ?? null)
             ? null
             : strtoupper(trim($data['gtm_container_id']));
+
+        // Meta Pixel
+        $toSave['meta_pixel_enabled'] = $data['meta_pixel_enabled'] ?? false;
+        $toSave['meta_pixel_id'] = blank($data['meta_pixel_id'] ?? null)
+            ? null
+            : trim($data['meta_pixel_id']);
 
         Setting::setMany($toSave);
 
