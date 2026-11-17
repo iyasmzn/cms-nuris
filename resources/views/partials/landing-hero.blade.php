@@ -11,6 +11,8 @@
 --}}
 @php
     $poster = $poster ?? null;
+    // CSS kustom per elemen dari panel; ditaruh paling akhir di atribut style agar menang
+    $css = fn (string $target): string => $landingHero->css[$target] ?? '';
 @endphp
 
 @once
@@ -56,21 +58,25 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="landing-hero-copy text-white pointer-events-auto" data-aos="fade-up">
                 @if($landingHero->badge !== '')
-                    <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-md px-4 py-1.5 rounded-full mb-6">
+                    {{-- Gaya teks ada di pembungkus agar CSS kustomnya mengenai pita sekaligus teksnya --}}
+                    <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-md px-4 py-1.5 rounded-full mb-6 text-white/80 text-xs font-semibold tracking-wider uppercase"
+                         @if($css('badge') !== '') style="{{ $css('badge') }}" @endif>
                         <span class="w-2 h-2 rounded-full animate-pulse" style="background:var(--primary-400)"></span>
-                        <span class="text-white/80 text-xs font-semibold tracking-wider uppercase">{{ $landingHero->badge }}</span>
+                        <span>{{ $landingHero->badge }}</span>
                     </div>
                 @endif
 
-                <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight mb-5">
+                <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight mb-5"
+                    @if($css('title') !== '') style="{{ $css('title') }}" @endif>
                     {{ $landingHero->title }}
                     @if($landingHero->highlight !== '')
-                        <span class="block" style="color:var(--primary-300)">{{ $landingHero->highlight }}</span>
+                        <span class="block" style="color:var(--primary-300);{{ $css('highlight') }}">{{ $landingHero->highlight }}</span>
                     @endif
                 </h1>
 
                 @if($landingHero->subtitle !== '')
-                    <p class="landing-hero-lead text-white/75 text-base sm:text-lg leading-relaxed max-w-xl font-light">
+                    <p class="landing-hero-lead text-white/75 text-base sm:text-lg leading-relaxed max-w-xl font-light"
+                       @if($css('subtitle') !== '') style="{{ $css('subtitle') }}" @endif>
                         {{ $landingHero->subtitle }}
                     </p>
                 @endif
@@ -82,9 +88,10 @@
                                @if($button['external']) target="_blank" rel="noopener" @endif
                                @if($button['primary'])
                                    class="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold hover:opacity-90 transition-all shadow-xl text-sm"
-                                   style="background:var(--primary-400);color:var(--primary-900)"
+                                   style="background:var(--primary-400);color:var(--primary-900);{{ $button['css'] }}"
                                @else
                                    class="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-white/10 border border-white/25 backdrop-blur-sm font-semibold hover:bg-white/20 transition-all text-sm"
+                                   @if($button['css'] !== '') style="{{ $button['css'] }}" @endif
                                @endif>
                                 {{ $button['label'] }}
                                 @if($button['primary'])
