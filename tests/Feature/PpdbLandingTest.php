@@ -377,6 +377,36 @@ class PpdbLandingTest extends TestCase
             ->assertSeeInOrder(['Jadwal Gelombang', 'SMA Contoh', 'Gelombang Perdana SMA']);
     }
 
+    public function test_hero_texts_carry_their_custom_css(): void
+    {
+        Setting::set(PpdbLanding::HERO_SETTING, json_encode([
+            'badge' => 'PPDB {year}',
+            'title' => 'Penerimaan Peserta Didik Baru',
+            'highlight' => 'Tahun Ajaran {year}',
+            'subtitle' => 'Daftar mudah, banyak jalur beasiswa.',
+            'primary_label' => 'Mulai Daftar',
+            'primary_url' => '#jalur',
+            'secondary_label' => 'Cek Status',
+            'secondary_url' => '/ppdb/status',
+            'badge_css' => 'color: #fff;',
+            'title_css' => 'font-size: clamp(2rem, 6vw, 5rem);',
+            'highlight_css' => 'color: #34d399;',
+            'subtitle_css' => 'max-width: none;',
+            'primary_css' => 'background: #10b981;',
+            'secondary_css' => 'border-radius: 0; } <b>',
+        ]));
+
+        $this->get(route('ppdb.index'))
+            ->assertOk()
+            ->assertSee('style="color: #fff;"', false)
+            ->assertSee('style="font-size: clamp(2rem, 6vw, 5rem);"', false)
+            ->assertSee('style="color: #34d399;"', false)
+            ->assertSee('style="max-width: none;"', false)
+            ->assertSee('style="background: #10b981;"', false)
+            // Kurung kurawal dan tag dibuang sebelum masuk atribut style
+            ->assertSee('style="border-radius: 0; b"', false);
+    }
+
     public function test_meta_description_can_be_customized(): void
     {
         Setting::set(PpdbLanding::META_SETTING, 'Pendaftaran santri baru dibuka.');

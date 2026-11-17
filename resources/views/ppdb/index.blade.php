@@ -192,11 +192,14 @@
     $heroBadge = $fill($hero['badge'] ?? '');
     $heroHighlight = $fill($hero['highlight'] ?? '');
     $heroSubtitle = $fill($hero['subtitle'] ?? '');
+    // CSS kustom per elemen dari panel; ditaruh paling akhir di atribut style agar menang
+    $heroCss = fn (string $target): string => \App\Support\LandingHero::customCss($hero, $target);
     $heroButtons = collect(['primary', 'secondary'])
         ->map(fn (string $key): array => [
             'label' => $fill($hero["{$key}_label"] ?? ''),
             'url' => trim((string) ($hero["{$key}_url"] ?? '')),
             'primary' => $key === 'primary',
+            'css' => $heroCss($key),
         ])
         ->filter(fn (array $button): bool => $button['label'] !== '' && $button['url'] !== '');
 @endphp
@@ -211,21 +214,24 @@
 
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 z-10 text-center" data-aos="fade-up">
         @if($heroBadge !== '')
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 mb-5">
+            {{-- Gaya teks ada di pembungkus agar CSS kustomnya mengenai pita sekaligus teksnya --}}
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 mb-5 text-xs font-bold text-amber-300 uppercase tracking-widest"
+                 @if($heroCss('badge') !== '') style="{{ $heroCss('badge') }}" @endif>
                 <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                <span class="text-xs font-bold text-amber-300 uppercase tracking-widest">{{ $heroBadge }}</span>
+                <span>{{ $heroBadge }}</span>
             </div>
         @endif
 
-        <h1 class="display-title text-white mb-4">
+        <h1 class="display-title text-white mb-4" @if($heroCss('title') !== '') style="{{ $heroCss('title') }}" @endif>
             {{ $heroTitle }}
             @if($heroHighlight !== '')
-                <br><span class="text-amber-400">{{ $heroHighlight }}</span>
+                <br><span class="text-amber-400" @if($heroCss('highlight') !== '') style="{{ $heroCss('highlight') }}" @endif>{{ $heroHighlight }}</span>
             @endif
         </h1>
 
         @if($heroSubtitle !== '')
-            <p class="text-white/75 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">{{ $heroSubtitle }}</p>
+            <p class="text-white/75 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto"
+               @if($heroCss('subtitle') !== '') style="{{ $heroCss('subtitle') }}" @endif>{{ $heroSubtitle }}</p>
         @endif
 
         @if($heroButtons->isNotEmpty())
@@ -233,7 +239,8 @@
                 @foreach($heroButtons as $button)
                     @php $isExternal = \Illuminate\Support\Str::startsWith($button['url'], ['http://', 'https://']); @endphp
                     <a href="{{ $button['url'] }}" @if($isExternal) target="_blank" rel="noopener" @endif
-                       class="ppdb-hero-btn {{ $button['primary'] ? 'ppdb-hero-btn-primary' : 'ppdb-hero-btn-ghost' }}">
+                       class="ppdb-hero-btn {{ $button['primary'] ? 'ppdb-hero-btn-primary' : 'ppdb-hero-btn-ghost' }}"
+                       @if($button['css'] !== '') style="{{ $button['css'] }}" @endif>
                         {{ $button['label'] }}
                         @if($button['primary'])
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>

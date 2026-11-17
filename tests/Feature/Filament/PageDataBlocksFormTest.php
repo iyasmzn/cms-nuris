@@ -8,6 +8,7 @@ use App\Filament\Resources\StaticPages\Pages\EditStaticPage;
 use App\Models\Program;
 use App\Models\StaticPage;
 use App\Support\LandingHero;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -125,7 +126,92 @@ class PageDataBlocksFormTest extends TestCase
         $this->assertSame('Sejak 1980', $landingHero->highlight);
         $this->assertSame('center', $landingHero->align);
         $this->assertSame('full', $landingHero->size);
-        $this->assertSame([['label' => 'Daftar Sekarang', 'url' => '/ppdb', 'primary' => true, 'external' => false]], $landingHero->buttons);
+        $this->assertSame([['label' => 'Daftar Sekarang', 'url' => '/ppdb', 'primary' => true, 'external' => false, 'css' => '']], $landingHero->buttons);
+    }
+
+    public function test_each_landing_hero_text_gets_custom_css_from_its_css_modal(): void
+    {
+        $page = StaticPage::factory()->create(['hero' => null]);
+
+        Livewire::actingAs($this->panelUser('StaticPage'))
+            ->test(EditStaticPage::class, ['record' => $page->id])
+            ->fillForm([
+                'hero' => [
+                    'layout' => LandingHero::LAYOUT_LANDING,
+                    'media_type' => 'image',
+                    'title' => 'Membangun Generasi Qurani',
+                    'primary_label' => 'Daftar Sekarang',
+                    'primary_url' => '/ppdb',
+                ],
+            ])
+            ->assertActionHasColor(TestAction::make('titleCss')->schemaComponent('hero.title'), 'gray')
+            ->callAction(TestAction::make('titleCss')->schemaComponent('hero.title'), [
+                'css' => "font-size: clamp(2rem, 6vw, 5rem);\n   color: #fde68a;",
+            ])
+            ->assertHasNoActionErrors()
+            ->assertFormSet(['hero.title_css' => 'font-size: clamp(2rem, 6vw, 5rem); color: #fde68a;'])
+            ->assertActionHasColor(TestAction::make('titleCss')->schemaComponent('hero.title'), 'primary')
+            ->callAction(TestAction::make('primaryCss')->schemaComponent('hero.primary_label'), ['css' => 'border-radius: 0;'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $landingHero = $page->refresh()->landing_hero;
+
+        $this->assertSame('font-size: clamp(2rem, 6vw, 5rem); color: #fde68a;', $landingHero?->css['title']);
+        $this->assertSame('', $landingHero?->css['badge']);
+        $this->assertSame('border-radius: 0;', $landingHero?->buttons[0]['css']);
+    }
+
+    public function test_css_modal_opens_with_the_saved_css_and_can_clear_it(): void
+    {
+        $page = StaticPage::factory()->create([
+            'hero' => ['layout' => LandingHero::LAYOUT_LANDING, 'media_type' => 'image', 'subtitle_css' => 'color: #fff;'],
+        ]);
+
+        Livewire::actingAs($this->panelUser('StaticPage'))
+            ->test(EditStaticPage::class, ['record' => $page->id])
+            ->mountAction(TestAction::make('subtitleCss')->schemaComponent('hero.subtitle'))
+            ->assertActionDataSet(['css' => 'color: #fff;'])
+            ->setActionData(['css' => ''])
+            ->callMountedAction()
+            ->assertFormSet(['hero.subtitle_css' => ''])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('', $page->refresh()->landing_hero?->css['subtitle']);
+    }
+
+    public function test_css_modal_rejects_selectors_and_tags(): void
+    {
+        $page = StaticPage::factory()->create(['hero' => ['layout' => LandingHero::LAYOUT_LANDING, 'media_type' => 'image']]);
+
+        Livewire::actingAs($this->panelUser('StaticPage'))
+            ->test(EditStaticPage::class, ['record' => $page->id])
+            ->callAction(TestAction::make('badgeCss')->schemaComponent('hero.badge'), [
+                'css' => 'color: red; } body { display: none',
+            ])
+            ->assertHasActionErrors(['css' => 'regex'])
+            ->assertFormSet(['hero.badge_css' => null]);
+    }
+
+    public function test_custom_css_is_cleaned_before_it_is_saved(): void
+    {
+        $page = StaticPage::factory()->create(['hero' => null]);
+
+        // Nilai yang lolos tanpa modal (mis. state Livewire diutak-atik) tetap dibersihkan
+        Livewire::actingAs($this->panelUser('StaticPage'))
+            ->test(EditStaticPage::class, ['record' => $page->id])
+            ->fillForm([
+                'hero' => [
+                    'layout' => LandingHero::LAYOUT_LANDING,
+                    'media_type' => 'image',
+                    'highlight_css' => "color: red; }\n</style><script>",
+                ],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('color: red; /stylescript', $page->refresh()->hero['highlight_css']);
     }
 
     public function test_landing_hero_button_link_must_be_a_safe_url(): void

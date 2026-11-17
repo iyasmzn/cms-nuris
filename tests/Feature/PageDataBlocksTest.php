@@ -338,6 +338,66 @@ class PageDataBlocksTest extends TestCase
         $this->assertFalse(LandingHero::isEnabled(null));
     }
 
+    public function test_landing_hero_texts_carry_their_custom_css(): void
+    {
+        $page = StaticPage::factory()->create([
+            'hero' => [
+                'layout' => LandingHero::LAYOUT_LANDING,
+                'badge' => 'Selamat Datang',
+                'title' => 'Membangun Generasi Qurani',
+                'highlight' => 'Sejak 1980',
+                'subtitle' => 'Pesantren dengan program tahfidz unggulan.',
+                'primary_label' => 'Daftar Sekarang',
+                'primary_url' => '/ppdb',
+                'secondary_label' => 'Hubungi Kami',
+                'secondary_url' => '#kontak',
+                'badge_css' => 'background: #065f46;',
+                'title_css' => 'font-family: "Playfair Display", serif;',
+                'highlight_css' => 'color: #fde68a;',
+                'subtitle_css' => 'font-size: 1.25rem;',
+                'primary_css' => 'border-radius: 0;',
+                'secondary_css' => 'border-width: 2px;',
+            ],
+        ]);
+
+        $this->get(route('page.show', $page->slug))
+            ->assertOk()
+            ->assertSee('style="background: #065f46;"', false)
+            ->assertSee('style="font-family: &quot;Playfair Display&quot;, serif;"', false)
+            // CSS kustom menyusul gaya bawaan agar menang
+            ->assertSee('style="color:var(--primary-300);color: #fde68a;"', false)
+            ->assertSee('style="font-size: 1.25rem;"', false)
+            ->assertSee('style="background:var(--primary-400);color:var(--primary-900);border-radius: 0;"', false)
+            ->assertSee('style="border-width: 2px;"', false);
+    }
+
+    public function test_custom_css_cannot_break_out_of_the_style_attribute(): void
+    {
+        $page = StaticPage::factory()->create([
+            'hero' => [
+                'layout' => LandingHero::LAYOUT_LANDING,
+                'subtitle' => 'Deskripsi',
+                'subtitle_css' => 'color: red;" onmouseover="alert(1)"><script>alert(2)</script>',
+            ],
+        ]);
+
+        $this->get(route('page.show', $page->slug))
+            ->assertOk()
+            ->assertSee('style="color: red;&quot; onmouseover=&quot;alert(1)&quot;scriptalert(2)/script"', false)
+            ->assertDontSee('<script>alert(2)', false)
+            ->assertDontSee('onmouseover="alert(1)"', false);
+    }
+
+    public function test_custom_css_is_sanitized_for_the_style_attribute(): void
+    {
+        $this->assertSame('color: red; body display: none', LandingHero::sanitizeCss("  color: red; }\n\n body { display: none  "));
+        $this->assertSame('', LandingHero::sanitizeCss(null));
+        $this->assertSame('', LandingHero::sanitizeCss(['color: red']));
+        $this->assertSame(LandingHero::CSS_MAX_LENGTH, mb_strlen(LandingHero::sanitizeCss(str_repeat('a', 900))));
+        $this->assertSame('color: red;', LandingHero::customCss(['title_css' => ' color: red; '], 'title'));
+        $this->assertSame('', LandingHero::customCss(null, 'title'));
+    }
+
     public function test_program_can_use_the_landing_hero(): void
     {
         $program = Program::factory()->create([

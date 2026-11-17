@@ -49,7 +49,25 @@ final readonly class LandingHero
     ];
 
     /**
-     * @param  list<array{label: string, url: string, primary: bool, external: bool}>  $buttons
+     * Elemen hero yang bisa diberi CSS kustom → label di panel. Nilainya
+     * tersimpan di kunci `{elemen}_css`, mis. `title_css`.
+     *
+     * @var array<string, string>
+     */
+    public const CSS_TARGETS = [
+        'badge' => 'Label Kecil',
+        'title' => 'Judul',
+        'highlight' => 'Teks Sorotan',
+        'subtitle' => 'Deskripsi',
+        'primary' => 'Tombol Utama',
+        'secondary' => 'Tombol Kedua',
+    ];
+
+    public const CSS_MAX_LENGTH = 500;
+
+    /**
+     * @param  list<array{label: string, url: string, primary: bool, external: bool, css: string}>  $buttons
+     * @param  array<string, string>  $css  CSS kustom per elemen (kunci dari CSS_TARGETS)
      */
     public function __construct(
         public string $badge,
@@ -59,7 +77,34 @@ final readonly class LandingHero
         public array $buttons,
         public string $align,
         public string $size,
+        public array $css = [],
     ) {}
+
+    /**
+     * Deklarasi CSS kustom yang aman ditaruh di atribut `style`: tanpa
+     * kurung kurawal maupun tanda < >, spasi dirapikan, dan dibatasi panjangnya.
+     */
+    public static function sanitizeCss(mixed $css): string
+    {
+        if (! is_string($css)) {
+            return '';
+        }
+
+        $css = str_replace(['{', '}', '<', '>'], '', $css);
+        $css = trim((string) preg_replace('/\s+/', ' ', $css));
+
+        return mb_substr($css, 0, self::CSS_MAX_LENGTH);
+    }
+
+    /**
+     * CSS kustom satu elemen hero dari data mentah `hero`.
+     *
+     * @param  array<string, mixed>|null  $hero
+     */
+    public static function customCss(?array $hero, string $target): string
+    {
+        return self::sanitizeCss($hero["{$target}_css"] ?? null);
+    }
 
     /**
      * Apakah record memilih kepala halaman "Hero Landing".
@@ -94,6 +139,7 @@ final readonly class LandingHero
                     'url' => $url,
                     'primary' => $key === 'primary',
                     'external' => Str::startsWith($url, ['http://', 'https://']),
+                    'css' => self::customCss($hero, $key),
                 ];
             }
         }
@@ -110,6 +156,10 @@ final readonly class LandingHero
             buttons: $buttons,
             align: isset(self::ALIGNMENTS[$align]) ? $align : 'left',
             size: isset(self::SIZES[$size]) ? $size : 'lg',
+            css: array_map(
+                fn (string $target): string => self::customCss($hero, $target),
+                array_combine(array_keys(self::CSS_TARGETS), array_keys(self::CSS_TARGETS)),
+            ),
         );
     }
 }

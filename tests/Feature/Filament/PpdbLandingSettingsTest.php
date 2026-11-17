@@ -7,6 +7,7 @@ use App\Models\Institution;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\PpdbLanding;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
@@ -117,6 +118,28 @@ class PpdbLandingSettingsTest extends TestCase
         $this->assertSame(PpdbLanding::AUTO_COLUMNS, $sections[2]['institutions_columns']);
         $this->assertSame('Pendaftaran dibuka.', Setting::get(PpdbLanding::META_SETTING));
         $this->assertTrue(PpdbLanding::isCustomized());
+    }
+
+    public function test_hero_texts_get_custom_css_from_their_css_modals(): void
+    {
+        $admin = User::factory()->create()->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(PpdbLandingSettings::class)
+            ->callAction(TestAction::make('badgeCss')->schemaComponent('hero.badge'), ['css' => 'color: #fff;'])
+            ->assertHasNoActionErrors()
+            ->callAction(TestAction::make('secondaryCss')->schemaComponent('hero.secondary_label'), ['css' => "border-radius: 0;\nborder-width: 2px;"])
+            ->assertHasNoActionErrors()
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $hero = json_decode((string) Setting::get(PpdbLanding::HERO_SETTING), true);
+
+        $this->assertSame('color: #fff;', $hero['badge_css']);
+        $this->assertSame('border-radius: 0; border-width: 2px;', $hero['secondary_css']);
+        $this->assertSame('', $hero['title_css']);
+        // Teks hero bawaan tetap tersimpan
+        $this->assertSame('Penerimaan Peserta Didik Baru', $hero['title']);
     }
 
     public function test_timeline_points_need_a_title(): void
